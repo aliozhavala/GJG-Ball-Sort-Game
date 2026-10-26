@@ -25,10 +25,14 @@ Optimize for clarity, clean architecture, and robustness over cleverness.
 - **Run** = the contiguous same-color, **revealed** balls at the top of a tube. Hidden balls are never part of a run.
 - **Move** source → target is legal when:
   - source ≠ target, source has ≥1 revealed ball on top, source is not completed and not locked;
-  - target is not locked, has free space, and is empty **or** its top ball has the run's color.
+  - target is not locked, has free space, and is empty **or** its top ball is **revealed** and has the run's color. (Requiring the target's top to be revealed is unreachable in normal play — balls arriving on a tube are always revealed — but it stops corrupt level data from producing a move that stacks onto a colour the player cannot see.)
 - **Moved count** = `min(runLength, target.FreeSpace)` (partial moves allowed, water-sort style).
 - **Reveal**: after a move, the new top ball of the source tube becomes revealed. At level start, every tube's top ball must be revealed (loader enforces this).
 - **Undo** restores ball positions; revealed balls **stay revealed** (information already gained is not taken back).
+  - Undo is a **booster with a charge count** (generous, not an economy — this is a case study). Each undo spends one charge.
+  - **A move that completes a tube cannot be undone.** The tube is finalized (corked) and never returns to an unfinished state. Because undo is LIFO, such a move **seals the history**: every move at or before it is permanently non-undoable. Moves made *after* it are undoable again, down to that seal.
+  - Undo is therefore blocked for exactly three reasons: no moves left, the next move to undo is sealed by a tube completion, or no charges left. The UI should be able to tell them apart.
+- **Restart** reloads the level from its source data, **with hidden balls hidden again**. It is *not* "undo everything" — see the undo rules above.
 - **Tube completed** = full (`Count == Capacity`) and single color. Completed tubes cannot be a move source.
 - **Level won** = every tube is either empty or completed.
 - **Input UX**: tap a tube to select (its run lifts); tap it again to deselect; tap another tube to move. If the move is illegal, play invalid-move feedback and clear the selection (never auto-select the tapped tube; the player selects again).
@@ -42,7 +46,7 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - **Tests** (`BallSort.Tests.EditMode`): tests Core.
 
 ### Patterns
-- **Command**: every move is a `MoveCommand` (`Execute`/`Undo`) kept in a `CommandHistory`. Undo and restart build on it.
+- **Command**: every move is a `MoveCommand` (`Execute`/`Undo`) kept in a `CommandHistory`, which owns the undo charges and the completion seal. Restart does **not** build on it — restart reloads the level.
 - **Observer**: Core raises plain C# events (`MoveApplied`, `BallRevealed`, `TubeCompleted`, `LevelCompleted`, `MoveUndone`). Views, audio, haptics and UI subscribe. Always unsubscribe in `OnDisable`/`OnDestroy`. Avoid Inspector-wired UnityEvent chains for game logic.
 - **State machine**: game flow (`Loading → Playing → Won → Transition`) and input selection state.
 - **Object pooling**: balls and VFX via `UnityEngine.Pool.ObjectPool<T>`. No `Instantiate`/`Destroy` per move.
@@ -61,7 +65,7 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - **Editor-only level jump:** a developer tool to pick and play any level (1–100) from the Editor, for testing and tuning. It must not ship in player builds (`#if UNITY_EDITOR` or the Editor assembly).
 
 ### File format
-One JSON file per level: `Assets/_Project/Data/Levels/level_001.json` … `level_100.json`, referenced in order by `LevelDatabase`.
+One JSON file per level: `Assets/Data/Levels/level_001.json` … `level_100.json`, referenced in order by `LevelDatabase`.
 Ball arrays run **bottom → top**. `hidden` is optional and parallel to `balls`. `lock` is optional (only if the locked-tube mechanic is adopted).
 
 ```json
@@ -88,20 +92,24 @@ Loader validates: each color's total ball count fills tubes exactly; no tube ove
 - Product teammate curates the final 100 and hand-authors tutorial levels for each mechanic.
 
 ## Folder structure
+Project folders live **directly under `Assets/`**, alongside `Plugins/`. (There is no `_Project/`
+wrapper: the only third-party asset is DOTween, and it is already quarantined in `Plugins/`, so the
+extra nesting level buys nothing here.)
 ```
 Assets/
-  _Project/
-    Scripts/
-      Core/          BallSort.Core.asmdef  (Model/, Rules/, Commands/, Solver/, Levels/)
-      Game/          BallSort.Game.asmdef  (Bootstrap/, Flow/, Views/, Input/, Layout/, UI/, Audio/, Services/)
-      Editor/        BallSort.Editor.asmdef (LevelGenerator/, Validation/)
-    Tests/EditMode/  BallSort.Tests.EditMode.asmdef
-    Art/             Sprites/, Atlases/, Materials/, VFX/
-    Audio/
-    Data/            Config/ (ScriptableObjects), Levels/ (*.json), LevelDatabase.asset
-    Prefabs/
-    Scenes/          Main.unity
+  Scripts/
+    Core/            BallSort.Core.asmdef  (Model/, Rules/, Commands/, Solver/, Levels/)
+    Game/            BallSort.Game.asmdef  (Bootstrap/, Flow/, Views/, Input/, Layout/, UI/, Audio/, Services/)
+    Editor/          BallSort.Editor.asmdef (LevelGenerator/, Validation/)
+  Tests/EditMode/    BallSort.Tests.EditMode.asmdef
+  Art/               Sprites/, Atlases/, Materials/, VFX/
+  Audio/
+  Data/              Config/ (ScriptableObjects), Levels/ (*.json), LevelDatabase.asset
+  Prefabs/
+  Scenes/            Main.unity
   Plugins/           third-party (DOTween) — do not modify
+  Resources/         DOTweenSettings.asset only — DOTween loads it by name, leave it here
+  Settings/          URP render pipeline assets (from the 2D template)
 ```
 
 ## Coding conventions
@@ -123,7 +131,13 @@ Assets/
 - Keep changes small and commit-sized. Don't rewrite working code for style alone.
 
 ## Open decisions (update as they're settled)
-- Second (and third) mechanic: variable capacity? locked tubes (unlock condition)? other?
-- Undo limit / boosters (extra tube, hint) — free or limited?
+- Second (and third) mechanic: variable capacity? locked tubes? other?
+  - If **locked tubes** are adopted, each level that uses them must also provide the in-level unlock
+    condition that makes it solvable. There are no permanently-locked tubes. The unlock trigger is
+    not designed yet, so `Tube.IsLocked` is currently a plain flag with no unlock logic in Core.
+- Boosters (extra tube, hint) — not designed. Undo is settled: charge-based, generous count, no economy.
+- Should a tube that completes while still holding hidden balls reveal them? (Possible: the balls under
+  a revealed top can be hidden *and* the same color, so a push can cork a tube the player can't verify.
+  Core currently implements the literal rule — full + single color, hidden or not.)
 - Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size, colorblind patterns.
 - Difficulty curve shape and mechanic introduction levels (product).

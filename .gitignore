@@ -107,3 +107,19 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# ---------------------------------------------------------------------------
+# Project-specific additions (see CLAUDE.md). Everything above this line is the
+# stock github/gitignore Unity.gitignore — keep it that way so it stays easy to
+# re-sync upstream.
+# ---------------------------------------------------------------------------
+
+# Unity Version Control / Plastic SCM (com.unity.collab-proxy is installed)
+.plastic/
+
+# JetBrains Rider / IntelliJ project-local settings
+.idea/
+
+# Per-assembly build intermediates. The stock rule is /[Oo]bj/, anchored at the
+# repo root, which misses the obj/ folders generated next to each .asmdef.
+[Oo]bj/

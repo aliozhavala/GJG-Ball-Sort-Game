@@ -1,0 +1,19 @@
+{
+    "name": "BallSort.Editor",
+    "rootNamespace": "BallSort.Editor",
+    "references": [
+        "BallSort.Core",
+        "BallSort.Game"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
