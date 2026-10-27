@@ -26,6 +26,10 @@ namespace BallSort.Game.Views
         [Header("Hidden balls")]
         [SerializeField] private Sprite _hiddenSprite;
         [SerializeField] private Color _hiddenTint = new Color(0.35f, 0.35f, 0.4f);
+        [Tooltip("Drawn over a hidden ball (the \"?\").")]
+        [SerializeField] private Sprite _hiddenMarkSprite;
+        [Tooltip("Width of the hidden mark as a fraction of the ball's diameter.")]
+        [SerializeField, Range(0.1f, 1f)] private float _hiddenMarkSize = 0.55f;
 
         /// <summary>How many colour ids this palette can draw.</summary>
         public int Count => _entries.Length;
@@ -33,6 +37,10 @@ namespace BallSort.Game.Views
         public Sprite HiddenSprite => _hiddenSprite != null ? _hiddenSprite : _defaultSprite;
 
         public Color HiddenTint => _hiddenTint;
+
+        public Sprite HiddenMarkSprite => _hiddenMarkSprite;
+
+        public float HiddenMarkSize => _hiddenMarkSize;
 
         public Sprite GetSprite(int colorId)
         {

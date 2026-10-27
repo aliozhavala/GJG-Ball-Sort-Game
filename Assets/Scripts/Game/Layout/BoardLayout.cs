@@ -10,7 +10,8 @@ namespace BallSort.Game.Layout
     /// <remarks>
     /// Lives on the board root. Tubes are placed in unscaled board space, centred on the root; the
     /// root is then uniformly scaled and moved so the whole board fits both the width and the height
-    /// of the safe area minus the HUD margins. Re-fits whenever the screen changes, so rotating a
+    /// of the space left by the HUD (the board area rect, or the safe area minus the margin
+    /// fractions). Re-fits whenever the screen changes, so rotating a
     /// device or switching Game view aspect ratios in the Editor needs no reload.
     /// </remarks>
     public sealed class BoardLayout : MonoBehaviour
@@ -18,14 +19,21 @@ namespace BallSort.Game.Layout
         [SerializeField] private Camera _camera;
 
         [Header("Margins")]
-        [Tooltip("Fraction of the safe-area height kept free at the top for the HUD.")]
+        [Tooltip("Fraction of the safe-area height kept free at the top for the HUD, when no board area is set.")]
         [SerializeField, Range(0f, 0.4f)] private float _topMargin = 0.14f;
-        [Tooltip("Fraction of the safe-area height kept free at the bottom for boosters.")]
+        [Tooltip("Fraction of the safe-area height kept free at the bottom for boosters, when no board area is set.")]
         [SerializeField, Range(0f, 0.4f)] private float _bottomMargin = 0.12f;
         [Tooltip("World units kept free at the left and right edges.")]
         [SerializeField, Min(0f)] private float _sidePadding = 0.25f;
         [Tooltip("Upper bound on scale so a small level does not fill the screen with giant tubes.")]
         [SerializeField, Min(0.1f)] private float _maxScale = 1.1f;
+
+        [Header("HUD")]
+        [Tooltip("Optional UI rect marking the space between the top HUD and the booster bar. When set, the " +
+                 "board fits vertically inside it instead of using the margin fractions.")]
+        [SerializeField] private RectTransform _boardArea;
+
+        private readonly Vector3[] _corners = new Vector3[4];
 
         private Vector2 _boardSize;
         private bool _hasBoard;
@@ -72,24 +80,51 @@ namespace BallSort.Game.Layout
             Fit();
         }
 
-        /// <summary>Scales and centres the board root inside the current screen's safe area.</summary>
+        /// <summary>
+        /// Scales and centres the board root on the current screen: inside the board area rect when
+        /// one is set, otherwise inside the safe area minus the margin fractions.
+        /// </summary>
         public void Fit()
         {
             _lastSafeArea = Screen.safeArea;
             _lastScreenSize = new Vector2Int(Screen.width, Screen.height);
             _lastOrthographicSize = _camera.orthographicSize;
-            FitTo(_lastScreenSize, _lastSafeArea);
+
+            if (_boardArea == null)
+            {
+                FitTo(_lastScreenSize, _lastSafeArea);
+                return;
+            }
+
+            // The HUD's share of the screen changes with the aspect ratio (the canvas scaler matches
+            // width and height halfway), so fixed fractions cannot keep the board clear of it on
+            // every device; the UI's own rect can.
+            Canvas.ForceUpdateCanvases();
+            Vector2 areaMin = UiToWorld(_boardArea, corner: 0);
+            Vector2 areaMax = UiToWorld(_boardArea, corner: 2);
+            FitWithin(_lastScreenSize, _lastSafeArea, areaMin.y, areaMax.y);
         }
 
         /// <summary>
         /// Scales and centres the board root inside <paramref name="safeArea"/> of a screen of
-        /// <paramref name="screenSize"/> pixels, below/above the HUD margins.
+        /// <paramref name="screenSize"/> pixels, below/above the HUD margin fractions (the board area
+        /// rect only describes the current screen, so it is not used here).
         /// </summary>
         /// <remarks>
         /// Takes the screen explicitly (rather than reading <see cref="Screen"/>) so other aspect
         /// ratios can be checked from editor tooling without resizing the Game view.
         /// </remarks>
         public void FitTo(Vector2 screenSize, Rect safeArea)
+        {
+            Vector2 min = ScreenToWorld(safeArea.min, screenSize);
+            Vector2 max = ScreenToWorld(safeArea.max, screenSize);
+            float safeHeight = max.y - min.y;
+            FitWithin(screenSize, safeArea, min.y + safeHeight * _bottomMargin, max.y - safeHeight * _topMargin);
+        }
+
+        /// <param name="bottom">World y of the lowest point the board may use.</param>
+        /// <param name="top">World y of the highest point the board may use.</param>
+        private void FitWithin(Vector2 screenSize, Rect safeArea, float bottom, float top)
         {
             if (!_hasBoard)
             {
@@ -98,14 +133,13 @@ namespace BallSort.Game.Layout
 
             Vector2 min = ScreenToWorld(safeArea.min, screenSize);
             Vector2 max = ScreenToWorld(safeArea.max, screenSize);
-            float safeHeight = max.y - min.y;
 
             float left = min.x + _sidePadding;
             float right = max.x - _sidePadding;
-            float bottom = min.y + safeHeight * _bottomMargin;
-            float top = max.y - safeHeight * _topMargin;
 
-            float scale = Mathf.Min((right - left) / _boardSize.x, (top - bottom) / _boardSize.y, _maxScale);
+            // Floor: a screen too short for the HUD must not flip the board with a negative scale.
+            float scale = Mathf.Max(0.01f,
+                Mathf.Min((right - left) / _boardSize.x, (top - bottom) / _boardSize.y, _maxScale));
             transform.localScale = new Vector3(scale, scale, 1f);
             transform.position = new Vector3((left + right) * 0.5f, (bottom + top) * 0.5f, transform.position.z);
         }
@@ -119,6 +153,19 @@ namespace BallSort.Game.Layout
             return new Vector2(
                 centre.x + (pixel.x / screenSize.x - 0.5f) * worldWidth,
                 centre.y + (pixel.y / screenSize.y - 0.5f) * worldHeight);
+        }
+
+        /// <summary>World position of one of a UI rect's corners (0 = bottom-left, 2 = top-right) on the current screen.</summary>
+        private Vector2 UiToWorld(RectTransform rect, int corner)
+        {
+            Canvas canvas = rect.GetComponentInParent<Canvas>();
+            Camera uiCamera = canvas == null || canvas.rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay
+                ? null
+                : canvas.rootCanvas.worldCamera;
+
+            rect.GetWorldCorners(_corners);
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(uiCamera, _corners[corner]);
+            return ScreenToWorld(screen, new Vector2(Screen.width, Screen.height));
         }
 
         private static float RowWidth(int tubeCount, TubeVisualConfig config) =>

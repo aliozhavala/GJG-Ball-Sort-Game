@@ -36,7 +36,7 @@ namespace BallSort.Game.Services
             string json = PlayerPrefs.GetString(PrefsKey, string.Empty);
             if (string.IsNullOrEmpty(json))
             {
-                return new PlayerData(SaveData.CreateDefault(_economy));
+                return new PlayerData(SaveData.CreateDefault(_economy), _levelCount);
             }
 
             SaveData save;
@@ -47,17 +47,17 @@ namespace BallSort.Game.Services
             catch (JsonException e)
             {
                 Debug.LogWarning($"Save is unreadable and was reset: {e.Message}");
-                return new PlayerData(SaveData.CreateDefault(_economy));
+                return new PlayerData(SaveData.CreateDefault(_economy), _levelCount);
             }
 
             if (save == null || save.Version > CurrentVersion || save.Version < 1)
             {
                 Debug.LogWarning($"Save version {save?.Version} is not supported by this build and was reset.");
-                return new PlayerData(SaveData.CreateDefault(_economy));
+                return new PlayerData(SaveData.CreateDefault(_economy), _levelCount);
             }
 
             // Version 1 is the only format so far; migrations from older versions go here.
-            return new PlayerData(Sanitize(save));
+            return new PlayerData(Sanitize(save), _levelCount);
         }
 
         /// <summary>Writes <paramref name="player"/> and flushes PlayerPrefs to disk.</summary>

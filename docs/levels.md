@@ -23,6 +23,9 @@ Ball arrays run **bottom → top**. `hidden` is optional and parallel to `balls`
 }
 ```
 
+Every shipped tube has capacity 4 (design decision, see CLAUDE.md; `ShippedLevelTests` enforces it). The format and
+validator still accept other capacities so a special tube can be added later without a format change.
+
 Loader validates: each color's total ball count fills tubes exactly; no tube over capacity; top balls revealed; level solvable (editor-time check).
 
 - "Fills tubes exactly", made precise for variable capacity: every colour `0..colors-1` appears, and a colour with `k` balls needs its own tube of capacity exactly `k` (per capacity `k`: colours with `k` balls ≤ tubes of capacity `k`).
@@ -32,6 +35,10 @@ Loader validates: each color's total ball count fills tubes exactly; no tube ove
 - Opening position (checked only once the structure is valid): no tube already completed, the level not already won, and at least one legal move.
 - All problems are reported at once, each as `<level>: <location>: <problem>`, e.g. `level_003: tubes[2]: top ball is hidden`.
 - Split: Core owns the DTOs, `LevelValidator`, `LevelLayout` and `LevelFactory` (no serializer dependency); `LevelJsonParser` lives in its own engine-free assembly, `BallSort.LevelJson` (Core + Newtonsoft), so Game, Editor and Tests share it without depending on each other.
+
+Current files (`level_001`–`level_006`) are placeholders until the generator lands. `level_006` is a deliberate
+stuck trap (tube 2 → 5, then 1 → 2, counting from 1) so the stuck / Play on flow can be tested; keep an equivalent
+when the set is replaced.
 
 ### Solver and generator
 - **Solver** (Core): BFS / A* over board states using the **same `MoveRules` as the game** (single source of truth), with full knowledge of hidden colors but honoring hidden flags for run building.

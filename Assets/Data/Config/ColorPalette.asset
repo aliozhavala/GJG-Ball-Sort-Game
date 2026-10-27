@@ -40,3 +40,5 @@ MonoBehaviour:
     _tint: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
   _hiddenSprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
   _hiddenTint: {r: 0.32, g: 0.33, b: 0.38, a: 1}
+  _hiddenMarkSprite: {fileID: 21300000, guid: 23592f0fd163465418a00eaae762c45a, type: 3}
+  _hiddenMarkSize: 0.55

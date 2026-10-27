@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
 using BallSort.Core.Levels;
+using BallSort.Core.Player;
+using BallSort.Core.Session;
 using BallSort.LevelJson;
 using NUnit.Framework;
 using UnityEngine;
@@ -42,6 +44,33 @@ namespace BallSort.Tests.EditMode
 
                 Assert.That(name, Is.EqualTo($"level_{level.Source.Id:000}"), $"{name} has id {level.Source.Id}.");
             }
+        }
+
+        /// <summary>
+        /// Design decision (CLAUDE.md): every tube holds four balls. A smaller tube can be corked
+        /// with part of a colour, stranding the rest. Relax this deliberately if a special tube is added.
+        /// </summary>
+        [TestCaseSource(nameof(LevelFiles))]
+        public void LevelFile_UsesOnlyCapacityFourTubes(string path)
+        {
+            LoadedLevel level = LoadFile(Path.GetFileName(path));
+
+            foreach (TubeDto tube in level.Source.Tubes)
+            {
+                Assert.That(tube.Capacity, Is.EqualTo(4), $"{Path.GetFileName(path)} has a tube of capacity {tube.Capacity}.");
+            }
+        }
+
+        [Test]
+        public void Level006_CanGetStuckInTwoMoves()
+        {
+            // The placeholder "stuck trap" that makes the stuck / Play on flow reachable in play.
+            var session = new LevelSession(LoadFile("level_006.json"), new BoosterInventory(0, 0, 0), addedTubeCapacity: 4);
+
+            session.TryMove(1, 4, out _);
+            session.TryMove(0, 1, out _);
+
+            Assert.That(session.IsStuck, Is.True);
         }
 
         [Test]

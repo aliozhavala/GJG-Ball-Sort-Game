@@ -13,7 +13,7 @@ Read this when working on UI, scene flow, boosters, or player data. All UI is pl
 ## Persistent player data (one save, survives scenes and restarts)
 | Field | Start value | Notes |
 |---|---|---|
-| CurrentLevel | 1 | Advances on win. After level 100 is won: stays 100, `AllLevelsComplete = true`. |
+| CurrentLevel | 1 | Advances when the current level is won. After level 100 is won: stays 100, `AllLevelsComplete = true`. Replays (level 100 after the run, editor override) pay the reward but never move progress. |
 | Coins | 1000 | +20 per win. Play on costs 900. |
 | Lives | 5 | Display only for now. |
 | Boosters: Undo / Shuffle / AddTube | 99 / 99 / 99 | Global totals, spent in any level, no refills. |
@@ -21,7 +21,7 @@ Read this when working on UI, scene flow, boosters, or player data. All UI is pl
 
 All numbers live in an `EconomyConfig` ScriptableObject, not in code. Progress and rewards are saved **at the moment of the win**, before any celebration or panel.
 
-**Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveService.CurrentVersion` and add a migration when the shape changes. Editor reset: **Ball Sort ▸ Reset Save** (disabled in Play mode).
+**Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveService.CurrentVersion` and add a migration when the shape changes. Editor tools: **Ball Sort ▸ Reset Save** (disabled in Play mode) and **Ball Sort ▸ Player Data…** (set coins, lives and booster counts; edits the save in Edit mode, the live player in Play mode).
 
 ## Home screen
 - **Top bar:** avatar (top-left), lives `♥ 5` and coins `● 1000` between the corners, settings icon (top-right).
@@ -34,6 +34,10 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code. Progress a
 - **Top-left:** settings icon. **Top-center:** `Level N`. No avatar, coins, or lives here.
 - **Middle:** the board (tubes laid out by level rows).
 - **Bottom:** booster bar — Undo, Shuffle, Add tube — each with its remaining count.
+- **Input:** tap a tube to select it (its run lifts above the glass), tap it again to deselect, tap another tube to
+  move. An illegal move, or a tap on a tube that can't be selected, plays invalid-move feedback and clears the
+  selection. Tapping empty space deselects. The selection is also dropped on undo, add tube, Play on, restart,
+  entering/leaving stuck and the win.
 - Settings popup (Level): Sound, Music, Haptics toggles + **Restart** + **Home**. Gameplay input is blocked while it is open.
 
 ### Boosters
@@ -51,8 +55,8 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code. Progress a
 ### Stuck (no legal moves and not won)
 - Checked after every move, undo, and added tube.
 - Show **"No available moves"** text above the board (does not cover or block the tubes).
-- Booster bar disabled (boosters cannot be used while stuck).
-- Two buttons side by side at the bottom: **Give up** and **Play on — 900 ●**.
+- Booster bar hidden (boosters cannot be used while stuck); tubes can still be selected.
+- Two buttons side by side in the booster bar's place: **Give up** and **Play on — 900 ●**.
   - Play on: spend 900 coins, add one empty capacity-4 tube, leave the stuck state.
   - Play on is disabled (still showing its price) if coins < 900 or the board already has 18 tubes. Give up is then the only choice.
 

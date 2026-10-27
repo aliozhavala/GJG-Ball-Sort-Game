@@ -4,7 +4,7 @@ using UnityEngine;
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// Motion timings and eases. Placeholder values until the animation pass (roadmap step 3).
+    /// Motion timings and eases. Placeholder values until the animation pass (roadmap step 6).
     /// </summary>
     [CreateAssetMenu(fileName = "AnimationConfig", menuName = "Ball Sort/Animation Config")]
     public sealed class AnimationConfig : ScriptableObject
@@ -27,6 +27,10 @@ namespace BallSort.Game.Views
         [SerializeField, Min(0f)] private float _invalidShakeStrength = 0.12f;
         [SerializeField, Min(0f)] private float _capDropDuration = 0.2f;
 
+        [Header("Win")]
+        [Tooltip("How long the celebration plays before the Win panel opens.")]
+        [SerializeField, Min(0f)] private float _celebrationDuration = 1f;
+
         public float LiftDuration => _liftDuration;
         public Ease LiftEase => _liftEase;
         public float FlyDuration => _flyDuration;
@@ -38,5 +42,6 @@ namespace BallSort.Game.Views
         public float InvalidShakeDuration => _invalidShakeDuration;
         public float InvalidShakeStrength => _invalidShakeStrength;
         public float CapDropDuration => _capDropDuration;
+        public float CelebrationDuration => _celebrationDuration;
     }
 }

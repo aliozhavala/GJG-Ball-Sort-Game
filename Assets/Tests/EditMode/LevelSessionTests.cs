@@ -73,6 +73,45 @@ namespace BallSort.Tests.EditMode
             Assert.That(session.IsWon, Is.True);
         }
 
+        [Test]
+        public void Changed_FiresOnceAfterAMoveWithTheSealAlreadyRecorded()
+        {
+            LevelSession session = Start(Level(2, T(2, 0, 1), T(2, 1, 0), T(2), T(1)));
+            var log = new List<string>();
+            session.MoveApplied += _ => log.Add($"MoveApplied:{session.UndoBlockReason}");
+            session.Changed += () => log.Add($"Changed:{session.UndoBlockReason}");
+
+            session.TryMove(0, 3, out _);   // colour 1 corks the capacity-1 tube 3
+
+            Assert.That(log, Is.EqualTo(new[]
+            {
+                "MoveApplied:NoMovesToUndo",   // mid-operation: the history has not recorded the move yet
+                "Changed:SealedByTubeCompletion",
+            }));
+        }
+
+        [Test]
+        public void Changed_FiresAfterUndoAddTubePlayOnAndRestart_ButNotAfterARefusal()
+        {
+            LevelSession session = Start(OneMoveFromStuck());
+            var changes = 0;
+            session.Changed += () => changes++;
+
+            session.TryMove(0, 1, out _);                         // refused: tube 1 is full
+            Assert.That(changes, Is.EqualTo(0));
+
+            session.TryMove(0, 3, out _);                         // move, now stuck
+            session.TryPlayOn(new Wallet(PlayOnPrice), PlayOnPrice, out _);
+            session.TryAddTube(out _);
+            session.Restart();
+            session.TryMove(0, 2, out _);   // tube 2 is full
+            session.TryAddTube(out _);
+            session.TryMove(0, 4, out _);
+            session.TryUndo(out _);
+
+            Assert.That(changes, Is.EqualTo(7));
+        }
+
         // --- Undo ------------------------------------------------------------------------------
 
         [Test]
@@ -383,6 +422,132 @@ namespace BallSort.Tests.EditMode
 
             Assert.That(session.IsStuck, Is.False);
             Assert.That(log, Is.EqualTo(new[] { "Restarted", "StuckChanged(False)" }));
+        }
+
+        // --- Play on ---------------------------------------------------------------------------
+
+        private const int PlayOnPrice = 900;
+
+        /// <summary>
+        /// <see cref="OneMoveFromStuck"/> padded with fourteen full, mixed, inert tubes to the
+        /// 18-tube limit, so once it is stuck there is no room for another tube.
+        /// </summary>
+        private static LevelDto OneMoveFromStuckWithAFullLayout()
+        {
+            LevelDto level = OneMoveFromStuck();
+            int colors = level.Colors;
+            for (int pair = 0; pair < 7; pair++, colors += 2)
+            {
+                level.Tubes.Add(T(2, colors, colors + 1));
+                level.Tubes.Add(T(2, colors + 1, colors));
+            }
+
+            level.Colors = colors;
+            return level;
+        }
+
+        [Test]
+        public void TryPlayOn_WhileStuck_ChargesAddsATubeAndClearsStuck()
+        {
+            LevelSession session = Start(OneMoveFromStuck());
+            session.TryMove(0, 3, out _);
+            var wallet = new Wallet(1000);
+            var log = new List<string>();
+            session.TubeAdded += e => log.Add($"TubeAdded({e.TubeIndex})");
+            session.StuckChanged += stuck => log.Add($"StuckChanged({stuck})");
+
+            Assert.That(session.TryPlayOn(wallet, PlayOnPrice, out PlayOnBlockReason reason), Is.True);
+
+            Assert.That(reason, Is.EqualTo(PlayOnBlockReason.None));
+            Assert.That(wallet.Coins, Is.EqualTo(100));
+            Assert.That(session.Board.TubeCount, Is.EqualTo(5));
+            Assert.That(session.Board[4].Capacity, Is.EqualTo(AddedCapacity));
+            Assert.That(session.Rows, Is.EqualTo(new[] { 5 }));
+            Assert.That(session.IsStuck, Is.False);
+            Assert.That(log, Is.EqualTo(new[] { "TubeAdded(4)", "StuckChanged(False)" }));
+        }
+
+        [Test]
+        public void TryPlayOn_IgnoresTheBoosterInventoryAndTheHistory()
+        {
+            var boosters = new BoosterInventory(undo: 0, shuffle: 0, addTube: 0);
+            LevelSession session = Start(OneMoveFromStuck(), boosters);
+            session.TryMove(0, 3, out _);
+
+            Assert.That(session.TryPlayOn(new Wallet(PlayOnPrice), PlayOnPrice, out _), Is.True);
+
+            Assert.That(boosters.GetCount(BoosterType.AddTube), Is.EqualTo(0));
+            Assert.That(session.MoveCount, Is.EqualTo(1), "Play on is not a move");
+        }
+
+        [Test]
+        public void TryPlayOn_WhenNotStuck_IsRefusedAndChargesNothing()
+        {
+            LevelSession session = Start(Valid());
+            var wallet = new Wallet(1000);
+
+            Assert.That(session.TryPlayOn(wallet, PlayOnPrice, out PlayOnBlockReason reason), Is.False);
+
+            Assert.That(reason, Is.EqualTo(PlayOnBlockReason.NotStuck));
+            Assert.That(wallet.Coins, Is.EqualTo(1000));
+            Assert.That(session.Board.TubeCount, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void TryPlayOn_WithoutEnoughCoins_IsRefusedAndStaysStuck()
+        {
+            LevelSession session = Start(OneMoveFromStuck());
+            session.TryMove(0, 3, out _);
+            var wallet = new Wallet(PlayOnPrice - 1);
+
+            Assert.That(session.TryPlayOn(wallet, PlayOnPrice, out PlayOnBlockReason reason), Is.False);
+
+            Assert.That(reason, Is.EqualTo(PlayOnBlockReason.NotEnoughCoins));
+            Assert.That(wallet.Coins, Is.EqualTo(PlayOnPrice - 1));
+            Assert.That(session.Board.TubeCount, Is.EqualTo(4));
+            Assert.That(session.IsStuck, Is.True);
+        }
+
+        [Test]
+        public void TryPlayOn_WithAFullLayout_IsRefusedAsNoRoom()
+        {
+            LevelSession session = Start(OneMoveFromStuckWithAFullLayout());
+            session.TryMove(0, 3, out _);
+            Assert.That(session.IsStuck, Is.True, "test setup: the padded board is stuck");
+            Assert.That(session.Board.TubeCount, Is.EqualTo(LevelLayout.MaxTubes), "test setup: the board is full");
+            var wallet = new Wallet(0);
+
+            Assert.That(session.TryPlayOn(wallet, PlayOnPrice, out PlayOnBlockReason reason), Is.False);
+
+            Assert.That(reason, Is.EqualTo(PlayOnBlockReason.NoRoom), "no room outranks the coin shortage");
+            Assert.That(session.Board.TubeCount, Is.EqualTo(LevelLayout.MaxTubes));
+        }
+
+        [Test]
+        public void GetPlayOnBlockReason_FollowsTheWallet()
+        {
+            LevelSession session = Start(OneMoveFromStuck());
+            session.TryMove(0, 3, out _);
+            var wallet = new Wallet(PlayOnPrice - 1);
+            Assert.That(session.GetPlayOnBlockReason(wallet, PlayOnPrice), Is.EqualTo(PlayOnBlockReason.NotEnoughCoins));
+
+            wallet.Add(1);
+
+            Assert.That(session.GetPlayOnBlockReason(wallet, PlayOnPrice), Is.EqualTo(PlayOnBlockReason.None));
+        }
+
+        // --- Selection -------------------------------------------------------------------------
+
+        [Test]
+        public void CanSelect_OnlyTubesThatCanStartAMove()
+        {
+            LevelSession session = Start(OneMoveFromWin());
+            Assert.That(session.CanSelect(0), Is.True);
+
+            session.TryMove(0, 1, out _);
+
+            Assert.That(session.CanSelect(0), Is.False, "empty");
+            Assert.That(session.CanSelect(1), Is.False, "completed");
         }
 
         // --- Restart ---------------------------------------------------------------------------

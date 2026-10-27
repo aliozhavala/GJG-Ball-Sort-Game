@@ -19,6 +19,7 @@ namespace BallSort.Game.Views
 
         private readonly List<BallView> _balls = new List<BallView>();
         private TubeVisualConfig _config;
+        private int _liftedCount;
 
         /// <summary>Board index of the tube this view shows.</summary>
         public int TubeIndex { get; private set; }
@@ -34,6 +35,7 @@ namespace BallSort.Game.Views
         {
             TubeIndex = tubeIndex;
             _config = config;
+            _liftedCount = 0;
 
             float height = config.TubeHeight(capacity);
             var bodySize = new Vector2(config.TubeWidth, height);
@@ -50,22 +52,76 @@ namespace BallSort.Game.Views
             _tapTarget.offset = new Vector2(0f, tapHeight * 0.5f);
         }
 
-        /// <summary>Places <paramref name="ball"/> in the next free slot.</summary>
+        /// <summary>
+        /// Puts <paramref name="ball"/> in the next free slot. Any lifted balls drop back first, so
+        /// lifted balls are always the top of the tube.
+        /// </summary>
         public void AddBall(BallView ball)
         {
+            Lower();
+            int slot = _balls.Count;
             ball.transform.SetParent(_ballRoot, false);
-            ball.transform.localPosition = new Vector3(0f, _config.SlotY(_balls.Count), 0f);
+            ball.AssignSlot(TubeIndex, slot);
+            ball.SetRaised(false, _front.sortingLayerID, _front.sortingOrder);
+            ball.MoveTo(SlotPosition(slot));
             _balls.Add(ball);
+        }
+
+        /// <summary>
+        /// Removes the top <paramref name="count"/> balls and appends them to
+        /// <paramref name="into"/>, topmost first. They stay parented here until added elsewhere.
+        /// </summary>
+        public void TakeTop(int count, List<BallView> into)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                int top = _balls.Count - 1;
+                into.Add(_balls[top]);
+                _balls.RemoveAt(top);
+            }
+
+            _liftedCount = Mathf.Max(0, _liftedCount - count);
+        }
+
+        /// <summary>
+        /// Raises the top <paramref name="count"/> balls (the selected run) by the lift offset and
+        /// draws them above the glass. Lowers any previous lift first.
+        /// </summary>
+        public void Lift(int count)
+        {
+            Lower();
+            _liftedCount = Mathf.Min(count, _balls.Count);
+            var offset = new Vector3(0f, _config.LiftHeight, 0f);
+            for (int slot = _balls.Count - _liftedCount; slot < _balls.Count; slot++)
+            {
+                _balls[slot].SetRaised(true, _front.sortingLayerID, _front.sortingOrder);
+                _balls[slot].MoveTo(SlotPosition(slot) + offset);
+            }
+        }
+
+        /// <summary>Drops any lifted balls back into their slots.</summary>
+        public void Lower()
+        {
+            for (int slot = _balls.Count - _liftedCount; slot < _balls.Count; slot++)
+            {
+                _balls[slot].SetRaised(false, _front.sortingLayerID, _front.sortingOrder);
+                _balls[slot].MoveTo(SlotPosition(slot));
+            }
+
+            _liftedCount = 0;
         }
 
         /// <summary>Hands every ball back to the caller (for pooling) and empties the tube.</summary>
         public void TakeAllBalls(List<BallView> into)
         {
+            Lower();
             into.AddRange(_balls);
             _balls.Clear();
         }
 
         public void SetCapVisible(bool visible) => _cap.enabled = visible && _cap.sprite != null;
+
+        private Vector3 SlotPosition(int slot) => new Vector3(0f, _config.SlotY(slot), 0f);
 
         private static void ApplySprite(
             SpriteRenderer renderer, Sprite sprite, Color tint, Vector2 size, Vector3 localPosition)

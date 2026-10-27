@@ -1,19 +1,24 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using BallSort.Core.Levels;
 using BallSort.Core.Model;
 using BallSort.Core.Session;
 using BallSort.Game.Layout;
 using UnityEngine;
 using UnityEngine.Pool;
+using Debug = UnityEngine.Debug;
 
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// Builds the on-screen board for a level from pooled tube and ball views.
+    /// Shows a <see cref="LevelSession"/>'s board from pooled tube and ball views, and keeps it in
+    /// step with the session's events.
     /// </summary>
     /// <remarks>
-    /// Tubes and balls are pooled so moving between levels (and, later, restart) never instantiates
-    /// or destroys anything once the pools are warm.
+    /// The board is built in full only when the level loads and when it restarts; every other event
+    /// changes just the views it touches (balls change tubes, a ball turns face up, a cap appears,
+    /// a tube is appended). Tubes and balls are pooled, so nothing is instantiated or destroyed
+    /// once the pools are warm.
     /// </remarks>
     [RequireComponent(typeof(BoardLayout))]
     public sealed class BoardView : MonoBehaviour
@@ -27,39 +32,85 @@ namespace BallSort.Game.Views
         [SerializeField] private Transform _poolRoot;
 
         private readonly List<TubeView> _tubes = new List<TubeView>();
-        private readonly List<BallView> _releaseBuffer = new List<BallView>();
+        private readonly List<BallView> _ballBuffer = new List<BallView>();
         private ObjectPool<TubeView> _tubePool;
         private ObjectPool<BallView> _ballPool;
+        private LevelSession _session;
+        private int _maxCapacity;
+        private int _liftedTube = -1;
 
         /// <summary>Tube views in board order; index matches the board's tube index.</summary>
         public IReadOnlyList<TubeView> Tubes => _tubes;
 
+        /// <summary>Shows <paramref name="session"/>'s board and follows its events until destroyed.</summary>
+        public void Initialize(LevelSession session)
+        {
+            Unsubscribe();
+            _session = session;
+            _session.MoveApplied += OnMoveApplied;
+            _session.MoveUndone += OnMoveUndone;
+            _session.BallRevealed += OnBallRevealed;
+            _session.TubeCompleted += OnTubeCompleted;
+            _session.TubeAdded += OnTubeAdded;
+            _session.Restarted += Rebuild;
+            Rebuild();
+        }
+
         /// <summary>
-        /// Clears any previous board and shows the session's current board. Call again after the
-        /// session restarts, since restart swaps in a new board.
+        /// Lifts the selected tube's run, or lowers the previous one when <paramref name="tubeIndex"/>
+        /// is negative.
         /// </summary>
-        public void Build(LevelSession session)
+        public void ShowSelection(int tubeIndex)
+        {
+            if (_liftedTube >= 0 && _liftedTube < _tubes.Count)
+            {
+                _tubes[_liftedTube].Lower();
+            }
+
+            _liftedTube = tubeIndex;
+            if (tubeIndex >= 0)
+            {
+                _tubes[tubeIndex].Lift(_session.Board[tubeIndex].RunLength);
+            }
+        }
+
+        /// <summary>Returns every tube and ball to the pools.</summary>
+        public void Clear()
+        {
+            foreach (TubeView tube in _tubes)
+            {
+                tube.TakeAllBalls(_ballBuffer);
+                _tubePool.Release(tube);
+            }
+
+            foreach (BallView ball in _ballBuffer)
+            {
+                _ballPool.Release(ball);
+            }
+
+            _tubes.Clear();
+            _ballBuffer.Clear();
+            _liftedTube = -1;
+        }
+
+        private void Rebuild()
         {
             Clear();
 
-            LoadedLevel level = session.Level;
+            LoadedLevel level = _session.Level;
             if (level.Colors > _palette.Count)
             {
                 Debug.LogError(
                     $"{level.Name} uses {level.Colors} colours but {_palette.name} defines {_palette.Count}.", this);
             }
 
-            BoardState board = session.Board;
-            int maxCapacity = 1;
+            BoardState board = _session.Board;
+            _maxCapacity = 1;
             for (int t = 0; t < board.TubeCount; t++)
             {
                 Tube tube = board[t];
-                maxCapacity = Mathf.Max(maxCapacity, tube.Capacity);
-
-                TubeView tubeView = _tubePool.Get();
-                tubeView.name = $"Tube {t}";
-                tubeView.Setup(t, tube.Capacity, _tubeConfig);
-                _tubes.Add(tubeView);
+                TubeView tubeView = SpawnTube(t, tube.Capacity);
+                tubeView.SetCapVisible(tube.IsCompleted);
 
                 for (int slot = 0; slot < tube.Count; slot++)
                 {
@@ -69,25 +120,80 @@ namespace BallSort.Game.Views
                 }
             }
 
-            _layout.Arrange(session.Rows, _tubes, maxCapacity, _tubeConfig);
+            _layout.Arrange(_session.Rows, _tubes, _maxCapacity, _tubeConfig);
         }
 
-        /// <summary>Returns every tube and ball to the pools.</summary>
-        public void Clear()
+        private TubeView SpawnTube(int tubeIndex, int capacity)
         {
-            foreach (TubeView tube in _tubes)
+            _maxCapacity = Mathf.Max(_maxCapacity, capacity);
+            TubeView tubeView = _tubePool.Get();
+            tubeView.name = $"Tube {tubeIndex}";
+            tubeView.Setup(tubeIndex, capacity, _tubeConfig);
+            _tubes.Add(tubeView);
+            return tubeView;
+        }
+
+        private void Transfer(int fromIndex, int toIndex, int count)
+        {
+            _tubes[fromIndex].TakeTop(count, _ballBuffer);
+            foreach (BallView ball in _ballBuffer)
             {
-                tube.TakeAllBalls(_releaseBuffer);
-                _tubePool.Release(tube);
+                _tubes[toIndex].AddBall(ball);
             }
 
-            foreach (BallView ball in _releaseBuffer)
+            _ballBuffer.Clear();
+            AssertInSync(fromIndex);
+            AssertInSync(toIndex);
+        }
+
+        private void OnMoveApplied(MoveEventArgs e) => Transfer(e.FromIndex, e.ToIndex, e.Count);
+
+        // The event describes the original move; undoing it carries the balls back.
+        private void OnMoveUndone(MoveEventArgs e) => Transfer(e.ToIndex, e.FromIndex, e.Count);
+
+        private void OnBallRevealed(BallRevealedEventArgs e) =>
+            _tubes[e.TubeIndex].Balls[e.SlotIndex].Reveal(e.ColorId, _palette);
+
+        private void OnTubeCompleted(TubeCompletedEventArgs e) => _tubes[e.TubeIndex].SetCapVisible(true);
+
+        private void OnTubeAdded(TubeAddedEventArgs e)
+        {
+            SpawnTube(e.TubeIndex, e.Capacity);
+            _layout.Arrange(_session.Rows, _tubes, _maxCapacity, _tubeConfig);
+            AssertInSync(e.TubeIndex);
+        }
+
+        /// <summary>Development check that a tube view holds as many balls as the model's tube.</summary>
+        [Conditional("UNITY_ASSERTIONS")]
+        private void AssertInSync(int tubeIndex)
+        {
+            // Messages are built only on failure: this runs on every move in development builds.
+            if (_tubes.Count != _session.Board.TubeCount)
             {
-                _ballPool.Release(ball);
+                Debug.LogError($"Board view has {_tubes.Count} tubes, the board {_session.Board.TubeCount}.", this);
+            }
+            else if (_tubes[tubeIndex].Balls.Count != _session.Board[tubeIndex].Count)
+            {
+                Debug.LogError(
+                    $"Tube {tubeIndex}: view has {_tubes[tubeIndex].Balls.Count} balls, " +
+                    $"the board {_session.Board[tubeIndex].Count}.", this);
+            }
+        }
+
+        private void Unsubscribe()
+        {
+            if (_session == null)
+            {
+                return;
             }
 
-            _tubes.Clear();
-            _releaseBuffer.Clear();
+            _session.MoveApplied -= OnMoveApplied;
+            _session.MoveUndone -= OnMoveUndone;
+            _session.BallRevealed -= OnBallRevealed;
+            _session.TubeCompleted -= OnTubeCompleted;
+            _session.TubeAdded -= OnTubeAdded;
+            _session.Restarted -= Rebuild;
+            _session = null;
         }
 
         private void Awake()
@@ -114,6 +220,8 @@ namespace BallSort.Game.Views
                 ball => Destroy(ball.gameObject),
                 collectionCheck: true, defaultCapacity: 48, maxSize: 128);
         }
+
+        private void OnDestroy() => Unsubscribe();
 
         private void OnValidate()
         {

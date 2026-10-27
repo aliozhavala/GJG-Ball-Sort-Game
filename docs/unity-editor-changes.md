@@ -121,3 +121,39 @@ Newest entries at the bottom.
 - EditMode tests via `TestRunnerApi`: 213 passed, 0 failed.
 - Play mode from Home: Home → Level → Restart → Home, settings toggle saved and restored after a Play
   restart, "Coming soon" toast. The test save was deleted afterwards (no save existed before).
+
+## 2026-10-27 — Roadmap step 3b: level gameplay UI and flow
+
+### Assets
+- `Assets/Data/Levels/level_006.json` (new): placeholder "stuck trap" level, so the stuck / Play on flow can be
+  reached in play. Appended to `LevelDatabase.asset` as level 6.
+- `AnimationConfig.asset`: new field `_celebrationDuration` (script default 1 s).
+
+### Prefabs
+- `Assets/Prefabs/UI/WinPopup.prefab` (new, root inactive): dim `Image`, `Popup`, `WinPopup`; `Panel`
+  (820 wide, vertical layout) → `Title`, `Reward`, `ContinueButton`.
+
+### Scene `Assets/Scenes/Level.unity`
+- `LevelFlow` (new root): `LevelFlow` + `LevelFeedback` (animation config, celebration label).
+- `LevelBootstrap`: `_flow` → LevelFlow (the old `_boardView` / `_hud` fields were removed).
+- `Board`: added `TubeInput` (`_camera` → Main Camera).
+- `LevelCanvas` → `LevelHud` gains `_boosterBar`, `_stuckPanel`, `_winPopup`.
+  - `SafeArea/BoosterBar` (bottom, 190 high): `CanvasGroup`, `BoosterBar`, three `BoosterButton`s (Undo, Shuffle,
+    + Tube) with a count badge.
+  - `SafeArea/StuckPanel` (inactive): `Banner` ("No available moves", under the top bar) and `Buttons`
+    (Give up, Play on) in the booster bar's place.
+  - `Celebration` ("Well done!", inactive) after `SafeArea`; `WinPopup` instance between `SettingsPopup` and `Toast`.
+
+### Verification runs (no persistent changes)
+- EditMode tests: 234 passed. Play mode on levels 1, 3 and 6 driven with queued Input System mouse events; the
+  original save was backed up and restored.
+
+### Step 3b follow-up (review fixes)
+- `level_006.json` rewritten with capacity-4 tubes only (the trap: tube 2 → 5, then 1 → 2).
+- `Assets/Art/Sprites/Placeholder/Hidden_Mark.png` (new, white "?" rendered from LiberationSans), imported as a
+  Sprite; `ColorPalette.asset` → `_hiddenMarkSprite`, `_hiddenMarkSize` 0.55.
+- `Ball.prefab`: the `HiddenMark` TextMeshPro child was replaced by a SpriteRenderer (`Sprite-Unlit-Default`,
+  Balls layer, order 1); `BallView._hiddenMark` re-wired.
+- Level scene: booster buttons 170×130 (bar 150 high at y 20, badge inside the corner); stuck buttons 330/450×130.
+  New `SafeArea/BoardArea` (stretch, bottom 190, top −280, no graphic) wired to `BoardLayout._boardArea`.
+- Verification: EditMode 241 passed; Play mode on level 3 at 1391×657, board clear of both HUD bars.

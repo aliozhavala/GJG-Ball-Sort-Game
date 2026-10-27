@@ -23,7 +23,8 @@ namespace BallSort.Core.Session
     /// </para>
     /// <para>
     /// The stuck state is re-evaluated after every move, undo, added tube and restart, and
-    /// <see cref="StuckChanged"/> fires after that operation's board events.
+    /// <see cref="StuckChanged"/> fires after that operation's board events. <see cref="Changed"/>
+    /// fires last, once the whole operation — board, history seal, boosters, stuck state — is done.
     /// </para>
     /// </remarks>
     public sealed class LevelSession
@@ -134,6 +135,37 @@ namespace BallSort.Core.Session
             }
         }
 
+        /// <summary>
+        /// Why Play on is unavailable for a player holding <paramref name="wallet"/>, or
+        /// <see cref="Session.PlayOnBlockReason.None"/>.
+        /// </summary>
+        /// <param name="wallet">The player's coins.</param>
+        /// <param name="price">Coins Play on costs; not negative.</param>
+        public PlayOnBlockReason GetPlayOnBlockReason(Wallet wallet, int price)
+        {
+            if (wallet == null)
+            {
+                throw new ArgumentNullException(nameof(wallet));
+            }
+
+            if (price < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(price), price, "A price cannot be negative.");
+            }
+
+            if (!IsStuck)
+            {
+                return PlayOnBlockReason.NotStuck;
+            }
+
+            if (!LevelLayout.CanAppendTube(_rows))
+            {
+                return PlayOnBlockReason.NoRoom;
+            }
+
+            return wallet.CanAfford(price) ? PlayOnBlockReason.None : PlayOnBlockReason.NotEnoughCoins;
+        }
+
         /// <summary>Forwarded from the board: a move has been applied.</summary>
         public event Action<MoveEventArgs> MoveApplied;
 
@@ -157,6 +189,17 @@ namespace BallSort.Core.Session
 
         /// <summary>Raised when <see cref="IsStuck"/> changes, with its new value.</summary>
         public event Action<bool> StuckChanged;
+
+        /// <summary>
+        /// Raised once after every successful move, undo, added tube (booster or Play on) and
+        /// restart, when all of the session's state is final.
+        /// </summary>
+        /// <remarks>
+        /// Board events fire mid-operation: during <see cref="MoveApplied"/> the history has not
+        /// yet recorded the move or its completion seal, so <see cref="UndoBlockReason"/> is stale. Anything
+        /// that shows derived state (booster availability, counts) should refresh on this instead.
+        /// </remarks>
+        public event Action Changed;
 
         /// <summary>
         /// Raised after <see cref="Restart"/> has swapped in a fresh board. Views rebuild from
@@ -186,6 +229,13 @@ namespace BallSort.Core.Session
         }
 
         /// <summary>
+        /// Whether the tube can start a move: it has a revealed ball on top and is neither
+        /// completed nor locked. Input uses this to decide whether a tap selects the tube.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">If the index is not a valid tube index.</exception>
+        public bool CanSelect(int tubeIndex) => MoveRules.CanSelect(_board, tubeIndex);
+
+        /// <summary>
         /// Moves the run on top of one tube onto another, if the rules allow it.
         /// </summary>
         /// <param name="fromIndex">Index of the tube to take from.</param>
@@ -201,6 +251,7 @@ namespace BallSort.Core.Session
             }
 
             RefreshStuck();
+            Changed?.Invoke();
             return true;
         }
 
@@ -220,6 +271,7 @@ namespace BallSort.Core.Session
             _history.TryUndo();
             _boosters.TrySpend(BoosterType.Undo);
             RefreshStuck();
+            Changed?.Invoke();
             return true;
         }
 
@@ -241,6 +293,32 @@ namespace BallSort.Core.Session
             }
 
             _boosters.TrySpend(BoosterType.AddTube);
+            AppendTube();
+            return true;
+        }
+
+        /// <summary>
+        /// The paid way out of a dead end: spends <paramref name="price"/> coins and appends an empty
+        /// tube, which always gives a stuck board a legal move again.
+        /// </summary>
+        /// <remarks>
+        /// Only allowed while <see cref="IsStuck"/>. Unlike Add tube it ignores the booster
+        /// inventory (it costs coins instead), but the layout limit still applies. Like Add tube it
+        /// is not undoable and does not seal the history.
+        /// </remarks>
+        /// <param name="wallet">The player's coins; charged only when the tube is added.</param>
+        /// <param name="price">Coins to charge; not negative.</param>
+        /// <param name="reason">Why Play on was refused, when this returns false.</param>
+        /// <returns>True when the coins were spent and a tube was added.</returns>
+        public bool TryPlayOn(Wallet wallet, int price, out PlayOnBlockReason reason)
+        {
+            reason = GetPlayOnBlockReason(wallet, price);
+            if (reason != PlayOnBlockReason.None)
+            {
+                return false;
+            }
+
+            wallet.TrySpend(price);
             AppendTube();
             return true;
         }
@@ -271,6 +349,7 @@ namespace BallSort.Core.Session
 
             Restarted?.Invoke();
             RefreshStuck();
+            Changed?.Invoke();
         }
 
         private void AppendTube()
@@ -280,6 +359,7 @@ namespace BallSort.Core.Session
             _rows = rows;
             _board.AddTube(_addedTubeCapacity);
             RefreshStuck();
+            Changed?.Invoke();
         }
 
         private bool ComputeStuck() => !_board.IsWon && !MoveRules.HasAnyLegalMove(_board);
