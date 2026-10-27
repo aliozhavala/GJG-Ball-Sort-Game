@@ -59,10 +59,11 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - **Solver at runtime** (hints) runs on a background thread (`Task.Run`), results applied on the main thread.
 
 ## Presentation
-- Art is swappable: sprites only via ScriptableObjects (`ColorPalette`, `TubeVisualConfig`) or prefab fields. Placeholders: built-in Circle/Square/Capsule sprites, tinted.
+- Art is swappable: sprites only via ScriptableObjects (`ColorPalette`, `TubeVisualConfig`) or prefab fields. Placeholders: built-in Circle and 9-slice sprites, tinted, copied to `Art/Sprites/Placeholder/` (the originals sit in a package `Editor/` folder, which builds exclude).
 - Board: world-space SpriteRenderers, orthographic camera. `BoardLayout` places tubes using the level's rows (≤ 6 per row, shorter rows centered) and scales the board root to fit both width and height of the safe area.
 - Tube: back layer + balls + front (glass) layer; 9-sliced body; `BoxCollider2D` tap target covering tube and lift area.
 - Sorting layers (bottom→top): Background, TubeBack, Balls, TubeFront, VFX. Lifted/in-flight balls render above TubeFront.
+- Each tube is sized by its own capacity and stands on its row's base line; row height comes from the level's largest capacity. `BoardLayout` reserves top/bottom fractions of the safe area for HUD/boosters and caps the board scale.
 - Ball slot y = bottomOffset + index × slotHeight. Hidden balls show a "?" overlay; reveal = quick flip.
 - UI: uGUI + TextMeshPro, Canvas Scaler 1080×1920, match 0.5, `SafeArea` on root panel.
 
@@ -92,6 +93,7 @@ Assets/
   Scenes/            Main.unity
   Plugins/           third-party (DOTween) — do not modify
   Resources/         DOTweenSettings.asset only — DOTween loads it by name, leave it here
+  TextMesh Pro/      TMP Essential Resources (imported by TMP, leave it here)
   Settings/          URP render pipeline assets (from the 2D template)
 ```
 
@@ -106,7 +108,7 @@ Assets/
 
 ## Rules for Claude Code
 - **Never create, edit, or delete `.meta` files.** Unity generates them. If a file must be moved/renamed, say so and let the developer do it in the Editor.
-- Scene, prefab and asset changes only through Unity MCP Editor tools, never by editing `.unity`/`.prefab`/`.asset` YAML. Afterwards, list everything created or modified.
+- Scene, prefab and asset changes only through Unity MCP Editor tools, never by editing `.unity`/`.prefab`/`.asset` YAML. Afterwards, list everything created or modified, and append it to `docs/unity-editor-changes.md`.
 - After code changes, check the Unity console via MCP; run EditMode tests via MCP after Core changes.
 - Keep CLAUDE.md lean: rules and decisions only. Put detailed specs in `docs/` and reference them. No session notes or changelogs here.
 - Do not touch `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Plugins/`, `ProjectSettings/`, or `Packages/manifest.json` without asking.
@@ -116,7 +118,7 @@ Assets/
 - Keep changes small and commit-sized. Don't rewrite working code for style alone.
 
 ## Roadmap
-1 ✅ Core · 2 Level loading + greybox board/layout · 3 Input, animations, HUD, win flow, save · 4 Solver, generator, editor level jump · 5 Extra mechanics · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
+1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3 Input, animations, HUD, win flow, save · 4 Solver, generator, editor level jump · 5 Extra mechanics · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
 
 ## Open decisions (update as they're settled)
 - Second (and third) mechanic: variable capacity? locked tubes? other?
