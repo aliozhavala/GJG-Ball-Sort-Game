@@ -1,3 +1,4 @@
+using BallSort.Core.Commands;
 using BallSort.Core.Model;
 using NUnit.Framework;
 using static BallSort.Tests.EditMode.TestBoards;
@@ -59,12 +60,12 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
-        public void ACompletedTubeStillHoldingHiddenBalls_CountsAsWon()
+        public void AFullSingleColourTubeStillHoldingHiddenBalls_IsNotWon()
         {
-            // Follows from the literal completion rule; see TubeTests.IsCompleted_IgnoresHiddenFlags.
+            // Follows from the completion rule; see TubeTests.IsCompleted_RequiresEveryBallRevealed.
             BoardState board = MakeBoard(MakeTube(3, H(1), H(1), R(1)), MakeEmptyTube(3));
 
-            Assert.That(board.IsWon, Is.True);
+            Assert.That(board.IsWon, Is.False);
         }
 
         // --- Locked tubes ----------------------------------------------------------------------
@@ -127,11 +128,11 @@ namespace BallSort.Tests.EditMode
             BoardState board = MakeBoard(MakeTube(4, R(1)), MakeEmptyTube(4));
             BoardState clone = board.Clone();
 
-            clone[0].IsLocked = true;
+            new CommandHistory().TryExecuteMove(clone, 0, 1, out _);
 
-            Assert.That(board[0].IsLocked, Is.False);
+            Assert.That(board[0].Count, Is.EqualTo(1), "moving on the clone leaves the original alone");
             Assert.That(clone.TubeCount, Is.EqualTo(2));
-            Assert.That(clone[0].Count, Is.EqualTo(1));
+            Assert.That(clone[1].Count, Is.EqualTo(1));
         }
     }
 }

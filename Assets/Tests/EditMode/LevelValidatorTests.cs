@@ -214,5 +214,49 @@ namespace BallSort.Tests.EditMode
             Assert.That(errors, Has.Some.Contains("tubes[0]: top ball is hidden"));
             Assert.That(errors, Has.Some.Contains("tubes[1]: holds 4 balls"));
         }
+
+        // --- Start state -----------------------------------------------------------------------
+
+        [Test]
+        public void ATubeAlreadyCompletedAtStart_IsReported()
+        {
+            LevelDto level = Level(2, T(2, 0, 0), T(2, 1), T(2, 1));
+
+            Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: tubes[0] is already completed at start." }));
+        }
+
+        [Test]
+        public void ALevelAlreadyWonAtStart_IsReported()
+        {
+            LevelDto level = Level(1, T(2, 0, 0), T(2));
+
+            Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: is already won at start." }));
+        }
+
+        [Test]
+        public void ALevelWithNoLegalMoveAtStart_IsReported()
+        {
+            LevelDto level = Level(2, T(2, 0, 1), T(2, 1, 0));
+
+            Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: has no legal move at start." }));
+        }
+
+        [Test]
+        public void AFullSingleColourTubeWithAHiddenBall_IsNotCompletedAtStart()
+        {
+            LevelDto level = Level(1, Hidden(2, new[] { 0, 0 }, new[] { true, false }), T(2));
+
+            Assert.That(Validate(level), Is.Empty);
+        }
+
+        [Test]
+        public void StartStateChecks_AreSkippedWhileTheStructureIsBroken()
+        {
+            // Building a board from malformed data could throw; structural errors come alone.
+            LevelDto level = Level(2, T(2, 0, 1), T(2, 1, 0));
+            level.FormatVersion = 9;
+
+            Assert.That(Validate(level), Has.None.Contains("legal move"));
+        }
     }
 }

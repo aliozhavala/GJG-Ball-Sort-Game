@@ -212,5 +212,41 @@ namespace BallSort.Tests.EditMode
             Assert.That(log, Is.Empty, "solver copies must never notify the view layer");
             Assert.That(board[0].Count, Is.EqualTo(1), "and must never touch the real board");
         }
+
+        // --- Undo that completes a tube --------------------------------------------------------
+
+        [Test]
+        public void AnUndoThatCompletesTheSource_FiresUndoneThenCompleted()
+        {
+            BoardState board = MakeBoard(MakeTube(2, H(1), R(1)), MakeEmptyTube(2), MakeTube(2, R(4)));
+            MoveCommand command = Move(board, 0, 1);
+            command.Execute();                               // reveals tube 0's bottom ball
+            List<string> log = RecordEvents(board);
+            TubeCompletedEventArgs completed = default;
+            board.TubeCompleted += e => completed = e;
+
+            command.Undo();
+
+            Assert.That(log, Is.EqualTo(new[] { nameof(BoardState.MoveUndone), nameof(BoardState.TubeCompleted) }));
+            Assert.That(completed.TubeIndex, Is.EqualTo(0));
+            Assert.That(completed.ColorId, Is.EqualTo(1));
+            Assert.That(command.UndoCompletedTube, Is.True);
+        }
+
+        [Test]
+        public void AnUndoThatCompletesTheLastTube_AlsoFiresLevelCompleted()
+        {
+            BoardState board = MakeBoard(MakeTube(2, H(1), R(1)), MakeEmptyTube(2));
+            MoveCommand command = Move(board, 0, 1);
+            command.Execute();
+            List<string> log = RecordEvents(board);
+
+            command.Undo();
+
+            Assert.That(log, Is.EqualTo(new[]
+            {
+                nameof(BoardState.MoveUndone), nameof(BoardState.TubeCompleted), nameof(BoardState.LevelCompleted),
+            }));
+        }
     }
 }

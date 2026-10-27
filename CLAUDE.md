@@ -29,29 +29,36 @@ Optimize for clarity, clean architecture, and robustness over cleverness.
 - **Moved count** = `min(runLength, target.FreeSpace)` (partial moves allowed, water-sort style).
 - **Reveal**: after a move, the new top ball of the source tube becomes revealed. At level start, every tube's top ball must be revealed (loader enforces this).
 - **Undo** restores ball positions; revealed balls **stay revealed** (information already gained is not taken back).
-  - Undo is a **booster with a charge count** (generous, not an economy — this is a case study). Each undo spends one charge.
+  - Undo is a booster: each undo spends one Undo from the player's `BoosterInventory`.
   - **A move that completes a tube cannot be undone.** The tube is finalized (corked) and never returns to an unfinished state. Because undo is LIFO, such a move **seals the history**: every move at or before it is permanently non-undoable. Moves made *after* it are undoable again, down to that seal.
-  - Undo is therefore blocked for exactly three reasons: no moves left, the next move to undo is sealed by a tube completion, or no charges left. The UI should be able to tell them apart.
-- **Restart** reloads the level from its source data, **with hidden balls hidden again**. It is *not* "undo everything" — see the undo rules above.
-- **Tube completed** = full (`Count == Capacity`) and single color. Completed tubes cannot be a move source.
+  - Because reveals survive undo, an **undo can complete a tube** (putting a run back onto a ball it uncovered). It corks the tube and seals the history the same way, and can win the level.
+  - Undo is therefore blocked for exactly three reasons: no moves left, the next move to undo is sealed by a tube completion, or no Undo boosters left. The UI should be able to tell them apart.
+- **Boosters** (Undo, Shuffle, AddTube) are global player inventory (`BoosterInventory`), spent one per use, in any level. No per-level charges.
+- **Add tube** appends an empty tube (capacity from config, currently 4) at the end of the board, so tube indices and history stay valid. Not undoable, doesn't seal. It joins the last row if that row has < 6 tubes, otherwise starts a new row; refused when that would exceed 3 rows (= 18 tubes for automatic layouts, fewer for some explicit ones).
+- **Restart** reloads the level from its source data: hidden balls hidden again, added tubes gone, history cleared; boosters already spent stay spent. It is *not* "undo everything".
+- **Tube completed** = full (`Count == Capacity`), single color, and **no hidden balls**. Completed tubes cannot be a move source.
 - **Level won** = every tube is either empty or completed.
+- **Stuck** = not won and no legal move. Checked after every move, undo and added tube. While stuck, boosters are disabled.
 - **Input UX**: tap a tube to select (its run lifts); tap it again to deselect; tap another tube to move. If the move is illegal, play invalid-move feedback and clear the selection (never auto-select the tapped tube; the player selects again).
 
 ## Architecture
 Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (tools)**.
 
-- **Core** (`BallSort.Core`, asmdef with `noEngineReferences: true`): plain C#, no `UnityEngine`. Board state, rules, commands, solver, level DTOs. Must be usable from tests, editor tools, and background threads.
+- **Core** (`BallSort.Core`, asmdef with `noEngineReferences: true`): plain C#, no `UnityEngine`. Board state, rules, commands, solver, level DTOs, `LevelSession`, `BoosterInventory`, `Wallet`. Must be usable from tests, editor tools, and background threads.
+  - **`LevelSession`** is the single gameplay entry point: `TryMove`, `TryUndo`, `TryAddTube`, `Restart`, `IsStuck`, booster spending, and events. It wraps `BoardState` + `CommandHistory` + `BoosterInventory`. **UI and input talk only to `LevelSession`**, never to the board or history directly.
 - **Game** (`BallSort.Game`): MonoBehaviours — views, input, layout, game flow, UI, audio, haptics, services (save, level loading). Depends on Core.
 - **Editor** (`BallSort.Editor`, editor-only): level generator/validator windows. Depends on Core.
-- **Tests** (`BallSort.Tests.EditMode`): tests Core.
+- **LevelJson** (`BallSort.LevelJson`, no engine refs): the Newtonsoft level parser, shared by Game, Editor and Tests.
+- **Tests** (`BallSort.Tests.EditMode`): tests Core and LevelJson; must not reference Game.
 
 ### Patterns
-- **Command**: every move is a `MoveCommand` (`Execute`/`Undo`) kept in a `CommandHistory`, which owns the undo charges and the completion seal. Restart does **not** build on it — restart reloads the level.
-- **Observer**: Core raises plain C# events (`MoveApplied`, `BallRevealed`, `TubeCompleted`, `LevelCompleted`, `MoveUndone`). Views, audio, haptics and UI subscribe. Always unsubscribe in `OnDisable`/`OnDestroy`. Avoid Inspector-wired UnityEvent chains for game logic.
+- **Command**: every move is a `MoveCommand` (`Execute`/`Undo`) kept in a `CommandHistory`, which owns only the completion seal (booster counts live in `BoosterInventory`). Restart does **not** build on it — restart reloads the level.
+- **Observer**: Core raises plain C# events (`MoveApplied`, `BallRevealed`, `TubeCompleted`, `LevelCompleted`, `MoveUndone`, `TubeAdded`, `StuckChanged`, plus change events on `Wallet` and `BoosterInventory`). Views, audio, haptics and UI subscribe. Always unsubscribe in `OnDisable`/`OnDestroy`. Avoid Inspector-wired UnityEvent chains for game logic.
 - **State machine**: game flow (`Loading → Playing → Won → Transition`) and input selection state.
 - **Object pooling**: balls and VFX via `UnityEngine.Pool.ObjectPool<T>`. No `Instantiate`/`Destroy` per move.
 - **ScriptableObjects** for config: `ColorPalette` (color id → sprite/tint), `AnimationConfig` (timings, eases), `LevelDatabase` (ordered list of level `TextAsset`s).
-- **Composition root**: one `GameBootstrap` creates and wires services. **No singleton sprawl** — no static `Instance` unless explicitly agreed.
+- **Composition**: a persistent **`AppRoot`** (prefab in `Resources/`, auto-created via `RuntimeInitializeOnLoadMethod`, `DontDestroyOnLoad`) owns player data, saving and scene loading. It is the **one agreed singleton-style exception**. Each scene has its own bootstrap that takes services from `AppRoot` and wires its views. **No other singletons** — no static `Instance`.
+- **Scenes**: `Home` (build index 0) and `Level` (build index 1). Pressing Play in either scene must work.
 
 ### Timing and async
 - **Game logic never waits on animation.** The model applies moves instantly and fires events; views animate asynchronously and may be interrupted (a re-selected ball kills/completes its tween first).
@@ -66,6 +73,8 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - Each tube is sized by its own capacity and stands on its row's base line; row height comes from the level's largest capacity. `BoardLayout` reserves top/bottom fractions of the safe area for HUD/boosters and caps the board scale.
 - Ball slot y = bottomOffset + index × slotHeight. Hidden balls show a "?" overlay; reveal = quick flip.
 - UI: uGUI + TextMeshPro, Canvas Scaler 1080×1920, match 0.5, `SafeArea` on root panel.
+
+Screens, flow, boosters and economy: read docs/screens.md when working on UI or flow.
 
 ## Levels
 
@@ -82,17 +91,18 @@ extra nesting level buys nothing here.)
 ```
 Assets/
   Scripts/
-    Core/            BallSort.Core.asmdef  (Model/, Rules/, Commands/, Solver/, Levels/)
+    Core/            BallSort.Core.asmdef  (Model/, Rules/, Commands/, Session/, Player/, Solver/, Levels/)
+    LevelJson/       BallSort.LevelJson.asmdef — level JSON parser (Core + Newtonsoft, no engine refs)
     Game/            BallSort.Game.asmdef  (Bootstrap/, Flow/, Views/, Input/, Layout/, UI/, Audio/, Services/)
-    Editor/          BallSort.Editor.asmdef (LevelGenerator/, Validation/)
+    Editor/          BallSort.Editor.asmdef (LevelGenerator/, Validation/, Tools/)
   Tests/EditMode/    BallSort.Tests.EditMode.asmdef
   Art/               Sprites/, Atlases/, Materials/, VFX/
   Audio/
   Data/              Config/ (ScriptableObjects), Levels/ (*.json), LevelDatabase.asset
   Prefabs/
-  Scenes/            Main.unity
+  Scenes/            Home.unity (index 0), Level.unity (index 1)
   Plugins/           third-party (DOTween) — do not modify
-  Resources/         DOTweenSettings.asset only — DOTween loads it by name, leave it here
+  Resources/         DOTweenSettings.asset (DOTween loads it by name, leave it here), AppRoot.prefab
   TextMesh Pro/      TMP Essential Resources (imported by TMP, leave it here)
   Settings/          URP render pipeline assets (from the 2D template)
 ```
@@ -118,16 +128,13 @@ Assets/
 - Keep changes small and commit-sized. Don't rewrite working code for style alone.
 
 ## Roadmap
-1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3 Input, animations, HUD, win flow, save · 4 Solver, generator, editor level jump · 5 Extra mechanics · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
+1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b Level gameplay UI: input, HUD, boosters, win/stuck flows · 4 Solver, generator, editor level jump · 5 Extra mechanics · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
 
 ## Open decisions (update as they're settled)
 - Second (and third) mechanic: variable capacity? locked tubes? other?
   - If **locked tubes** are adopted, each level that uses them must also provide the in-level unlock
     condition that makes it solvable. There are no permanently-locked tubes. The unlock trigger is
     not designed yet, so `Tube.IsLocked` is currently a plain flag with no unlock logic in Core.
-- Boosters (extra tube, hint) — not designed. Undo is settled: charge-based, generous count, no economy.
-- Should a tube that completes while still holding hidden balls reveal them? (Possible: the balls under
-  a revealed top can be hidden *and* the same color, so a push can cork a tube the player can't verify.
-  Core currently implements the literal rule — full + single color, hidden or not.)
+- Shuffle algorithm (needs solver).
 - Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size, colorblind patterns.
 - Difficulty curve shape and mechanic introduction levels (product).

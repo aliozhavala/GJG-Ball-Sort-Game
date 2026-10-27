@@ -29,8 +29,9 @@ Loader validates: each color's total ball count fills tubes exactly; no tube ove
 - Required fields carry no parser attributes: a missing one arrives as `0`/`null` and the validator reports it (`formatVersion` missing, `id < 1`, `colors < 1`, `capacity < 1`, `balls` missing — use `[]` for an empty tube).
 - `id` is 1-based and matches the file name (`level_007.json` → `7`); an EditMode test checks every shipped file.
 - At most 18 tubes (3 rows × 6).
+- Opening position (checked only once the structure is valid): no tube already completed, the level not already won, and at least one legal move.
 - All problems are reported at once, each as `<level>: <location>: <problem>`, e.g. `level_003: tubes[2]: top ball is hidden`.
-- Split: Core owns the DTOs, `LevelValidator`, `LevelLayout` and `LevelFactory` (no serializer dependency); Game's `LevelJsonParser` does the Newtonsoft parsing.
+- Split: Core owns the DTOs, `LevelValidator`, `LevelLayout` and `LevelFactory` (no serializer dependency); `LevelJsonParser` lives in its own engine-free assembly, `BallSort.LevelJson` (Core + Newtonsoft), so Game, Editor and Tests share it without depending on each other.
 
 ### Solver and generator
 - **Solver** (Core): BFS / A* over board states using the **same `MoveRules` as the game** (single source of truth), with full knowledge of hidden colors but honoring hidden flags for run building.

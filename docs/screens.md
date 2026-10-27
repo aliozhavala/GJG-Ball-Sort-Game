@@ -1,0 +1,66 @@
+# Screens, Flow & Economy
+
+Read this when working on UI, scene flow, boosters, or player data. All UI is placeholder until final art (step 6): Unity default UI sprites, TextMeshPro, flat colors. Animations are step 6 too — step 3 snaps instantly, but every ball movement goes through one view method so tweens can replace the snap in one place.
+
+## Scenes & flow
+- `Home` (build index 0) → tap Level button → `Level` (build index 1).
+- `Level` → win → celebration → Win panel → **Continue** → `Home`.
+- `Level` → stuck → **Give up** → `Home` (no progress, no reward).
+- `Level` → settings → **Home** → `Home` (same as giving up).
+- The Level scene always loads `PlayerData.CurrentLevel`. Editor-only override for testing (temporary Inspector field until the step 4 level jump).
+- Pressing Play in either scene in the Editor must work (persistent services auto-create).
+
+## Persistent player data (one save, survives scenes and restarts)
+| Field | Start value | Notes |
+|---|---|---|
+| CurrentLevel | 1 | Advances on win. After level 100 is won: stays 100, `AllLevelsComplete = true`. |
+| Coins | 1000 | +20 per win. Play on costs 900. |
+| Lives | 5 | Display only for now. |
+| Boosters: Undo / Shuffle / AddTube | 99 / 99 / 99 | Global totals, spent in any level, no refills. |
+| Settings: Sound / Music / Haptics | on / on / on | Saved; no effect until audio/haptics exist. |
+
+All numbers live in an `EconomyConfig` ScriptableObject, not in code. Progress and rewards are saved **at the moment of the win**, before any celebration or panel.
+
+**Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveService.CurrentVersion` and add a migration when the shape changes. Editor reset: **Ball Sort ▸ Reset Save** (disabled in Play mode).
+
+## Home screen
+- **Top bar:** avatar (top-left), lives `♥ 5` and coins `● 1000` between the corners, settings icon (top-right).
+- **Center:** big **Level button** showing `Level N`. If `AllLevelsComplete`: shows `All levels complete` and replays level 100.
+- **Bottom nav:** Leaderboard · Home (selected) · Shop.
+- Avatar, Leaderboard, Shop: placeholders → "Coming soon" toast.
+- Settings popup (Home): Sound, Music, Haptics toggles.
+
+## Level screen
+- **Top-left:** settings icon. **Top-center:** `Level N`. No avatar, coins, or lives here.
+- **Middle:** the board (tubes laid out by level rows).
+- **Bottom:** booster bar — Undo, Shuffle, Add tube — each with its remaining count.
+- Settings popup (Level): Sound, Music, Haptics toggles + **Restart** + **Home**. Gameplay input is blocked while it is open.
+
+### Boosters
+- Unavailable boosters look dimmed but still react to taps with a short toast explaining why:
+  - Undo: "Nothing to undo" / "Can't undo past a completed tube" / "No undos left".
+  - Add tube: "No add-tube boosters left" / "No room for more tubes".
+  - Shuffle: "Coming soon" (needs the step 4 solver to stay solvable).
+- Reason precedence (first match wins), so the toast names the real obstacle rather than the booster count:
+  - Undo: Stuck → no moves → sealed → no boosters.
+  - Add tube: level won → Stuck → no room → no boosters.
+  - Shuffle: level won → Stuck → not available.
+- **Add tube:** appends an empty tube of capacity 4. Not undoable, doesn't seal undo history. Max 18 tubes on the board (3 rows × 6).
+- **Restart** (settings) reloads the level from data: hidden balls hidden again, added tubes gone, undo history cleared. Boosters already spent stay spent.
+
+### Stuck (no legal moves and not won)
+- Checked after every move, undo, and added tube.
+- Show **"No available moves"** text above the board (does not cover or block the tubes).
+- Booster bar disabled (boosters cannot be used while stuck).
+- Two buttons side by side at the bottom: **Give up** and **Play on — 900 ●**.
+  - Play on: spend 900 coins, add one empty capacity-4 tube, leave the stuck state.
+  - Play on is disabled (still showing its price) if coins < 900 or the board already has 18 tubes. Give up is then the only choice.
+
+### Win
+- Input locks, progress + reward are saved, short placeholder celebration (~1 s, e.g. "Well done!" text), then the **Win panel**: "Level N complete", `+20 ●`, **Continue** → Home.
+
+## Shared UI pieces
+- **Toast:** short message, auto-hides, never blocks input. A new message replaces the current one instead of queueing.
+- **Popup:** modal with dimmed background; blocks input beneath it. Open = GameObject active. Draw order is hierarchy order: screen content, then popups, then the toast last.
+- Placeholder settings icon is "≡": LiberationSans has no gear glyph.
+- Canvas Scaler 1080×1920, match 0.5; `SafeArea` on root panels.

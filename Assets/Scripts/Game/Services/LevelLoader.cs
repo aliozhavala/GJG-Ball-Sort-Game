@@ -1,5 +1,6 @@
 using System;
 using BallSort.Core.Levels;
+using BallSort.LevelJson;
 using UnityEngine;
 
 namespace BallSort.Game.Services

@@ -1,4 +1,5 @@
 using System;
+using BallSort.Core.Commands;
 using BallSort.Core.Model;
 using NUnit.Framework;
 using static BallSort.Tests.EditMode.TestBoards;
@@ -127,14 +128,14 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
-        public void IsCompleted_IgnoresHiddenFlags()
+        public void IsCompleted_RequiresEveryBallRevealed()
         {
-            // Documents the literal rule from the brief: full + single colour completes the tube even
-            // if the player cannot yet see every ball. Reachable in play, because the balls beneath a
-            // revealed top may happen to share its colour.
-            Tube tube = MakeTube(4, H(1), H(1), R(1), R(1));
-
-            Assert.That(tube.IsCompleted, Is.True);
+            // A full single-colour tube that still conceals a ball is not finished: the player cannot
+            // verify it, so it must not be corked behind their back. Reachable in play, because the
+            // balls beneath a revealed top may happen to share its colour.
+            Assert.That(MakeTube(4, H(1), H(1), R(1), R(1)).IsCompleted, Is.False, "hidden at the bottom");
+            Assert.That(MakeTube(4, R(1), H(1), R(1), R(1)).IsCompleted, Is.False, "hidden in the middle");
+            Assert.That(MakeTube(4, R(1), R(1), R(1), R(1)).IsCompleted, Is.True, "all revealed");
         }
 
         [Test]
@@ -161,12 +162,15 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void Clone_IsIndependentOfTheOriginal()
         {
+            // Mutate the original through the only public path, a move on its board.
             Tube original = MakeTube(4, R(1));
             Tube clone = original.Clone();
+            BoardState board = MakeBoard(original, MakeEmptyTube(4));
 
-            original.IsLocked = true;
+            new CommandHistory().TryExecuteMove(board, 0, 1, out _);
 
-            Assert.That(clone.IsLocked, Is.False);
+            Assert.That(original.IsEmpty, Is.True);
+            Assert.That(clone.Count, Is.EqualTo(1));
         }
     }
 }

@@ -66,3 +66,58 @@ Newest entries at the bottom.
 - Ran all EditMode tests via `TestRunnerApi` (161 passed, 0 failed).
 - Entered Play mode, rebuilt levels 1–5 and rendered each at 9:16, 9:19.5 and 3:4 into temporary
   RenderTextures via `BoardLayout.FitTo`; exited Play mode. Play-mode changes are discarded on exit.
+
+## 2026-10-27 — Roadmap step 3a: Core rules, player data, scenes, Home UI
+
+### Asset moves and renames (AssetDatabase, so GUIDs and references are kept)
+- Moved `Assets/Scripts/Game/Services/LevelJsonParser.cs` → `Assets/Scripts/LevelJson/LevelJsonParser.cs`
+  (new `BallSort.LevelJson` assembly).
+- Renamed `Assets/Scripts/Game/Bootstrap/GameBootstrap.cs` → `LevelBootstrap.cs` (class renamed to match;
+  the scene component kept its script GUID `9cd0c2e8e49447143a71e8c87f853261`).
+- Renamed scene `Assets/Scenes/Main.unity` → `Assets/Scenes/Level.unity`.
+
+### Project settings
+- **Build settings** (`ProjectSettings/EditorBuildSettings.asset`): scenes are now
+  `0 Assets/Scenes/Home.unity`, `1 Assets/Scenes/Level.unity` (Main.unity entry replaced).
+
+### ScriptableObject assets
+- `Assets/Data/Config/EconomyConfig.asset` (`EconomyConfig`), script defaults: start coins 1000, lives 5,
+  Undo/Shuffle/AddTube 99/99/99, win reward 20, play-on cost 900, added-tube capacity 4.
+
+### Prefabs
+- `Assets/Resources/AppRoot.prefab`: `AppRoot` (`_economy` → EconomyConfig, `_levelDatabase` → LevelDatabase.asset).
+  Loaded by name `AppRoot` at launch.
+- `Assets/Prefabs/UI/Toast.prefab`: anchored bottom-centre (y +380, 860×130), dark rounded `Image`
+  (UISprite, no raycast), `CanvasGroup` (alpha 0, no raycasts), `Toast` (`_label`, `_group`); child `Label` (TMP 46).
+- `Assets/Prefabs/UI/SettingsPopup.prefab` (root **inactive** = closed): full-screen dim `Image` (black α 0.6,
+  raycast target), `Popup` (`_closeButton` → CloseButton), `SettingsPopup` (`_popup`, `_toggles` = Sound/Music/Haptics,
+  `_restartButton`, `_homeButton`).
+  - `Panel` (820 wide, `VerticalLayoutGroup` + `ContentSizeFitter`, so it shrinks when Restart/Home are hidden):
+    `Title`, `SoundRow`/`MusicRow`/`HapticsRow` (TMP label + `Toggle` with `SettingToggle`), `RestartButton`,
+    `HomeButton`, `CloseButton` ("×", ignores layout, top-right).
+
+### Scene `Assets/Scenes/Level.unity` (was Main)
+- `GameBootstrap` object renamed `LevelBootstrap`; `LevelBootstrap._hud` → LevelCanvas. `_boardView` unchanged;
+  the removed `_levelDatabase`/`_levelNumber` fields were dropped on save.
+- `EventSystem` (new): `EventSystem` + `InputSystemUIInputModule`.
+- `LevelCanvas` (new): Screen Space Overlay, `CanvasScaler` 1080×1920 match 0.5, `GraphicRaycaster`, `LevelHud`
+  (`_levelTitle`, `_settingsButton`, `_settingsPopup`, `_toast`).
+  - `SafeArea` (`SafeArea`) → `TopBar` (top, 180 high) → `SettingsButton` ("≡", left, 130×130), `LevelTitle` (TMP 72).
+  - `SettingsPopup` and `Toast` prefab instances (in that order, so the toast draws above the popup).
+
+### Scene `Assets/Scenes/Home.unity` (new)
+- `HomeBootstrap` (`_homeScreen` → HomeCanvas).
+- `Main Camera`: orthographic, solid colour `#1B2030`, `UniversalAdditionalCameraData`, `AudioListener`.
+- `EventSystem`: `EventSystem` + `InputSystemUIInputModule`.
+- `HomeCanvas`: same canvas setup as Level, `HomeScreen` (all references wired; `_livesFormat` =
+  `<color=#FF5252>♥</color> {0}`, `_coinsFormat` = `<color=#FFC107>●</color> {0}`).
+  - `Background` (full-screen `#1B2030`, no raycast).
+  - `SafeArea` → `TopBar` (`AvatarButton` "You", `Lives` pill, `Coins` pill, `SettingsButton` "≡"),
+    `LevelButton` (green, 680×230, auto-sized label), `BottomNav` (`HorizontalLayoutGroup`: `LeaderboardButton`,
+    `HomeButton` (selected, non-interactable), `ShopButton`).
+  - `SettingsPopup` and `Toast` prefab instances.
+
+### Verification runs (no persistent changes)
+- EditMode tests via `TestRunnerApi`: 213 passed, 0 failed.
+- Play mode from Home: Home → Level → Restart → Home, settings toggle saved and restored after a Play
+  restart, "Coming soon" toast. The test save was deleted afterwards (no save existed before).

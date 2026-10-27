@@ -13,12 +13,15 @@ namespace BallSort.Core.Commands
         NoMovesToUndo,
 
         /// <summary>
-        /// The next move to undo completed a tube. That tube is corked for good, which seals the
-        /// history at that point — no earlier move can be reached either.
+        /// A tube was completed at this point in the history (by a move, or by an undo). That tube
+        /// is corked for good, which seals the history there — no earlier move can be reached.
         /// </summary>
         SealedByTubeCompletion,
 
-        /// <summary>The player has spent every undo charge.</summary>
-        NoChargesLeft,
+        /// <summary>The player has no Undo boosters left in their inventory.</summary>
+        NoBoostersLeft,
+
+        /// <summary>The board is stuck; boosters are disabled until the player plays on or gives up.</summary>
+        Stuck,
     }
 }

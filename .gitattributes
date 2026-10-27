@@ -1,0 +1,30 @@
+# Normalise text files to LF in the repository and in working copies, whatever the contributor's
+# core.autocrlf. Unity writes LF on every platform, so this avoids line-ending churn in diffs.
+# Text vs. binary is auto-detected, so a binary-serialised .asset is never mangled.
+* text=auto eol=lf
+
+# Unity YAML merges badly line by line; route merges through Unity's Smart Merge (UnityYAMLMerge).
+*.unity      merge=unityyamlmerge
+*.prefab     merge=unityyamlmerge
+*.asset      merge=unityyamlmerge
+*.meta       merge=unityyamlmerge
+*.mat        merge=unityyamlmerge
+*.anim       merge=unityyamlmerge
+*.controller merge=unityyamlmerge
+
+*.cs         diff=csharp
+
+# Always binary, never diffed or converted.
+*.png        binary
+*.jpg        binary
+*.jpeg       binary
+*.psd        binary
+*.tga        binary
+*.ttf        binary
+*.otf        binary
+*.wav        binary
+*.mp3        binary
+*.ogg        binary
+*.fbx        binary
+*.dll        binary
+*.zip        binary

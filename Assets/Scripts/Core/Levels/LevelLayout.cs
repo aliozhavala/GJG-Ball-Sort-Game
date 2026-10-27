@@ -94,6 +94,58 @@ namespace BallSort.Core.Levels
         }
 
         /// <summary>
+        /// Where an added tube goes: onto the last (bottom) row if it has room, otherwise onto a new
+        /// row below it. Existing tubes never move between rows, so the board does not reshuffle
+        /// under the player.
+        /// </summary>
+        /// <param name="rows">Current tube counts per row, top row first.</param>
+        /// <param name="newRows">The rows after appending, when this returns true; null otherwise.</param>
+        /// <returns>
+        /// False when the tube does not fit: the last row is full and there are already
+        /// <see cref="MaxRows"/> rows. For automatic layouts that is exactly <see cref="MaxTubes"/>
+        /// tubes; an explicit layout with a short middle row can run out of room sooner.
+        /// </returns>
+        public static bool TryAppendTube(IReadOnlyList<int> rows, out int[] newRows)
+        {
+            if (rows == null)
+            {
+                throw new ArgumentNullException(nameof(rows));
+            }
+
+            if (rows.Count == 0)
+            {
+                throw new ArgumentException("A layout has at least one row.", nameof(rows));
+            }
+
+            bool lastRowHasRoom = rows[rows.Count - 1] < MaxTubesPerRow;
+            if (!lastRowHasRoom && rows.Count >= MaxRows)
+            {
+                newRows = null;
+                return false;
+            }
+
+            newRows = new int[lastRowHasRoom ? rows.Count : rows.Count + 1];
+            for (int i = 0; i < rows.Count; i++)
+            {
+                newRows[i] = rows[i];
+            }
+
+            newRows[newRows.Length - 1]++;
+            return true;
+        }
+
+        /// <summary>Whether <see cref="TryAppendTube"/> would succeed for these rows.</summary>
+        public static bool CanAppendTube(IReadOnlyList<int> rows)
+        {
+            if (rows == null)
+            {
+                throw new ArgumentNullException(nameof(rows));
+            }
+
+            return rows.Count > 0 && (rows[rows.Count - 1] < MaxTubesPerRow || rows.Count < MaxRows);
+        }
+
+        /// <summary>
         /// The rows to display: the explicit rows if given, otherwise <see cref="AutoRows"/>.
         /// </summary>
         /// <remarks>Assumes the level has passed <see cref="LevelValidator"/>.</remarks>

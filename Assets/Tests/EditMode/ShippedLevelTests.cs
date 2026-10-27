@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using BallSort.Core.Levels;
-using BallSort.Game.Services;
+using BallSort.LevelJson;
 using NUnit.Framework;
 using UnityEngine;
 

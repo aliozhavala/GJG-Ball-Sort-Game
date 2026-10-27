@@ -29,9 +29,9 @@ namespace BallSort.Core.Model
         /// <remarks>
         /// The unlock trigger is a level-design concern that is not designed yet, so Core treats this
         /// as a plain flag and never clears it on its own. Levels using locked tubes are responsible
-        /// for staying solvable.
+        /// for staying solvable. The setter is internal so only Core rules can lock or unlock.
         /// </remarks>
-        public bool IsLocked { get; set; }
+        public bool IsLocked { get; internal set; }
 
         public bool IsEmpty => _count == 0;
 
@@ -72,12 +72,13 @@ namespace BallSort.Core.Model
         }
 
         /// <summary>
-        /// True when the tube is full and every ball shares one colour — the tube is finished and corked.
+        /// True when the tube is full, every ball shares one colour, and none of them is hidden — the
+        /// tube is finished and corked.
         /// </summary>
         /// <remarks>
-        /// Hidden balls count towards this. A tube can therefore complete while still concealing balls,
-        /// because the balls beneath a revealed top may happen to match it. That is the literal rule from
-        /// the brief; whether such a tube should reveal its contents is an open design question.
+        /// A full single-colour tube that still conceals a ball is <em>not</em> complete: the player
+        /// cannot verify it, so it must not be corked behind their back. They finish it by moving the
+        /// run off, which reveals the ball beneath, and back again.
         /// </remarks>
         public bool IsCompleted
         {
@@ -89,9 +90,9 @@ namespace BallSort.Core.Model
                 }
 
                 int color = _balls[0].ColorId;
-                for (int i = 1; i < _count; i++)
+                for (int i = 0; i < _count; i++)
                 {
-                    if (_balls[i].ColorId != color)
+                    if (_balls[i].IsHidden || _balls[i].ColorId != color)
                     {
                         return false;
                     }

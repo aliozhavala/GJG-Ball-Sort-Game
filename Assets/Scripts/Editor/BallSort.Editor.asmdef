@@ -3,6 +3,7 @@
     "rootNamespace": "BallSort.Editor",
     "references": [
         "BallSort.Core",
+        "BallSort.LevelJson",
         "BallSort.Game"
     ],
     "includePlatforms": [

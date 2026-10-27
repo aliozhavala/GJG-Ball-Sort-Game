@@ -1,5 +1,5 @@
 using BallSort.Core.Levels;
-using BallSort.Game.Services;
+using BallSort.LevelJson;
 using NUnit.Framework;
 
 namespace BallSort.Tests.EditMode
@@ -44,7 +44,7 @@ namespace BallSort.Tests.EditMode
         public void Parse_OptionalSectionsMayBeOmitted()
         {
             const string json = @"{ ""formatVersion"": 1, ""id"": 1, ""colors"": 1,
-                ""tubes"": [ { ""capacity"": 2, ""balls"": [0, 0] } ] }";
+                ""tubes"": [ { ""capacity"": 2, ""balls"": [0] }, { ""capacity"": 2, ""balls"": [0] } ] }";
 
             LevelDto level = LevelJsonParser.Parse(json, "minimal");
 
@@ -108,7 +108,7 @@ namespace BallSort.Tests.EditMode
         public void Parse_UnsupportedFormatVersion_FailsToLoad()
         {
             const string json = @"{ ""formatVersion"": 2, ""id"": 1, ""colors"": 1,
-                ""tubes"": [ { ""capacity"": 2, ""balls"": [0, 0] } ] }";
+                ""tubes"": [ { ""capacity"": 2, ""balls"": [0] }, { ""capacity"": 2, ""balls"": [0] } ] }";
 
             LevelDto level = LevelJsonParser.Parse(json, "future");
 

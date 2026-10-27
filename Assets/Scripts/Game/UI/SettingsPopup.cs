@@ -1,0 +1,79 @@
+using System;
+using BallSort.Game.Services;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace BallSort.Game.UI
+{
+    /// <summary>
+    /// The settings popup shared by both scenes: Sound, Music and Haptics toggles, plus Restart
+    /// and Home buttons that only the Level scene shows.
+    /// </summary>
+    [RequireComponent(typeof(Popup))]
+    public sealed class SettingsPopup : MonoBehaviour
+    {
+        [SerializeField] private Popup _popup;
+        [SerializeField] private SettingToggle[] _toggles = new SettingToggle[0];
+        [SerializeField] private Button _restartButton;
+        [SerializeField] private Button _homeButton;
+
+        /// <summary>The player tapped Restart. The popup has already closed.</summary>
+        public event Action RestartRequested;
+
+        /// <summary>The player tapped Home. The popup has already closed.</summary>
+        public event Action HomeRequested;
+
+        public Popup Popup => _popup;
+
+        /// <param name="player">Whose settings the toggles show and change.</param>
+        /// <param name="showLevelActions">True in the Level scene, to show Restart and Home.</param>
+        public void Initialize(PlayerData player, bool showLevelActions)
+        {
+            foreach (SettingToggle toggle in _toggles)
+            {
+                toggle.Bind(player);
+            }
+
+            _restartButton.gameObject.SetActive(showLevelActions);
+            _homeButton.gameObject.SetActive(showLevelActions);
+
+            _restartButton.onClick.RemoveListener(OnRestartClicked);
+            _homeButton.onClick.RemoveListener(OnHomeClicked);
+            _restartButton.onClick.AddListener(OnRestartClicked);
+            _homeButton.onClick.AddListener(OnHomeClicked);
+        }
+
+        private void OnRestartClicked()
+        {
+            _popup.Close();
+            RestartRequested?.Invoke();
+        }
+
+        private void OnHomeClicked()
+        {
+            _popup.Close();
+            HomeRequested?.Invoke();
+        }
+
+        private void OnDestroy()
+        {
+            if (_restartButton != null)
+            {
+                _restartButton.onClick.RemoveListener(OnRestartClicked);
+            }
+
+            if (_homeButton != null)
+            {
+                _homeButton.onClick.RemoveListener(OnHomeClicked);
+            }
+        }
+
+        private void OnValidate()
+        {
+            if (_popup == null)
+            {
+                _popup = GetComponent<Popup>();
+            }
+        }
+    }
+}

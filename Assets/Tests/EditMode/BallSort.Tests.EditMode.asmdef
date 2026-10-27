@@ -3,7 +3,7 @@
     "rootNamespace": "BallSort.Tests.EditMode",
     "references": [
         "BallSort.Core",
-        "BallSort.Game",
+        "BallSort.LevelJson",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

@@ -3,14 +3,15 @@ using BallSort.Core.Levels;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace BallSort.Game.Services
+namespace BallSort.LevelJson
 {
     /// <summary>
     /// Reads level JSON into <see cref="LevelDto"/>s, strictly: unknown fields are errors so a typo
     /// in a hand-edited level fails loudly instead of being silently ignored.
     /// </summary>
     /// <remarks>
-    /// Kept free of <c>UnityEngine</c> so EditMode tests and editor tools can use it directly.
+    /// Lives in its own engine-free assembly (Core + Newtonsoft only) so the game, editor tools and
+    /// Core tests can all parse levels without depending on each other.
     /// </remarks>
     public static class LevelJsonParser
     {

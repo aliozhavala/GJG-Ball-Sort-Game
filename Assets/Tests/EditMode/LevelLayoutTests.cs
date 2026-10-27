@@ -104,5 +104,55 @@ namespace BallSort.Tests.EditMode
         {
             Assert.That(LevelLayout.Resolve(7, null), Is.EqualTo(new[] { 4, 3 }));
         }
+
+        // --- Appending an added tube -----------------------------------------------------------
+
+        [TestCase(new[] { 3 }, new[] { 4 })]
+        [TestCase(new[] { 6 }, new[] { 6, 1 })]
+        [TestCase(new[] { 4, 3 }, new[] { 4, 4 })]
+        [TestCase(new[] { 6, 6 }, new[] { 6, 6, 1 })]
+        [TestCase(new[] { 6, 6, 5 }, new[] { 6, 6, 6 })]
+        [TestCase(new[] { 2, 1 }, new[] { 2, 2 })]
+        public void TryAppendTube_FillsTheLastRowThenStartsANewOne(int[] rows, int[] expected)
+        {
+            Assert.That(LevelLayout.TryAppendTube(rows, out int[] newRows), Is.True);
+            Assert.That(newRows, Is.EqualTo(expected));
+            Assert.That(LevelLayout.CanAppendTube(rows), Is.True);
+        }
+
+        [TestCase(new[] { 6, 6, 6 })]
+        [TestCase(new[] { 2, 6, 6 })]
+        [TestCase(new[] { 1, 1, 6 })]
+        public void TryAppendTube_RefusesWhenTheLastRowIsFullAndRowsAreUsedUp(int[] rows)
+        {
+            Assert.That(LevelLayout.TryAppendTube(rows, out int[] newRows), Is.False);
+            Assert.That(newRows, Is.Null);
+            Assert.That(LevelLayout.CanAppendTube(rows), Is.False);
+        }
+
+        [Test]
+        public void TryAppendTube_DoesNotModifyTheInput()
+        {
+            int[] rows = { 4, 3 };
+
+            LevelLayout.TryAppendTube(rows, out _);
+
+            Assert.That(rows, Is.EqualTo(new[] { 4, 3 }));
+        }
+
+        [Test]
+        public void TryAppendTube_OnAnyAutomaticLayout_FitsUpToEighteenTubes()
+        {
+            for (int count = 1; count < LevelLayout.MaxTubes; count++)
+            {
+                Assert.That(LevelLayout.TryAppendTube(LevelLayout.AutoRows(count), out int[] rows), Is.True,
+                    $"{count} tubes");
+
+                var errors = new List<string>();
+                Assert.That(LevelLayout.ValidateRows(rows, count + 1, errors), Is.True, string.Join("; ", errors));
+            }
+
+            Assert.That(LevelLayout.CanAppendTube(LevelLayout.AutoRows(LevelLayout.MaxTubes)), Is.False);
+        }
     }
 }

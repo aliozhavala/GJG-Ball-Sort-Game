@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using BallSort.Core.Model;
+using BallSort.Core.Rules;
 
 namespace BallSort.Core.Levels
 {
     /// <summary>
-    /// Structural checks for a parsed level: everything except solvability, which needs the solver
-    /// and runs at editor time.
+    /// Checks for a parsed level: structure first, then the opening position (nothing already
+    /// completed or won, at least one legal move). Solvability needs the solver and runs at editor time.
     /// </summary>
     public static class LevelValidator
     {
@@ -61,7 +63,40 @@ namespace BallSort.Core.Levels
             }
 
             ValidateLayout(level, errors);
+
+            // The playability checks build a board, which is only safe on structurally valid data.
+            if (errors.Count == 0)
+            {
+                ValidateStartState(level, errors);
+            }
+
             return Prefix(errors, levelName);
+        }
+
+        /// <summary>
+        /// The opening position must be a real puzzle: nothing already finished, and something to do.
+        /// </summary>
+        private static void ValidateStartState(LevelDto level, List<string> errors)
+        {
+            BoardState board = LevelFactory.CreateBoard(level);
+            if (board.IsWon)
+            {
+                errors.Add("is already won at start.");
+                return;
+            }
+
+            for (int i = 0; i < board.TubeCount; i++)
+            {
+                if (board[i].IsCompleted)
+                {
+                    errors.Add($"tubes[{i}] is already completed at start.");
+                }
+            }
+
+            if (!MoveRules.HasAnyLegalMove(board))
+            {
+                errors.Add("has no legal move at start.");
+            }
         }
 
         private static void ValidateTube(

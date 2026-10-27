@@ -3,8 +3,11 @@
     "rootNamespace": "BallSort.Game",
     "references": [
         "BallSort.Core",
+        "BallSort.LevelJson",
         "DOTween.Modules",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

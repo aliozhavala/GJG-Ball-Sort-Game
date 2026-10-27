@@ -37,6 +37,16 @@ namespace BallSort.Core.Commands
         /// </remarks>
         public bool CompletedTube { get; private set; }
 
+        /// <summary>
+        /// Whether the most recent <see cref="Undo"/> completed the source tube.
+        /// </summary>
+        /// <remarks>
+        /// Possible because reveals survive an undo: putting a run back onto a ball it uncovered can
+        /// fill a single-colour tube. <c>CommandHistory</c> seals on this exactly as on
+        /// <see cref="CompletedTube"/>.
+        /// </remarks>
+        public bool UndoCompletedTube { get; private set; }
+
         /// <param name="board">The board this command acts on.</param>
         /// <param name="move">A move previously validated by <see cref="MoveRules"/>.</param>
         public MoveCommand(BoardState board, MoveInfo move)
@@ -66,6 +76,7 @@ namespace BallSort.Core.Commands
 
             _board.ApplyMove(FromIndex, ToIndex, Count);
             CompletedTube = _board[ToIndex].IsCompleted;
+            UndoCompletedTube = false;
             _isExecuted = true;
         }
 
@@ -80,7 +91,7 @@ namespace BallSort.Core.Commands
                 throw new InvalidOperationException("This move is not currently executed.");
             }
 
-            _board.RevertMove(FromIndex, ToIndex, Count);
+            UndoCompletedTube = _board.RevertMove(FromIndex, ToIndex, Count);
             _isExecuted = false;
         }
 

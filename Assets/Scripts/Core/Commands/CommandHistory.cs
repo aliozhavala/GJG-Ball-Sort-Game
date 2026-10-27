@@ -6,46 +6,40 @@ using BallSort.Core.Rules;
 namespace BallSort.Core.Commands
 {
     /// <summary>
-    /// The move log for one level, and the authority on whether undo is currently allowed.
+    /// The move log for one level, and the authority on which moves can still be undone.
     /// </summary>
     /// <remarks>
-    /// Undo is a charge-limited booster, and a move that completes a tube can never be undone.
-    /// Because undo is last-in-first-out, such a move <em>seals</em> everything up to and including
-    /// itself: the player can still undo moves made after the completion, but can never reach back
-    /// past it. That is what <see cref="_sealedDepth"/> tracks.
+    /// A completed tube is corked for good, so a move that completes one can never be undone. Because
+    /// undo is last-in-first-out, such a move <em>seals</em> everything up to and including itself:
+    /// the player can still undo moves made after the completion, but can never reach back past it.
+    /// That is what <see cref="_sealedDepth"/> tracks. An undo that completes a tube seals the same way.
     /// <para>
-    /// There is deliberately no "undo everything" operation — restarting a level reloads it, so the
-    /// hidden balls go back to being hidden.
+    /// This class knows nothing about booster counts; spending an Undo booster is
+    /// <c>LevelSession</c>'s job. There is deliberately no "undo everything" operation either —
+    /// restarting a level reloads it, so the hidden balls go back to being hidden.
     /// </para>
     /// </remarks>
     public sealed class CommandHistory
     {
-        /// <summary>
-        /// Default charge count. Generous on purpose: this is a case study, not an economy, so undo
-        /// should effectively never run out in normal play while the mechanism still exists.
-        /// </summary>
-        public const int DefaultUndoCharges = 99;
-
         private readonly List<MoveCommand> _commands = new List<MoveCommand>();
 
         /// <summary>
         /// Number of leading commands that can never be undone. Equal to the depth of the history
-        /// immediately after the most recent tube-completing move.
+        /// immediately after the most recent tube completion.
         /// </summary>
         private int _sealedDepth;
-
-        private int _undoChargesRemaining;
 
         /// <summary>Total moves made this level, including sealed ones. The player's move counter.</summary>
         public int MoveCount => _commands.Count;
 
-        /// <summary>Undo charges the player has left.</summary>
-        public int UndoChargesRemaining => _undoChargesRemaining;
-
         /// <summary>True when <see cref="TryUndo"/> would succeed.</summary>
         public bool CanUndo => UndoBlockReason == UndoBlockReason.None;
 
-        /// <summary>Why undo is unavailable, or <see cref="UndoBlockReason.None"/> when it is available.</summary>
+        /// <summary>
+        /// Why the history cannot undo, or <see cref="UndoBlockReason.None"/> when it can. Only ever
+        /// <see cref="UndoBlockReason.NoMovesToUndo"/> or <see cref="UndoBlockReason.SealedByTubeCompletion"/>;
+        /// the booster and stuck reasons are added by <c>LevelSession</c>.
+        /// </summary>
         public UndoBlockReason UndoBlockReason
         {
             get
@@ -60,31 +54,12 @@ namespace BallSort.Core.Commands
                     return UndoBlockReason.SealedByTubeCompletion;
                 }
 
-                if (_undoChargesRemaining <= 0)
-                {
-                    return UndoBlockReason.NoChargesLeft;
-                }
-
                 return UndoBlockReason.None;
             }
         }
 
         /// <summary>The most recent move, sealed or not; null when no moves have been made.</summary>
         public MoveCommand LastMove => _commands.Count > 0 ? _commands[_commands.Count - 1] : null;
-
-        /// <param name="undoCharges">
-        /// How many undos the player may spend this level. Defaults to <see cref="DefaultUndoCharges"/>.
-        /// </param>
-        public CommandHistory(int undoCharges = DefaultUndoCharges)
-        {
-            if (undoCharges < 0)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(undoCharges), undoCharges, "Undo charges cannot be negative.");
-            }
-
-            _undoChargesRemaining = undoCharges;
-        }
 
         /// <summary>
         /// Validates a move against <see cref="MoveRules"/>, applies it, and records it.
@@ -140,8 +115,11 @@ namespace BallSort.Core.Commands
         }
 
         /// <summary>
-        /// Undoes the most recent move and spends one charge, if undo is currently allowed.
+        /// Undoes the most recent move, if it is not behind the seal.
         /// </summary>
+        /// <remarks>
+        /// If the undo itself completes a tube, the history is sealed at the new depth.
+        /// </remarks>
         /// <returns>False, changing nothing, when <see cref="CanUndo"/> is false.</returns>
         public bool TryUndo()
         {
@@ -154,7 +132,12 @@ namespace BallSort.Core.Commands
             MoveCommand command = _commands[last];
             _commands.RemoveAt(last);
             command.Undo();
-            _undoChargesRemaining--;
+
+            if (command.UndoCompletedTube)
+            {
+                _sealedDepth = _commands.Count;
+            }
+
             return true;
         }
 
@@ -162,35 +145,10 @@ namespace BallSort.Core.Commands
         /// Drops the whole log and lifts the seal, without touching the board. Call this when loading
         /// or restarting a level, alongside building a fresh <see cref="BoardState"/>.
         /// </summary>
-        /// <param name="undoCharges">
-        /// Charges for the new level. Omit to keep the current remaining count.
-        /// </param>
-        public void Clear(int? undoCharges = null)
+        public void Clear()
         {
-            if (undoCharges.HasValue)
-            {
-                if (undoCharges.Value < 0)
-                {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(undoCharges), undoCharges.Value, "Undo charges cannot be negative.");
-                }
-
-                _undoChargesRemaining = undoCharges.Value;
-            }
-
             _commands.Clear();
             _sealedDepth = 0;
-        }
-
-        /// <summary>Grants extra undo charges, for a booster reward.</summary>
-        public void GrantUndoCharges(int amount)
-        {
-            if (amount < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(amount), amount, "Cannot grant a negative amount.");
-            }
-
-            _undoChargesRemaining += amount;
         }
     }
 }

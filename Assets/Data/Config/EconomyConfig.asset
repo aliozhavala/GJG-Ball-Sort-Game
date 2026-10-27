@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e6c51a46961614787b849755e7aaed, type: 3}
+  m_Name: EconomyConfig
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Services.EconomyConfig
+  _startCoins: 1000
+  _startLives: 5
+  _startUndo: 99
+  _startShuffle: 99
+  _startAddTube: 99
+  _winReward: 20
+  _playOnCost: 900
+  _addedTubeCapacity: 4

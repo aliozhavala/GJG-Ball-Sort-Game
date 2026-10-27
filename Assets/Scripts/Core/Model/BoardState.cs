@@ -12,18 +12,22 @@ namespace BallSort.Core.Model
     /// Moves are applied through <c>MoveCommand</c>, never directly — the mutators here are
     /// <c>internal</c> and assume the move has already been validated by <c>MoveRules</c>.
     /// <para>
+    /// Tubes are only ever appended (<see cref="AddTube"/>), never removed or reordered, so a tube's
+    /// index stays valid for the life of the board and recorded moves never point at the wrong tube.
+    /// </para>
+    /// <para>
     /// <see cref="Clone"/> deliberately does not copy subscribers, so solver copies are silent and
     /// cannot leak into the view layer.
     /// </para>
     /// </remarks>
     public sealed class BoardState
     {
-        private readonly Tube[] _tubes;
+        private readonly List<Tube> _tubes;
 
         /// <summary>Tubes in board order; the index is a tube's stable identity within the level.</summary>
         public IReadOnlyList<Tube> Tubes => _tubes;
 
-        public int TubeCount => _tubes.Length;
+        public int TubeCount => _tubes.Count;
 
         /// <summary>
         /// Number of distinct colours the level uses, derived as <c>max colour id + 1</c>. Zero for a
@@ -42,7 +46,7 @@ namespace BallSort.Core.Model
         {
             get
             {
-                for (int i = 0; i < _tubes.Length; i++)
+                for (int i = 0; i < _tubes.Count; i++)
                 {
                     if (!_tubes[i].IsEmpty && !_tubes[i].IsCompleted)
                     {
@@ -60,14 +64,20 @@ namespace BallSort.Core.Model
         /// <summary>Raised for each ball that changed from hidden to revealed.</summary>
         public event Action<BallRevealedEventArgs> BallRevealed;
 
-        /// <summary>Raised when a move completes a tube.</summary>
+        /// <summary>
+        /// Raised when a tube becomes completed: normally by a move, but also by an undo that puts a
+        /// run back onto balls revealed in the meantime.
+        /// </summary>
         public event Action<TubeCompletedEventArgs> TubeCompleted;
 
-        /// <summary>Raised when a move leaves the board in a won state.</summary>
+        /// <summary>Raised when a move or an undo leaves the board in a won state.</summary>
         public event Action LevelCompleted;
 
         /// <summary>Raised after a move has been undone. Revealed balls stay revealed.</summary>
         public event Action<MoveEventArgs> MoveUndone;
+
+        /// <summary>Raised after an empty tube has been appended to the board.</summary>
+        public event Action<TubeAddedEventArgs> TubeAdded;
 
         /// <param name="tubes">The level's tubes, in board order. At least one, none null.</param>
         public BoardState(IEnumerable<Tube> tubes)
@@ -77,14 +87,14 @@ namespace BallSort.Core.Model
                 throw new ArgumentNullException(nameof(tubes));
             }
 
-            _tubes = new List<Tube>(tubes).ToArray();
-            if (_tubes.Length == 0)
+            _tubes = new List<Tube>(tubes);
+            if (_tubes.Count == 0)
             {
                 throw new ArgumentException("A board needs at least one tube.", nameof(tubes));
             }
 
             int maxColorId = -1;
-            for (int i = 0; i < _tubes.Length; i++)
+            for (int i = 0; i < _tubes.Count; i++)
             {
                 if (_tubes[i] == null)
                 {
@@ -113,22 +123,22 @@ namespace BallSort.Core.Model
                 if (!IsValidTubeIndex(tubeIndex))
                 {
                     throw new ArgumentOutOfRangeException(
-                        nameof(tubeIndex), tubeIndex, $"Board has {_tubes.Length} tube(s).");
+                        nameof(tubeIndex), tubeIndex, $"Board has {_tubes.Count} tube(s).");
                 }
 
                 return _tubes[tubeIndex];
             }
         }
 
-        public bool IsValidTubeIndex(int tubeIndex) => tubeIndex >= 0 && tubeIndex < _tubes.Length;
+        public bool IsValidTubeIndex(int tubeIndex) => tubeIndex >= 0 && tubeIndex < _tubes.Count;
 
         /// <summary>
         /// An independent copy of the board, with no event subscribers. Intended for the solver.
         /// </summary>
         public BoardState Clone()
         {
-            var clones = new Tube[_tubes.Length];
-            for (int i = 0; i < _tubes.Length; i++)
+            var clones = new Tube[_tubes.Count];
+            for (int i = 0; i < _tubes.Count; i++)
             {
                 clones[i] = _tubes[i].Clone();
             }
@@ -185,8 +195,14 @@ namespace BallSort.Core.Model
         /// <remarks>
         /// Reveal state is intentionally left alone: information the player has already gained is
         /// never taken back. Restarting a level reloads it instead, which re-hides the balls.
+        /// <para>
+        /// Because of that, an undo can <em>complete</em> the source tube: if the move revealed a
+        /// same-coloured ball, putting the run back fills a single-colour tube with nothing hidden.
+        /// The tube is then corked exactly as if a move had completed it.
+        /// </para>
         /// </remarks>
-        internal void RevertMove(int fromIndex, int toIndex, int count)
+        /// <returns>True when the undo completed the source tube.</returns>
+        internal bool RevertMove(int fromIndex, int toIndex, int count)
         {
             Tube source = _tubes[fromIndex];
             Tube target = _tubes[toIndex];
@@ -197,13 +213,42 @@ namespace BallSort.Core.Model
                 source.Push(target.Pop());
             }
 
+            bool completed = source.IsCompleted;
+
             MoveUndone?.Invoke(new MoveEventArgs(fromIndex, toIndex, count, colorId));
+
+            if (completed)
+            {
+                TubeCompleted?.Invoke(new TubeCompletedEventArgs(fromIndex, colorId));
+
+                if (IsWon)
+                {
+                    LevelCompleted?.Invoke();
+                }
+            }
+
+            return completed;
+        }
+
+        /// <summary>
+        /// Appends an empty tube at the end of the board, so every existing index stays valid.
+        /// </summary>
+        /// <remarks>
+        /// Callers enforce the limits (layout room, booster count); this only mutates and announces.
+        /// </remarks>
+        /// <returns>The new tube's index.</returns>
+        internal int AddTube(int capacity)
+        {
+            _tubes.Add(new Tube(capacity));
+            int index = _tubes.Count - 1;
+            TubeAdded?.Invoke(new TubeAddedEventArgs(index, capacity));
+            return index;
         }
 
         public override string ToString()
         {
             var text = new StringBuilder();
-            for (int i = 0; i < _tubes.Length; i++)
+            for (int i = 0; i < _tubes.Count; i++)
             {
                 if (i > 0)
                 {

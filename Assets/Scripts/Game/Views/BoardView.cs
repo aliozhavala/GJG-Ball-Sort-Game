@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using BallSort.Core.Levels;
 using BallSort.Core.Model;
+using BallSort.Core.Session;
 using BallSort.Game.Layout;
 using UnityEngine;
 using UnityEngine.Pool;
@@ -33,18 +34,22 @@ namespace BallSort.Game.Views
         /// <summary>Tube views in board order; index matches the board's tube index.</summary>
         public IReadOnlyList<TubeView> Tubes => _tubes;
 
-        /// <summary>Clears any previous board and shows <paramref name="level"/>.</summary>
-        public void Build(LoadedLevel level)
+        /// <summary>
+        /// Clears any previous board and shows the session's current board. Call again after the
+        /// session restarts, since restart swaps in a new board.
+        /// </summary>
+        public void Build(LevelSession session)
         {
             Clear();
 
+            LoadedLevel level = session.Level;
             if (level.Colors > _palette.Count)
             {
                 Debug.LogError(
                     $"{level.Name} uses {level.Colors} colours but {_palette.name} defines {_palette.Count}.", this);
             }
 
-            BoardState board = level.Board;
+            BoardState board = session.Board;
             int maxCapacity = 1;
             for (int t = 0; t < board.TubeCount; t++)
             {
@@ -64,7 +69,7 @@ namespace BallSort.Game.Views
                 }
             }
 
-            _layout.Arrange(level.Rows, _tubes, maxCapacity, _tubeConfig);
+            _layout.Arrange(session.Rows, _tubes, maxCapacity, _tubeConfig);
         }
 
         /// <summary>Returns every tube and ball to the pools.</summary>
