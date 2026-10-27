@@ -58,38 +58,21 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - **DOTween** for motion. **Coroutines or `Awaitable`/async** only for orchestration (delays, win sequence, level transitions) — pick one style per feature, don't mix in the same flow.
 - **Solver at runtime** (hints) runs on a background thread (`Task.Run`), results applied on the main thread.
 
+## Presentation
+- Art is swappable: sprites only via ScriptableObjects (`ColorPalette`, `TubeVisualConfig`) or prefab fields. Placeholders: built-in Circle/Square/Capsule sprites, tinted.
+- Board: world-space SpriteRenderers, orthographic camera. `BoardLayout` places tubes using the level's rows (≤ 6 per row, shorter rows centered) and scales the board root to fit both width and height of the safe area.
+- Tube: back layer + balls + front (glass) layer; 9-sliced body; `BoxCollider2D` tap target covering tube and lift area.
+- Sorting layers (bottom→top): Background, TubeBack, Balls, TubeFront, VFX. Lifted/in-flight balls render above TubeFront.
+- Ball slot y = bottomOffset + index × slotHeight. Hidden balls show a "?" overlay; reveal = quick flip.
+- UI: uGUI + TextMeshPro, Canvas Scaler 1080×1920, match 0.5, `SafeArea` on root panel.
+
 ## Levels
 
 ### Progression
 - **Linear only in the game:** no level select screen. The player always continues from their highest unlocked level (saved via a `SaveService`, PlayerPrefs-backed).
 - **Editor-only level jump:** a developer tool to pick and play any level (1–100) from the Editor, for testing and tuning. It must not ship in player builds (`#if UNITY_EDITOR` or the Editor assembly).
 
-### File format
-One JSON file per level: `Assets/Data/Levels/level_001.json` … `level_100.json`, referenced in order by `LevelDatabase`.
-Ball arrays run **bottom → top**. `hidden` is optional and parallel to `balls`. `lock` is optional (only if the locked-tube mechanic is adopted).
-
-```json
-{
-  "id": 37,
-  "colors": 6,
-  "tubes": [
-    { "capacity": 4, "balls": [2, 0, 1, 2], "hidden": [true, true, true, false] },
-    { "capacity": 4, "balls": [1, 1, 0, 2] },
-    { "capacity": 4, "balls": [] }
-  ],
-  "meta": { "optimalMoves": 23, "difficulty": 0.54, "mechanics": ["hidden"], "tutorial": false }
-}
-```
-
-Loader validates: each color's total ball count fills tubes exactly; no tube over capacity; top balls revealed; level solvable (editor-time check).
-
-### Solver and generator
-- **Solver** (Core): BFS / A* over board states using the **same `MoveRules` as the game** (single source of truth), with full knowledge of hidden colors but honoring hidden flags for run building.
-  - Canonical state hash: sort tubes that are interchangeable (same capacity and rules) before hashing.
-  - Pruning: never move out of a completed tube; never move a single-color tube's entire content into an empty tube; never immediately reverse the previous move.
-- **Generator** (Editor window): parameters (colors, capacity, empty tubes, mechanics) → random fill → solve → reject unsolvable/trivial → score difficulty → export JSON.
-  - Difficulty signals: optimal move count, states explored, dead-end ratio, number of empty tubes, hidden-ball count.
-- Product teammate curates the final 100 and hand-authors tutorial levels for each mechanic.
+Level JSON schema, validation, solver and generator details: read docs/levels.md when working on levels.
 
 ## Folder structure
 Project folders live **directly under `Assets/`**, alongside `Plugins/`. (There is no `_Project/`
@@ -123,12 +106,17 @@ Assets/
 
 ## Rules for Claude Code
 - **Never create, edit, or delete `.meta` files.** Unity generates them. If a file must be moved/renamed, say so and let the developer do it in the Editor.
-- **Do not edit `.unity`, `.prefab`, or `.asset` YAML** unless explicitly asked. Instead, list the Inspector/scene wiring the developer must do.
+- Scene, prefab and asset changes only through Unity MCP Editor tools, never by editing `.unity`/`.prefab`/`.asset` YAML. Afterwards, list everything created or modified.
+- After code changes, check the Unity console via MCP; run EditMode tests via MCP after Core changes.
+- Keep CLAUDE.md lean: rules and decisions only. Put detailed specs in `docs/` and reference them. No session notes or changelogs here.
 - Do not touch `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Plugins/`, `ProjectSettings/`, or `Packages/manifest.json` without asking.
 - Keep Core free of `UnityEngine` references (the asmdef enforces it — don't work around it).
 - Before large refactors or new dependencies, propose the plan first.
 - After each change, summarize: files changed, what to wire in the Editor, how to test.
 - Keep changes small and commit-sized. Don't rewrite working code for style alone.
+
+## Roadmap
+1 ✅ Core · 2 Level loading + greybox board/layout · 3 Input, animations, HUD, win flow, save · 4 Solver, generator, editor level jump · 5 Extra mechanics · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
 
 ## Open decisions (update as they're settled)
 - Second (and third) mechanic: variable capacity? locked tubes? other?

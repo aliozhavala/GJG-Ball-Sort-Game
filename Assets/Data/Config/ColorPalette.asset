@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee4cc09b514a34d4fb47b61f466d8ef2, type: 3}
+  m_Name: ColorPalette
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Views.ColorPalette
+  _defaultSprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+  _entries:
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.8980392, g: 0.22352941, b: 0.20784314, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.11764706, g: 0.53333336, b: 0.8980392, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.99215686, g: 0.84705883, b: 0.20784314, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.2627451, g: 0.627451, b: 0.2784314, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.5568628, g: 0.14117648, b: 0.6666667, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.9843137, g: 0.54901963, b: 0, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0, g: 0.6745098, b: 0.75686276, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.9411765, g: 0.38431373, b: 0.57254905, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.7529412, g: 0.7921569, b: 0.2, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.42745098, g: 0.29803923, b: 0.25490198, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.15686275, g: 0.20784314, b: 0.5764706, a: 1}
+  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _tint: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+  _hiddenSprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+  _hiddenTint: {r: 0.32, g: 0.33, b: 0.38, a: 1}
