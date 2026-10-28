@@ -4,7 +4,7 @@
 One JSON file per level: `Assets/Data/Levels/level_001.json` … `level_100.json`, referenced in order by `LevelDatabase`.
 Ball arrays run **bottom → top**. This file is the schema; the rules and validation behind each field are in docs/mechanics.md.
 
-- `formatVersion` (int, currently 1) at the top level. The format will grow: about 3 more mechanics are planned on top of hidden balls. New mechanics add **optional** fields (per level, per tube, or per ball); an absent field means the mechanic is not used. Bump `formatVersion` only for breaking changes.
+- `formatVersion` (int, currently 1) at the top level. Each mechanic (hidden balls, veil, lock and key, clay, large tubes) uses **optional** fields (per level, per tube, or per ball); an absent field means the mechanic is not used. Bump `formatVersion` only for breaking changes.
 - Parse strictly: unknown fields are errors (Newtonsoft `MissingMemberHandling.Error`), so typos in hand-edited levels are caught. An unsupported `formatVersion` is an error.
 - `layout.grid` (required): rows of cells, top row first; each cell is a tube index or `null`. At most 3 rows and 6 cells per row. A large tube is listed in every row it spans, in the same cell.
 - Per tube: `capacity` and `balls` (required); optional `hidden` (parallel to `balls`), `veil: { "color": c }` (a ball colour id), `clay: true`, `keys: [{ "slot": s, "lock": id }]` (`slot` indexes `balls`).

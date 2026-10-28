@@ -45,16 +45,17 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code. Progress a
 - Unavailable boosters look dimmed but still react to taps with a short toast explaining why:
   - Undo: "Nothing to undo" / "Can't undo past a completed tube" / "No undos left".
   - Add tube: "No add-tube boosters left" / "No room for more tubes".
-  - Shuffle: "Coming soon" (needs the step 4 solver to stay solvable).
+  - Shuffle: "No shuffles left" / "Can't shuffle right now" (no valid shuffle found; the booster is not spent).
 - Reason precedence (first match wins), so the toast names the real obstacle rather than the booster count:
   - Undo: Stuck → no moves → sealed → no boosters.
   - Add tube: level won → Stuck → no room → no boosters.
-  - Shuffle: level won → Stuck → not available.
+  - Shuffle: level won → Stuck → no boosters → no valid shuffle (known only after trying, so the button stays enabled until then).
 - **Add tube:** appends an empty tube of capacity 4. Not undoable, doesn't seal undo history. No room once every row already has 8 cells ("No room for more tubes").
+- **Shuffle:** rearranges the balls of the open tubes, keeping the board solvable (rules in docs/mechanics.md). Spent only when it succeeds; clears the undo history, so Undo then shows "Nothing to undo". Not undoable.
 - **Restart** (settings) reloads the level from data: hidden balls hidden again, added tubes gone, undo history cleared. Boosters already spent stay spent.
 
 ### Stuck (no legal moves and not won)
-- Checked after every move, undo, and added tube.
+- Checked after every move, undo, added tube and shuffle.
 - Show **"No available moves"** text above the board (does not cover or block the tubes).
 - Booster bar hidden (boosters cannot be used while stuck); tubes can still be selected.
 - Two buttons side by side in the booster bar's place: **Give up** and **Play on — 900 ●**.

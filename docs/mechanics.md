@@ -12,7 +12,8 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 - Validation: a covered tube must not already hold a finished set (it would complete the moment its cover opened, and removing a cover never completes a tube).
 
 ### Veil
-- Opens when **any tube completes in the veil's color** (`veil.color` is a ball color id).
+- A veil has one color (`veil.color`, a ball color id). It opens **only** when a tube completes in **that color**, by a move or by an undo. Completing a tube of any other color does nothing to it, and neither does filling a tube with only some of the veil's color (that is not a completion).
+- Every veil of the completed color opens at once.
 - Validation: the veil color exists in the level.
 
 ### Lock and key
@@ -26,11 +27,12 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 ## Clay
 - A clay tube is **never a move source**; it is a normal target (empty, or top color matches).
 - Starts empty or with balls of **one color only**. No hidden balls and no keys in clay.
-- Typical use: large tubes with clay and 1 starting ball of the color that will fill them.
+- Any capacity can be clay. Usual design (not a rule): a large clay tube with 1 starting ball of the color that will fill it.
 
 ## Large tubes
 - Normal tubes have capacity 4. Large tubes span grid rows: capacity **5–10 spans 2 rows**, **11–16 spans 3 rows**.
 - A large tube is **bottom-aligned** with the bottom row of its span; capacity 10 (2 rows) and 16 (3 rows) also align with the top row exactly.
+- Apart from capacity and layout, a large tube is an ordinary tube: it **need not be clay** and may hold hidden balls, keys or a cover like any other.
 
 ## Board layout (grid)
 - Every level has an explicit `layout.grid`: rows of cells (top row first), each cell a tube index or `null`. Max **3 rows**, max **6 cells per row** in level files (added tubes may extend a row to 8 during play).
@@ -51,7 +53,11 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 - Won = every tube is empty or completed (a covered empty tube counts as empty).
 - Stuck = not won and no legal move (covers and clay already restrict moves). Soft-locks with legal moves remaining are not detected (by design).
 
-## Planned, not implemented: portal
-- A portal tube has a queue of preloaded tubes. When it **completes** (only then), it leaves and the next queued tube appears in the same cell and index. Won additionally requires every queue to be empty.
-- Levels must never put balls that tubes in front need for completion behind a portal so the level can't be won (solver-checked).
-- Do **not** add portal fields to the DTOs yet; strict parsing will reject them, which is intended.
+## Shuffle (booster)
+- **Which tubes:** only tubes that are **not covered** (veil or lock), **not clay** and **not completed**. Balls move only between these tubes, and each of them keeps its ball count. Every other tube is untouched.
+- **Keys stay put:** a ball that still carries a key keeps its tube and slot.
+- **Hidden balls take part:** every ball keeps its hidden flag, except that a hidden ball landing on **top** of a tube is revealed. After a shuffle every tube's top ball is revealed.
+- **Valid result:** it differs from the current arrangement, no tube is completed, no key is findable (no key in a selectable run), and the board is solvable (solver, Fast mode; a result the solver can't confirm within its node limit counts as unsolvable). Random arrangements are tried up to N times.
+- **No valid shuffle found:** nothing changes, the booster isn't spent, and a toast says so.
+- **Success:** spends one Shuffle booster and **clears the undo history** (the recorded moves no longer match the board). A shuffle is not undoable.
+- Like every booster, unavailable once the level is won or while stuck.

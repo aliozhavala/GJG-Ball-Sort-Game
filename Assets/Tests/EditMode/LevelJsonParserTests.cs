@@ -128,16 +128,6 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
-        public void Parse_APortal_IsRejectedUntilItIsImplemented()
-        {
-            const string json = @"{ ""formatVersion"": 1, ""id"": 1, ""colors"": 1, ""layout"": { ""grid"": [[0, 1]] },
-                ""tubes"": [ { ""capacity"": 4, ""balls"": [0, 0], ""portal"": [] }, { ""capacity"": 4, ""balls"": [0, 0] } ] }";
-
-            var e = Assert.Throws<LevelFormatException>(() => LevelJsonParser.Parse(json, "portal"));
-            Assert.That(e.Errors, Has.Exactly(1).Contains("portal"));
-        }
-
-        [Test]
         public void Parse_UnknownKeyField_Throws()
         {
             const string json = @"{ ""formatVersion"": 1, ""id"": 1, ""colors"": 1, ""layout"": { ""grid"": [[0, 1]] },

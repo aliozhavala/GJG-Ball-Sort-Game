@@ -8,7 +8,7 @@ Optimize for clarity, clean architecture, and robustness over cleverness.
 ## Brief (from the case study)
 - Player moves balls from the top of one tube to another. A ball may go into an empty tube or onto a ball of the same color. Level is won when every tube holds a single color.
 - **100 levels**, all solvable, difficulty increasing across the run.
-- **At least two new mechanics** across the levels. Designed: **hidden balls**, **veil**, **lock and key**, **clay**, **large tubes** (portal planned) — see docs/mechanics.md.
+- **At least two new mechanics** across the levels. Final set: **hidden balls**, **veil**, **lock and key**, **clay**, **large tubes** — see docs/mechanics.md.
 - Deliverable: project zip without `Library/`.
 
 ## Tech stack
@@ -36,11 +36,12 @@ Optimize for clarity, clean architecture, and robustness over cleverness.
 - **Boosters** (Undo, Shuffle, AddTube) are global player inventory (`BoosterInventory`), spent one per use, in any level. No per-level charges.
 - **Add tube** appends an empty tube (capacity from config, currently 4) at the end of the board, so tube indices and history stay valid. Not undoable, doesn't seal. It goes to the end of the grid row with the fewest cells (ties → bottom-most); rows grow to 8 cells during play, rows are never added; refused once every row has 8 cells.
 - **Play on** (only while stuck): costs coins (`EconomyConfig`), appends a tube exactly like Add tube (same layout limit), ignores the booster inventory, not undoable, doesn't seal.
+- **Shuffle** rearranges the balls of the open tubes (not covered, clay or completed), each keeping its ball count; the result must differ from the current board, complete nothing, expose no key and stay solvable. Spent only on success; clears the undo history. Full rules in docs/mechanics.md.
 - **Restart** reloads the level from its source data: hidden balls hidden again, added tubes gone, history cleared; boosters already spent stay spent. It is *not* "undo everything".
-- **Tube capacity**: 4 for normal tubes; large tubes (5–16) span 2–3 grid rows.
+- **Tube capacity**: 4 for normal tubes; large tubes (5–16) span 2–3 grid rows. Large tubes need not be clay.
 - **Tube completed** = full, every ball revealed, and holds **every ball of its color in the level** (details in docs/mechanics.md). Completed tubes cannot be a move source.
 - **Level won** = every tube is either empty or completed.
-- **Stuck** = not won and no legal move. Checked after every move, undo and added tube. While stuck, boosters are disabled.
+- **Stuck** = not won and no legal move. Checked after every move, undo, added tube and shuffle. While stuck, boosters are disabled.
 - **Input UX**: tap a tube to select (its run lifts); tap it again to deselect; tap another tube to move. If the move is illegal, play invalid-move feedback and clear the selection (never auto-select the tapped tube; the player selects again).
 
 Mechanics, completion and board layout rules: read docs/mechanics.md when working on Core rules, levels or board views.
@@ -136,6 +137,5 @@ Assets/
 1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b Solver and solvability checks · 4c Mechanic views (placeholders) and editor level jump · 5 Generator and level-design tools · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
 
 ## Open decisions (update as they're settled)
-- Shuffle algorithm (needs solver).
 - Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size, colorblind patterns.
 - Difficulty curve shape and mechanic introduction levels (product).
