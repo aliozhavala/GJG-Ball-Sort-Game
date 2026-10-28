@@ -26,6 +26,9 @@ namespace BallSort.Tests.EditMode
             board.MoveApplied += _ => log.Add(nameof(BoardState.MoveApplied));
             board.BallRevealed += _ => log.Add(nameof(BoardState.BallRevealed));
             board.TubeCompleted += _ => log.Add(nameof(BoardState.TubeCompleted));
+            board.TubeUnveiled += _ => log.Add(nameof(BoardState.TubeUnveiled));
+            board.KeyFound += _ => log.Add(nameof(BoardState.KeyFound));
+            board.LockOpened += _ => log.Add(nameof(BoardState.LockOpened));
             board.LevelCompleted += () => log.Add(nameof(BoardState.LevelCompleted));
             board.MoveUndone += _ => log.Add(nameof(BoardState.MoveUndone));
             return log;
@@ -92,7 +95,7 @@ namespace BallSort.Tests.EditMode
             board.MoveApplied += _ =>
             {
                 sourceCountAtEvent = board[0].Count;
-                targetCompletedAtEvent = board[1].IsCompleted;
+                targetCompletedAtEvent = board.IsCompleted(1);
             };
 
             Move(board, 0, 1).Execute();

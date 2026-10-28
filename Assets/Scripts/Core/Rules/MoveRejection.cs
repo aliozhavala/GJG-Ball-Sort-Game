@@ -24,11 +24,14 @@ namespace BallSort.Core.Rules
         /// <summary>The source tube is finished; completed tubes are never a source.</summary>
         SourceCompleted,
 
-        /// <summary>The source tube is locked.</summary>
-        SourceLocked,
+        /// <summary>The source tube is covered by a veil or a lock.</summary>
+        SourceCovered,
 
-        /// <summary>The target tube is locked.</summary>
-        TargetLocked,
+        /// <summary>The source is a clay tube; clay is never a move source.</summary>
+        SourceClay,
+
+        /// <summary>The target tube is covered by a veil or a lock.</summary>
+        TargetCovered,
 
         /// <summary>The target tube has no free slots. A completed tube is always full, so it lands here too.</summary>
         TargetFull,

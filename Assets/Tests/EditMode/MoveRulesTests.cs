@@ -15,6 +15,9 @@ namespace BallSort.Tests.EditMode
             return rejection;
         }
 
+        private static Tube Covered(CoverKind kind, int capacity, params Ball[] balls) =>
+            kind == CoverKind.Veil ? MakeVeiledTube(0, capacity, balls) : MakeLockedTube(0, capacity, balls);
+
         // --- Legal moves -----------------------------------------------------------------------
 
         [Test]
@@ -119,27 +122,81 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
-        public void LockedSource_IsRejected()
+        public void FullSingleColourSource_ThatIsNotTheWholeColour_CanStillMove()
         {
-            BoardState board = MakeBoard(MakeLockedTube(4, R(1)), MakeEmptyTube(4));
+            // Four of five colour-1 balls fill tube 0, but the fifth is elsewhere, so it is not completed.
+            BoardState board = MakeBoard(MakeTube(4, R(1), R(1), R(1), R(1)), MakeTube(4, R(1)));
 
-            Assert.That(RejectionFor(board, 0, 1), Is.EqualTo(MoveRejection.SourceLocked));
+            Assert.That(MoveRules.TryGetMove(board, 0, 1, out MoveInfo move), Is.True);
+            Assert.That(move.Count, Is.EqualTo(3), "as many as fit");
+        }
+
+        [TestCase(CoverKind.Veil)]
+        [TestCase(CoverKind.Lock)]
+        public void CoveredSource_IsRejected(CoverKind kind)
+        {
+            BoardState board = MakeBoard(Covered(kind, 4, R(1)), MakeEmptyTube(4));
+
+            Assert.That(RejectionFor(board, 0, 1), Is.EqualTo(MoveRejection.SourceCovered));
+        }
+
+        [TestCase(CoverKind.Veil)]
+        [TestCase(CoverKind.Lock)]
+        public void CoveredTarget_IsRejected(CoverKind kind)
+        {
+            BoardState board = MakeBoard(MakeTube(4, R(1)), Covered(kind, 4, R(1)));
+
+            Assert.That(RejectionFor(board, 0, 1), Is.EqualTo(MoveRejection.TargetCovered));
         }
 
         [Test]
-        public void LockedTarget_IsRejected()
+        public void CoveredEmptyTarget_IsRejected()
         {
-            BoardState board = MakeBoard(MakeTube(4, R(1)), MakeLockedTube(4, R(1)));
+            BoardState board = MakeBoard(MakeTube(4, R(1)), MakeLockedTube(0, 4));
 
-            Assert.That(RejectionFor(board, 0, 1), Is.EqualTo(MoveRejection.TargetLocked));
+            Assert.That(RejectionFor(board, 0, 1), Is.EqualTo(MoveRejection.TargetCovered));
         }
 
         [Test]
-        public void LockedEmptyTarget_IsRejected()
+        public void CoveredEmptySource_ReportsTheCoverFirst()
         {
-            BoardState board = MakeBoard(MakeTube(4, R(1)), MakeLockedTube(4));
+            // The cover is what the player sees, so it is the reason given.
+            BoardState board = MakeBoard(MakeVeiledTube(0, 4), MakeEmptyTube(4));
 
-            Assert.That(RejectionFor(board, 0, 1), Is.EqualTo(MoveRejection.TargetLocked));
+            Assert.That(RejectionFor(board, 0, 1), Is.EqualTo(MoveRejection.SourceCovered));
+        }
+
+        [Test]
+        public void ClaySource_IsRejected()
+        {
+            BoardState board = MakeBoard(MakeClayTube(4, R(1), R(1)), MakeEmptyTube(4));
+
+            Assert.That(RejectionFor(board, 0, 1), Is.EqualTo(MoveRejection.SourceClay));
+        }
+
+        [Test]
+        public void ClayTarget_TakesAMatchingRun()
+        {
+            BoardState board = MakeBoard(MakeTube(4, R(1), R(1)), MakeClayTube(5, R(1)));
+
+            Assert.That(MoveRules.TryGetMove(board, 0, 1, out MoveInfo move), Is.True);
+            Assert.That(move.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void EmptyClayTarget_TakesAnyRun()
+        {
+            BoardState board = MakeBoard(MakeTube(4, R(2)), MakeClayTube(4));
+
+            Assert.That(MoveRules.IsLegal(board, 0, 1), Is.True);
+        }
+
+        [Test]
+        public void ClayTarget_StillRejectsAMismatchedColour()
+        {
+            BoardState board = MakeBoard(MakeTube(4, R(2)), MakeClayTube(4, R(1)));
+
+            Assert.That(RejectionFor(board, 0, 1), Is.EqualTo(MoveRejection.ColorMismatch));
         }
 
         [Test]
@@ -213,20 +270,22 @@ namespace BallSort.Tests.EditMode
         // --- Selection and dead ends -----------------------------------------------------------
 
         [Test]
-        public void CanSelect_RejectsEmptyCompletedLockedAndHiddenTopTubes()
+        public void CanSelect_RejectsEmptyCompletedCoveredClayAndHiddenTopTubes()
         {
             BoardState board = MakeBoard(
                 MakeTube(4, R(1)),              // 0: selectable
                 MakeEmptyTube(4),               // 1: empty
                 MakeTube(2, R(2), R(2)),        // 2: completed
-                MakeLockedTube(4, R(3)),        // 3: locked
-                MakeTube(4, R(4), H(4)));       // 4: hidden top
+                MakeLockedTube(0, 4, R(3)),     // 3: locked
+                MakeTube(4, R(4), H(4)),        // 4: hidden top
+                MakeVeiledTube(1, 4, R(5)),     // 5: veiled
+                MakeClayTube(4, R(6)));         // 6: clay
 
             Assert.That(MoveRules.CanSelect(board, 0), Is.True);
-            Assert.That(MoveRules.CanSelect(board, 1), Is.False);
-            Assert.That(MoveRules.CanSelect(board, 2), Is.False);
-            Assert.That(MoveRules.CanSelect(board, 3), Is.False);
-            Assert.That(MoveRules.CanSelect(board, 4), Is.False);
+            for (int tube = 1; tube <= 6; tube++)
+            {
+                Assert.That(MoveRules.CanSelect(board, tube), Is.False, $"tube {tube}");
+            }
         }
 
         [Test]

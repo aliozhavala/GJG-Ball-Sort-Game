@@ -157,3 +157,24 @@ Newest entries at the bottom.
 - Level scene: booster buttons 170×130 (bar 150 high at y 20, badge inside the corner); stuck buttons 330/450×130.
   New `SafeArea/BoardArea` (stretch, bottom 190, top −280, no graphic) wired to `BoardLayout._boardArea`.
 - Verification: EditMode 241 passed; Play mode on level 3 at 1391×657, board clear of both HUD bars.
+
+## 2026-10-28 — Roadmap 4a: Core mechanics, grid layout and validation
+
+### Assets
+- `Assets/Data/Levels/level_001.json`–`level_005.json`: `layout.grid` added (same arrangement as the old rows).
+- `Assets/Data/Levels/level_006.json`: content replaced by the veil test level (the file and its GUID are kept, so
+  the `LevelDatabase` slot is unchanged). The old stuck trap is now the test fixture `TestLevels.StuckTrap()`.
+- `Assets/Data/Levels/level_007.json` (new, lock and key) and `level_008.json` (new, clay + capacity-10 tube spanning
+  2 rows): appended to `LevelDatabase.asset` as levels 7 and 8 (through MCP, `SerializedObject`).
+- `TubeVisualConfig` lost its `_verticalSpacing` field (rows are now spaced by the grid rule). `TubeVisualConfig.asset`
+  still holds the stale `_verticalSpacing: 0.5` key until Unity next re-serializes it; it is ignored.
+- `LevelBootstrap` gained `_loadFailedFormat` ("Level {0} could not be loaded"); the scene uses the script default,
+  so `Level.unity` was not modified.
+
+### Verification runs (no persistent changes)
+- EditMode tests via `TestRunnerApi`: 342 passed, 0 failed.
+- Play mode (Game view 1391×657): level 4 rows centred; level 8 shown through `BoardView.Initialize` with a fresh
+  session: large tube bottom-aligned, flush with the top row, top row left-aligned with the aligned block; two
+  added tubes went to top then bottom, the scale refitted only when the widest row grew.
+- Load failure: the play-mode `AppRoot` was pointed at an in-memory database holding one broken file; the Level scene
+  logged the validator error and returned to Home with the toast "Level 1 could not be loaded". Nothing was saved.

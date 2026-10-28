@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using BallSort.Core.Levels;
 using BallSort.Game.Views;
 using UnityEngine;
 
 namespace BallSort.Game.Layout
 {
     /// <summary>
-    /// Arranges tubes into rows and scales the board to fit the camera's safe area.
+    /// Arranges tubes on the level's grid and scales the board to fit the camera's safe area.
     /// </summary>
     /// <remarks>
     /// Lives on the board root. Tubes are placed in unscaled board space, centred on the root; the
@@ -42,40 +43,53 @@ namespace BallSort.Game.Layout
         private float _lastOrthographicSize;
 
         /// <summary>
-        /// Positions <paramref name="tubes"/> row by row (top row first, shorter rows centred) and fits
-        /// the board to the screen.
+        /// Positions every tube on <paramref name="grid"/> and fits the board to the screen.
         /// </summary>
-        /// <param name="rows">Tube counts per row; sums to <c>tubes.Count</c>.</param>
-        /// <param name="tubes">Tube views in board order.</param>
-        /// <param name="maxCapacity">Largest capacity in the level; sets every row's height.</param>
-        public void Arrange(IReadOnlyList<int> rows, IReadOnlyList<TubeView> tubes, int maxCapacity, TubeVisualConfig config)
+        /// <remarks>
+        /// Geometry (docs/mechanics.md): a row is as tall as a capacity-4 tube, with a gap of two
+        /// ball slots above it for the lifted run, so rows sit one row pitch apart and capacity-10
+        /// and capacity-16 tubes reach exactly as high as the top row of their span. Free rows are
+        /// centred on their own; aligned rows share columns, and their block is centred by its
+        /// widest row. Every tube stands on the base line of its bottom row.
+        /// <para>
+        /// The scale is refitted only when the board's size changes, which during play means an
+        /// added tube widened the widest row; otherwise tubes are just repositioned.
+        /// </para>
+        /// </remarks>
+        /// <param name="grid">The session's grid, including any added tubes.</param>
+        /// <param name="tubes">Tube views in board order; one per tube on the grid.</param>
+        public void Arrange(BoardGrid grid, IReadOnlyList<TubeView> tubes, TubeVisualConfig config)
         {
-            float pitch = config.TubeWidth + config.HorizontalSpacing;
-            float rowHeight = config.TubeHeight(maxCapacity) + config.CapHeight + config.LiftHeight;
+            float pitchX = config.TubeWidth + config.HorizontalSpacing;
+            float pitchY = LevelLayout.RowPitchSlots * config.SlotHeight;
 
-            float width = 0f;
-            for (int r = 0; r < rows.Count; r++)
+            int alignedCells = 0;
+            for (int r = 0; r < grid.RowCount; r++)
             {
-                width = Mathf.Max(width, RowWidth(rows[r], config));
-            }
-
-            float height = rows.Count * rowHeight + (rows.Count - 1) * config.VerticalSpacing;
-            _boardSize = new Vector2(width, height);
-
-            int tubeIndex = 0;
-            for (int r = 0; r < rows.Count; r++)
-            {
-                // Tubes stand on the row's base line; the lift area sits above the tallest tube.
-                float rowTop = height * 0.5f - r * (rowHeight + config.VerticalSpacing);
-                float baseY = rowTop - rowHeight;
-                float firstX = -RowWidth(rows[r], config) * 0.5f + config.TubeWidth * 0.5f;
-
-                for (int i = 0; i < rows[r]; i++, tubeIndex++)
+                if (grid.IsAligned(r))
                 {
-                    tubes[tubeIndex].transform.localPosition = new Vector3(firstX + i * pitch, baseY, 0f);
+                    alignedCells = Mathf.Max(alignedCells, grid.GetCellCount(r));
                 }
             }
 
+            // Each row owns one pitch of height: its tubes plus the lift gap above them.
+            var size = new Vector2(RowWidth(grid.WidestRowCellCount, config), grid.RowCount * pitchY);
+
+            for (int t = 0; t < tubes.Count; t++)
+            {
+                GridPlacement placement = grid.GetPlacement(t);
+                int rowCells = grid.IsAligned(placement.Row) ? alignedCells : grid.GetCellCount(placement.Row);
+                float firstX = (config.TubeWidth - RowWidth(rowCells, config)) * 0.5f;
+                float baseY = size.y * 0.5f - (placement.Row + 1) * pitchY;
+                tubes[t].transform.localPosition = new Vector3(firstX + placement.Cell * pitchX, baseY, 0f);
+            }
+
+            if (_hasBoard && size == _boardSize)
+            {
+                return;
+            }
+
+            _boardSize = size;
             _hasBoard = true;
             Fit();
         }

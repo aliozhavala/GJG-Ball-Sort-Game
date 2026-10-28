@@ -1,0 +1,15 @@
+{
+  "formatVersion": 1,
+  "id": 7,
+  "colors": 3,
+  "layout": { "grid": [[0, 1, 2], [3, 4]] },
+  "tubes": [
+    { "capacity": 4, "balls": [1, 2, 0, 0], "keys": [{ "slot": 1, "lock": 0 }] },
+    { "capacity": 4, "balls": [2, 1, 0, 0] },
+    { "capacity": 4, "balls": [] },
+    { "capacity": 4, "balls": [2, 1, 2, 1] },
+    { "capacity": 4, "balls": [] }
+  ],
+  "locks": [{ "id": 0, "tubes": [3, 4] }],
+  "meta": { "mechanics": ["lock"], "tutorial": true }
+}

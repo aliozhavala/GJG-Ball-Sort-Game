@@ -25,11 +25,14 @@ namespace BallSort.Core.Levels
         /// <summary>Number of distinct colours; ball colour ids run <c>0 .. Colors - 1</c>.</summary>
         public int Colors { get; set; }
 
-        /// <summary>Optional explicit row layout. <c>null</c> means the automatic row rule applies.</summary>
+        /// <summary>The grid layout. Required.</summary>
         public LayoutDto Layout { get; set; }
 
         /// <summary>The level's tubes in board order.</summary>
         public List<TubeDto> Tubes { get; set; }
+
+        /// <summary>Optional locks; each covers adjacent tubes in one grid row and is opened by one key.</summary>
+        public List<LockDto> Locks { get; set; }
 
         /// <summary>Optional design metadata; never affects gameplay.</summary>
         public LevelMetaDto Meta { get; set; }

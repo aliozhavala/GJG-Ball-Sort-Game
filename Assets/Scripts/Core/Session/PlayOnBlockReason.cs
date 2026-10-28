@@ -9,7 +9,7 @@ namespace BallSort.Core.Session
         /// <summary>The board is not stuck; Play on is only offered as a way out of a dead end.</summary>
         NotStuck,
 
-        /// <summary>The layout is full, so there is nowhere to put the extra tube.</summary>
+        /// <summary>Every grid row already has eight cells, so there is nowhere to put the extra tube.</summary>
         NoRoom,
 
         /// <summary>The player cannot afford the price.</summary>

@@ -1,3 +1,4 @@
+using System;
 using BallSort.Core.Levels;
 using BallSort.Core.Session;
 using BallSort.Game.Flow;
@@ -8,7 +9,8 @@ namespace BallSort.Game.Bootstrap
 {
     /// <summary>
     /// Level scene composition root: loads the player's current level, starts a
-    /// <see cref="LevelSession"/> for it, and hands both to the <see cref="LevelFlow"/>.
+    /// <see cref="LevelSession"/> for it, and hands both to the <see cref="LevelFlow"/>. A level that
+    /// fails to load sends the player back to Home with a toast instead of an empty board.
     /// </summary>
     public sealed class LevelBootstrap : MonoBehaviour
     {
@@ -17,6 +19,9 @@ namespace BallSort.Game.Bootstrap
         // TEMPORARY: replaced by the editor level jump (roadmap step 4). Ignored in player builds.
         [Tooltip("Editor only, temporary: play this level instead of the saved one. 0 = use the save.")]
         [SerializeField, Min(0)] private int _editorLevelOverride;
+
+        [Tooltip("Toast shown on Home when a level file cannot be loaded; {0} is the level number.")]
+        [SerializeField] private string _loadFailedFormat = "Level {0} could not be loaded";
 
         private AppRoot _app;
 
@@ -30,19 +35,35 @@ namespace BallSort.Game.Bootstrap
             }
 
             int levelNumber = ChooseLevel();
-            LoadedLevel level;
-            try
+            if (!TryLoad(levelNumber, out LoadedLevel level))
             {
-                level = new LevelLoader().Load(_app.Levels.GetLevel(levelNumber));
-            }
-            catch (LevelFormatException e)
-            {
-                Debug.LogError(e.Message, this);
+                _app.SceneLoader.LoadHome(string.Format(_loadFailedFormat, levelNumber));
                 return;
             }
 
             var session = new LevelSession(level, _app.PlayerData.Boosters, _app.Economy.AddedTubeCapacity);
             _flow.Begin(session, levelNumber, _app.PlayerData, _app.Economy, _app.SceneLoader);
+        }
+
+        private bool TryLoad(int levelNumber, out LoadedLevel level)
+        {
+            try
+            {
+                level = new LevelLoader().Load(_app.Levels.GetLevel(levelNumber));
+                return true;
+            }
+            catch (LevelFormatException e)
+            {
+                Debug.LogError(e.Message, this);
+            }
+            catch (ArgumentException e)
+            {
+                // A missing database slot or level file.
+                Debug.LogError($"Level {levelNumber}: {e.Message}", this);
+            }
+
+            level = null;
+            return false;
         }
 
         private int ChooseLevel()

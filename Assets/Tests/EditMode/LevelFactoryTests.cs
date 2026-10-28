@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using BallSort.Core.Commands;
 using BallSort.Core.Levels;
 using BallSort.Core.Model;
@@ -33,22 +32,49 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
-        public void Load_ResolvesAutoRows()
+        public void Load_BuildsTheGrid()
         {
-            LoadedLevel level = LevelFactory.Load(Valid(), Name);
+            LoadedLevel level = LevelFactory.Load(Valid().WithGrid(new int?[] { 0, 1 }, new int?[] { 2 }), Name);
 
-            Assert.That(level.Rows, Is.EqualTo(new[] { 3 }));
+            Assert.That(level.Grid.RowCount, Is.EqualTo(2));
+            Assert.That(level.Grid.TubeCount, Is.EqualTo(3));
+            Assert.That(level.Grid.GetPlacement(2).Row, Is.EqualTo(1));
+            Assert.That(level.Grid.IsAligned(0) || level.Grid.IsAligned(1), Is.False);
         }
 
         [Test]
-        public void Load_KeepsExplicitRows()
+        public void Load_BuildsCoversClayAndKeys()
         {
-            LevelDto dto = Valid();
-            dto.Layout = new LayoutDto { Rows = new List<int> { 2, 1 } };
+            LevelDto dto = Level(3,
+                    Hidden(4, new[] { 1, 2, 0, 0 }, new[] { false, true, false, false }).WithKey(1, 4),
+                    T(4, 0).AsClay(),
+                    T(4, 2, 1, 2, 1).WithVeil(0),
+                    T(4, 0, 2, 1),
+                    T(4))
+                .WithLock(4, 3, 4);
 
-            LoadedLevel level = LevelFactory.Load(dto, Name);
+            BoardState board = LevelFactory.Load(dto, Name).Board;
 
-            Assert.That(level.Rows, Is.EqualTo(new[] { 2, 1 }));
+            Assert.That(board[0][1], Is.EqualTo(new Ball(2, true, 4)), "the key sits on its ball, which stays hidden");
+            Assert.That(board[0][2].HasKey, Is.False);
+            Assert.That(board[1].IsClay, Is.True);
+            Assert.That(board[1].IsCovered, Is.False);
+            Assert.That(board[2].Cover, Is.EqualTo(TubeCover.Veil(0)));
+            Assert.That(board[3].Cover, Is.EqualTo(TubeCover.Lock(4)));
+            Assert.That(board[4].Cover, Is.EqualTo(TubeCover.Lock(4)), "a lock covers every tube it lists");
+            Assert.That(board[0].IsCovered || board[0].IsClay, Is.False);
+        }
+
+        [Test]
+        public void CreateGrid_RebuildsWithoutAddedTubes()
+        {
+            LoadedLevel level = LevelFactory.Load(Valid(), Name);
+            level.Grid.TryAddTube(out _, out _);
+
+            BoardGrid fresh = LevelFactory.CreateGrid(level.Source);
+
+            Assert.That(fresh, Is.Not.SameAs(level.Grid));
+            Assert.That(fresh.GetCellCount(0), Is.EqualTo(3));
         }
 
         [Test]

@@ -113,7 +113,7 @@ namespace BallSort.Tests.EditMode
             command.Execute();
 
             Assert.That(command.CompletedTube, Is.True);
-            Assert.That(board[1].IsCompleted, Is.True);
+            Assert.That(board.IsCompleted(1), Is.True);
         }
 
         [Test]

@@ -116,47 +116,25 @@ namespace BallSort.Tests.EditMode
             Assert.That(tube.RunLength, Is.EqualTo(3));
         }
 
-        // --- Completion ------------------------------------------------------------------------
-
-        [Test]
-        public void IsCompleted_RequiresFullAndSingleColour()
-        {
-            Assert.That(MakeTube(4, R(1), R(1), R(1), R(1)).IsCompleted, Is.True);
-            Assert.That(MakeTube(4, R(1), R(1), R(1), R(2)).IsCompleted, Is.False, "mixed colours");
-            Assert.That(MakeTube(4, R(1), R(1), R(1)).IsCompleted, Is.False, "not full");
-            Assert.That(MakeEmptyTube(4).IsCompleted, Is.False, "empty is not completed");
-        }
-
-        [Test]
-        public void IsCompleted_RequiresEveryBallRevealed()
-        {
-            // A full single-colour tube that still conceals a ball is not finished: the player cannot
-            // verify it, so it must not be corked behind their back. Reachable in play, because the
-            // balls beneath a revealed top may happen to share its colour.
-            Assert.That(MakeTube(4, H(1), H(1), R(1), R(1)).IsCompleted, Is.False, "hidden at the bottom");
-            Assert.That(MakeTube(4, R(1), H(1), R(1), R(1)).IsCompleted, Is.False, "hidden in the middle");
-            Assert.That(MakeTube(4, R(1), R(1), R(1), R(1)).IsCompleted, Is.True, "all revealed");
-        }
-
-        [Test]
-        public void SingleBallTube_AtCapacityOne_IsCompleted()
-        {
-            Assert.That(MakeTube(1, R(5)).IsCompleted, Is.True);
-        }
-
         // --- Cloning ---------------------------------------------------------------------------
 
         [Test]
-        public void Clone_CopiesContentsCapacityAndLockState()
+        public void Clone_CopiesContentsCapacityCoverAndKeys()
         {
-            Tube original = MakeLockedTube(4, R(1), H(2));
+            Tube original = MakeLockedTube(3, 4, K(1, 0), H(2));
             Tube clone = original.Clone();
 
             Assert.That(clone.Capacity, Is.EqualTo(4));
             Assert.That(clone.Count, Is.EqualTo(2));
-            Assert.That(clone.IsLocked, Is.True);
-            Assert.That(clone[0], Is.EqualTo(R(1)));
+            Assert.That(clone.Cover, Is.EqualTo(TubeCover.Lock(3)));
+            Assert.That(clone[0], Is.EqualTo(K(1, 0)));
             Assert.That(clone[1], Is.EqualTo(H(2)));
+        }
+
+        [Test]
+        public void Clone_CopiesClay()
+        {
+            Assert.That(MakeClayTube(5, R(1)).Clone().IsClay, Is.True);
         }
 
         [Test]

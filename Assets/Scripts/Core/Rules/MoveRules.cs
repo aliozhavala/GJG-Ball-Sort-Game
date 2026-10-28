@@ -53,6 +53,19 @@ namespace BallSort.Core.Rules
             Tube source = board[fromIndex];
             Tube target = board[toIndex];
 
+            // Covers and clay first: they are what the player sees, whatever lies underneath.
+            if (source.IsCovered)
+            {
+                rejection = MoveRejection.SourceCovered;
+                return false;
+            }
+
+            if (source.IsClay)
+            {
+                rejection = MoveRejection.SourceClay;
+                return false;
+            }
+
             if (source.IsEmpty)
             {
                 rejection = MoveRejection.SourceEmpty;
@@ -65,21 +78,15 @@ namespace BallSort.Core.Rules
                 return false;
             }
 
-            if (source.IsCompleted)
+            if (board.IsCompleted(fromIndex))
             {
                 rejection = MoveRejection.SourceCompleted;
                 return false;
             }
 
-            if (source.IsLocked)
+            if (target.IsCovered)
             {
-                rejection = MoveRejection.SourceLocked;
-                return false;
-            }
-
-            if (target.IsLocked)
-            {
-                rejection = MoveRejection.TargetLocked;
+                rejection = MoveRejection.TargetCovered;
                 return false;
             }
 
@@ -137,7 +144,8 @@ namespace BallSort.Core.Rules
             }
 
             Tube tube = board[tubeIndex];
-            return !tube.IsEmpty && tube.Top.IsRevealed && !tube.IsCompleted && !tube.IsLocked;
+            return !tube.IsEmpty && tube.Top.IsRevealed && !tube.IsCovered && !tube.IsClay &&
+                   !board.IsCompleted(tubeIndex);
         }
 
         /// <summary>

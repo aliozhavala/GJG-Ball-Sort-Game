@@ -5,8 +5,9 @@ using BallSort.Core.Rules;
 namespace BallSort.Core.Levels
 {
     /// <summary>
-    /// Checks for a parsed level: structure first, then the opening position (nothing already
-    /// completed or won, at least one legal move). Solvability needs the solver and runs at editor time.
+    /// Checks for a parsed level: structure first (format, tubes, colour counts, grid, mechanics), then
+    /// the opening position (nothing already completed or won, at least one legal move). Solvability
+    /// needs the solver and runs at editor time. The rules are listed in <c>docs/mechanics.md</c>.
     /// </summary>
     public static class LevelValidator
     {
@@ -62,7 +63,8 @@ namespace BallSort.Core.Levels
                 ValidateBallCounts(level.Tubes, ballsPerColor, errors);
             }
 
-            ValidateLayout(level, errors);
+            BoardGrid grid = ValidateLayout(level, errors);
+            MechanicsValidator.Validate(level, grid, errors);
 
             // The playability checks build a board, which is only safe on structurally valid data.
             if (errors.Count == 0)
@@ -85,11 +87,15 @@ namespace BallSort.Core.Levels
                 return;
             }
 
+            // Covered tubes too: their contents never change while covered, so a finished set behind a
+            // cover would complete the moment it opened, which removing a cover must never do.
             for (int i = 0; i < board.TubeCount; i++)
             {
-                if (board[i].IsCompleted)
+                if (board.IsCompleted(i))
                 {
-                    errors.Add($"tubes[{i}] is already completed at start.");
+                    errors.Add(board[i].IsCovered
+                        ? $"tubes[{i}] already holds a finished set behind its cover."
+                        : $"tubes[{i}] is already completed at start.");
                 }
             }
 
@@ -109,9 +115,11 @@ namespace BallSort.Core.Levels
                 return;
             }
 
-            if (tube.Capacity < 1)
+            if (!LevelLayout.IsValidCapacity(tube.Capacity))
             {
-                errors.Add($"{where}: capacity must be 1 or greater (was {tube.Capacity}).");
+                errors.Add(
+                    $"{where}: capacity must be {LevelLayout.NormalCapacity}, or {LevelLayout.NormalCapacity + 1} to " +
+                    $"{LevelLayout.MaxCapacity} for a large tube (was {tube.Capacity}).");
             }
 
             if (tube.Balls == null)
@@ -153,7 +161,8 @@ namespace BallSort.Core.Levels
 
         /// <summary>
         /// Every colour must be able to complete a tube: a colour with <c>k</c> balls needs its own
-        /// tube of capacity exactly <c>k</c>, and no two colours can share one.
+        /// tube of capacity exactly <c>k</c>, and no two colours can share one. Per capacity value:
+        /// colours with that many balls ≤ tubes with that capacity.
         /// </summary>
         private static void ValidateBallCounts(List<TubeDto> tubes, int[] ballsPerColor, List<string> errors)
         {
@@ -199,25 +208,24 @@ namespace BallSort.Core.Levels
             }
         }
 
-        private static void ValidateLayout(LevelDto level, List<string> errors)
+        /// <returns>The resolved grid, or null when the grid is invalid.</returns>
+        private static BoardGrid ValidateLayout(LevelDto level, List<string> errors)
         {
             if (level.Layout == null)
             {
-                if (level.Tubes.Count > LevelLayout.MaxTubes)
-                {
-                    errors.Add($"has {level.Tubes.Count} tubes; at most {LevelLayout.MaxTubes} fit on screen.");
-                }
-
-                return;
+                errors.Add("layout is missing; every level lists its tubes in layout.grid.");
+                return null;
             }
 
-            if (level.Layout.Rows == null)
+            var capacities = new int[level.Tubes.Count];
+            for (int i = 0; i < capacities.Length; i++)
             {
-                errors.Add("layout.rows is missing (omit layout entirely for automatic rows).");
-                return;
+                capacities[i] = level.Tubes[i]?.Capacity ?? 0;
             }
 
-            LevelLayout.ValidateRows(level.Layout.Rows, level.Tubes.Count, errors);
+            return LevelLayout.ValidateGrid(level.Layout.Grid, capacities, errors)
+                ? new BoardGrid(level.Layout.Grid, level.Tubes.Count)
+                : null;
         }
 
         private static IReadOnlyList<string> Prefix(List<string> errors, string levelName)

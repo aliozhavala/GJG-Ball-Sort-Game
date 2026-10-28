@@ -12,7 +12,7 @@ namespace BallSort.Core.Session
         /// <summary>The board is stuck; boosters are disabled until the player plays on or gives up.</summary>
         Stuck,
 
-        /// <summary>The layout is full: the last row holds six tubes and there are already three rows.</summary>
+        /// <summary>No room on the grid: every row already has eight cells, and rows are never added.</summary>
         NoRoom,
 
         /// <summary>The player has no Add-tube boosters left in their inventory.</summary>

@@ -36,7 +36,6 @@ namespace BallSort.Game.Views
         private ObjectPool<TubeView> _tubePool;
         private ObjectPool<BallView> _ballPool;
         private LevelSession _session;
-        private int _maxCapacity;
         private int _liftedTube = -1;
 
         /// <summary>Tube views in board order; index matches the board's tube index.</summary>
@@ -104,13 +103,13 @@ namespace BallSort.Game.Views
                     $"{level.Name} uses {level.Colors} colours but {_palette.name} defines {_palette.Count}.", this);
             }
 
+            // Covered and clay tubes look like normal tubes until their placeholder views (roadmap 4c).
             BoardState board = _session.Board;
-            _maxCapacity = 1;
             for (int t = 0; t < board.TubeCount; t++)
             {
                 Tube tube = board[t];
                 TubeView tubeView = SpawnTube(t, tube.Capacity);
-                tubeView.SetCapVisible(tube.IsCompleted);
+                tubeView.SetCapVisible(board.IsCompleted(t));
 
                 for (int slot = 0; slot < tube.Count; slot++)
                 {
@@ -120,12 +119,11 @@ namespace BallSort.Game.Views
                 }
             }
 
-            _layout.Arrange(_session.Rows, _tubes, _maxCapacity, _tubeConfig);
+            _layout.Arrange(_session.Grid, _tubes, _tubeConfig);
         }
 
         private TubeView SpawnTube(int tubeIndex, int capacity)
         {
-            _maxCapacity = Mathf.Max(_maxCapacity, capacity);
             TubeView tubeView = _tubePool.Get();
             tubeView.name = $"Tube {tubeIndex}";
             tubeView.Setup(tubeIndex, capacity, _tubeConfig);
@@ -159,7 +157,7 @@ namespace BallSort.Game.Views
         private void OnTubeAdded(TubeAddedEventArgs e)
         {
             SpawnTube(e.TubeIndex, e.Capacity);
-            _layout.Arrange(_session.Rows, _tubes, _maxCapacity, _tubeConfig);
+            _layout.Arrange(_session.Grid, _tubes, _tubeConfig);
             AssertInSync(e.TubeIndex);
         }
 

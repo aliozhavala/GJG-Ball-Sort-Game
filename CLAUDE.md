@@ -8,7 +8,7 @@ Optimize for clarity, clean architecture, and robustness over cleverness.
 ## Brief (from the case study)
 - Player moves balls from the top of one tube to another. A ball may go into an empty tube or onto a ball of the same color. Level is won when every tube holds a single color.
 - **100 levels**, all solvable, difficulty increasing across the run.
-- **At least two new mechanics** across the levels. Confirmed: **hidden balls**. Others TBD (candidate: locked tubes).
+- **At least two new mechanics** across the levels. Designed: **hidden balls**, **veil**, **lock and key**, **clay**, **large tubes** (portal planned) — see docs/mechanics.md.
 - Deliverable: project zip without `Library/`.
 
 ## Tech stack
@@ -21,33 +21,36 @@ Optimize for clarity, clean architecture, and robustness over cleverness.
 - **Unity Test Framework** (EditMode) for Core logic.
 
 ## Game rules (source of truth — implement exactly)
-- **Ball** = color id (`int`, 0..N-1) + `IsHidden` flag.
+- **Ball** = color id (`int`, 0..N-1) + `IsHidden` flag + optional key (the id of the lock it opens).
 - **Run** = the contiguous same-color, **revealed** balls at the top of a tube. Hidden balls are never part of a run.
 - **Move** source → target is legal when:
-  - source ≠ target, source has ≥1 revealed ball on top, source is not completed and not locked;
-  - target is not locked, has free space, and is empty **or** its top ball is **revealed** and has the run's color. (Requiring the target's top to be revealed is unreachable in normal play — balls arriving on a tube are always revealed — but it stops corrupt level data from producing a move that stacks onto a colour the player cannot see.)
+  - source ≠ target, source has ≥1 revealed ball on top, source is not completed, not covered (veil/lock) and not clay;
+  - target is not covered, has free space, and is empty **or** its top ball is **revealed** and has the run's color. (Requiring the target's top to be revealed is unreachable in normal play — balls arriving on a tube are always revealed — but it stops corrupt level data from producing a move that stacks onto a colour the player cannot see.)
 - **Moved count** = `min(runLength, target.FreeSpace)` (partial moves allowed, water-sort style).
 - **Reveal**: after a move, the new top ball of the source tube becomes revealed. At level start, every tube's top ball must be revealed (loader enforces this).
-- **Undo** restores ball positions; revealed balls **stay revealed** (information already gained is not taken back).
+- **Undo** restores ball positions; revealed balls **stay revealed**, opened covers stay open and found keys stay found (information and progress already gained are not taken back).
   - Undo is a booster: each undo spends one Undo from the player's `BoosterInventory`.
   - **A move that completes a tube cannot be undone.** The tube is finalized (corked) and never returns to an unfinished state. Because undo is LIFO, such a move **seals the history**: every move at or before it is permanently non-undoable. Moves made *after* it are undoable again, down to that seal.
   - Because reveals survive undo, an **undo can complete a tube** (putting a run back onto a ball it uncovered). It corks the tube and seals the history the same way, and can win the level.
   - Undo is therefore blocked for exactly three reasons: no moves left, the next move to undo is sealed by a tube completion, or no Undo boosters left. The UI should be able to tell them apart.
 - **Boosters** (Undo, Shuffle, AddTube) are global player inventory (`BoosterInventory`), spent one per use, in any level. No per-level charges.
-- **Add tube** appends an empty tube (capacity from config, currently 4) at the end of the board, so tube indices and history stay valid. Not undoable, doesn't seal. It joins the last row if that row has < 6 tubes, otherwise starts a new row; refused when that would exceed 3 rows (= 18 tubes for automatic layouts, fewer for some explicit ones).
+- **Add tube** appends an empty tube (capacity from config, currently 4) at the end of the board, so tube indices and history stay valid. Not undoable, doesn't seal. It goes to the end of the grid row with the fewest cells (ties → bottom-most); rows grow to 8 cells during play, rows are never added; refused once every row has 8 cells.
 - **Play on** (only while stuck): costs coins (`EconomyConfig`), appends a tube exactly like Add tube (same layout limit), ignores the booster inventory, not undoable, doesn't seal.
 - **Restart** reloads the level from its source data: hidden balls hidden again, added tubes gone, history cleared; boosters already spent stay spent. It is *not* "undo everything".
-- **Tube capacity is 4 for every tube** (decided; a shipped-level test enforces it). A smaller tube can be corked with part of a colour and strand the rest. Possible later exception: a special large "collector" tube that only accepts balls — design it when it comes up.
-- **Tube completed** = full (`Count == Capacity`), single color, and **no hidden balls**. Completed tubes cannot be a move source.
+- **Tube capacity**: 4 for normal tubes; large tubes (5–16) span 2–3 grid rows.
+- **Tube completed** = full, every ball revealed, and holds **every ball of its color in the level** (details in docs/mechanics.md). Completed tubes cannot be a move source.
 - **Level won** = every tube is either empty or completed.
 - **Stuck** = not won and no legal move. Checked after every move, undo and added tube. While stuck, boosters are disabled.
 - **Input UX**: tap a tube to select (its run lifts); tap it again to deselect; tap another tube to move. If the move is illegal, play invalid-move feedback and clear the selection (never auto-select the tapped tube; the player selects again).
+
+Mechanics, completion and board layout rules: read docs/mechanics.md when working on Core rules, levels or board views.
 
 ## Architecture
 Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (tools)**.
 
 - **Core** (`BallSort.Core`, asmdef with `noEngineReferences: true`): plain C#, no `UnityEngine`. Board state, rules, commands, solver, level DTOs, `LevelSession`, `BoosterInventory`, `Wallet`. Must be usable from tests, editor tools, and background threads.
   - **`LevelSession`** is the single gameplay entry point: `TryMove`, `TryUndo`, `TryAddTube`, `Restart`, `IsStuck`, booster spending, and events. It wraps `BoardState` + `CommandHistory` + `BoosterInventory`. **UI and input talk only to `LevelSession`**, never to the board or history directly.
+  - Completion is a board query (`BoardState.IsCompleted`): it needs the level's colour totals, counted once per board and shared by its clones. The grid (`BoardGrid`) lives on the session, not the board; it never affects move legality.
 - **Game** (`BallSort.Game`): MonoBehaviours — views, input, layout, game flow, UI, audio, haptics, services (save, level loading). Depends on Core.
 - **Editor** (`BallSort.Editor`, editor-only): level generator/validator windows. Depends on Core.
 - **LevelJson** (`BallSort.LevelJson`, no engine refs): the Newtonsoft level parser, shared by Game, Editor and Tests.
@@ -55,7 +58,7 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 
 ### Patterns
 - **Command**: every move is a `MoveCommand` (`Execute`/`Undo`) kept in a `CommandHistory`, which owns only the completion seal (booster counts live in `BoosterInventory`). Restart does **not** build on it — restart reloads the level.
-- **Observer**: Core raises plain C# events (`MoveApplied`, `BallRevealed`, `TubeCompleted`, `LevelCompleted`, `MoveUndone`, `TubeAdded`, `StuckChanged`, plus change events on `Wallet` and `BoosterInventory`). Board events fire mid-operation; anything showing derived state (booster availability) refreshes on `LevelSession.Changed`, which fires once the operation is complete. Views, audio, haptics and UI subscribe. Always unsubscribe in `OnDisable`/`OnDestroy`. Avoid Inspector-wired UnityEvent chains for game logic.
+- **Observer**: Core raises plain C# events (`MoveApplied`, `BallRevealed`, `TubeCompleted`, `TubeUnveiled`, `KeyFound`, `LockOpened`, `LevelCompleted`, `MoveUndone`, `TubeAdded` with its grid row and cell, `StuckChanged`, plus change events on `Wallet` and `BoosterInventory`), in the order documented on `LevelSession`. The board finishes every mutation, including the cover cascade, before its first event fires, but board events still arrive before the session has recorded the move in its history; anything showing derived state (booster availability) refreshes on `LevelSession.Changed`, which fires once the operation is complete. Views, audio, haptics and UI subscribe. Always unsubscribe in `OnDisable`/`OnDestroy`. Avoid Inspector-wired UnityEvent chains for game logic.
 - **State machine**: level flow (`LevelFlow`: `Loading → Playing ⇄ Stuck → Won`) and input selection state.
 - **Object pooling**: balls and VFX via `UnityEngine.Pool.ObjectPool<T>`. No `Instantiate`/`Destroy` per move.
 - **ScriptableObjects** for config: `ColorPalette` (color id → sprite/tint), `AnimationConfig` (timings, eases), `LevelDatabase` (ordered list of level `TextAsset`s).
@@ -69,10 +72,9 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 
 ## Presentation
 - Art is swappable: sprites only via ScriptableObjects (`ColorPalette`, `TubeVisualConfig`) or prefab fields. Placeholders: built-in Circle and 9-slice sprites, tinted, copied to `Art/Sprites/Placeholder/` (the originals sit in a package `Editor/` folder, which builds exclude).
-- Board: world-space SpriteRenderers, orthographic camera. `BoardLayout` places tubes using the level's rows (≤ 6 per row, shorter rows centered) and scales the board root to fit both width and height of the safe area.
+- Board: world-space SpriteRenderers, orthographic camera. `BoardLayout` places tubes on the level's grid (free and aligned rows, large tubes spanning rows) and scales the board root to fit the widest row and the row count inside the HUD's `BoardArea` rect (the space between the top HUD and the booster bar, so it holds at any aspect ratio; falls back to top/bottom fractions of the safe area), with a scale cap.
 - Tube: back layer + balls + front (glass) layer; 9-sliced body; `BoxCollider2D` tap target covering tube and lift area.
 - Sorting layers (bottom→top): Background, TubeBack, Balls, TubeFront, VFX. Lifted/in-flight balls render above TubeFront.
-- Each tube is sized by its own capacity and stands on its row's base line; row height comes from the level's largest capacity. `BoardLayout` fits the board inside the HUD's `BoardArea` rect (the space between the top HUD and the booster bar, so it holds at any aspect ratio; falls back to top/bottom fractions of the safe area) and caps the board scale.
 - Ball slot y = bottomOffset + index × slotHeight. Hidden balls show a "?" overlay; reveal = quick flip.
 - Every ball position change goes through `BallView.MoveTo` (snaps now; step 6 swaps in tweens there). Feedback hooks for step 6 live in `LevelFeedback` (invalid move, tube completed, celebration); the flow code does not change.
 - UI: uGUI + TextMeshPro, Canvas Scaler 1080×1920, match 0.5, `SafeArea` on root panel.
@@ -131,13 +133,9 @@ Assets/
 - Keep changes small and commit-sized. Don't rewrite working code for style alone.
 
 ## Roadmap
-1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4 Solver, generator, editor level jump · 5 Extra mechanics · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
+1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b Solver and solvability checks · 4c Mechanic views (placeholders) and editor level jump · 5 Generator and level-design tools · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
 
 ## Open decisions (update as they're settled)
-- Second (and third) mechanic: locked tubes? other? (Variable capacity is out: every tube holds 4.)
-  - If **locked tubes** are adopted, each level that uses them must also provide the in-level unlock
-    condition that makes it solvable. There are no permanently-locked tubes. The unlock trigger is
-    not designed yet, so `Tube.IsLocked` is currently a plain flag with no unlock logic in Core.
 - Shuffle algorithm (needs solver).
 - Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size, colorblind patterns.
 - Difficulty curve shape and mechanic introduction levels (product).

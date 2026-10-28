@@ -4,8 +4,7 @@ namespace BallSort.Core.Levels
 {
     /// <summary>One tube in a level file.</summary>
     /// <remarks>
-    /// Per-ball mechanics are stored as optional arrays parallel to <see cref="Balls"/>, as
-    /// <see cref="Hidden"/> is, so a level that does not use a mechanic simply omits its array.
+    /// Every mechanic field is optional, so a level that does not use a mechanic simply omits it.
     /// </remarks>
     public sealed class TubeDto
     {
@@ -17,5 +16,14 @@ namespace BallSort.Core.Levels
 
         /// <summary>Optional hidden flags, parallel to <see cref="Balls"/>. <c>null</c> means all revealed.</summary>
         public List<bool> Hidden { get; set; }
+
+        /// <summary>Optional veil over the tube. A tube has at most one cover (veil or lock).</summary>
+        public VeilDto Veil { get; set; }
+
+        /// <summary>True for a clay tube, which is never a move source.</summary>
+        public bool Clay { get; set; }
+
+        /// <summary>Optional keys on this tube's balls.</summary>
+        public List<KeyDto> Keys { get; set; }
     }
 }

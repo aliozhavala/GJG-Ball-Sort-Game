@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "id": 4,
   "colors": 5,
-  "layout": { "rows": [4, 3] },
+  "layout": { "grid": [[0, 1, 2, 3], [4, 5, 6]] },
   "tubes": [
     { "capacity": 4, "balls": [0, 0, 1, 2] },
     { "capacity": 4, "balls": [3, 1, 4, 0] },

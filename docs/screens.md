@@ -7,6 +7,7 @@ Read this when working on UI, scene flow, boosters, or player data. All UI is pl
 - `Level` → win → celebration → Win panel → **Continue** → `Home`.
 - `Level` → stuck → **Give up** → `Home` (no progress, no reward).
 - `Level` → settings → **Home** → `Home` (same as giving up).
+- `Level` → the level file fails to load → `Home` with the toast "Level N could not be loaded" (the error is logged).
 - The Level scene always loads `PlayerData.CurrentLevel`. Editor-only override for testing (temporary Inspector field until the step 4 level jump).
 - Pressing Play in either scene in the Editor must work (persistent services auto-create).
 
@@ -32,7 +33,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code. Progress a
 
 ## Level screen
 - **Top-left:** settings icon. **Top-center:** `Level N`. No avatar, coins, or lives here.
-- **Middle:** the board (tubes laid out by level rows).
+- **Middle:** the board (tubes laid out on the level's grid).
 - **Bottom:** booster bar — Undo, Shuffle, Add tube — each with its remaining count.
 - **Input:** tap a tube to select it (its run lifts above the glass), tap it again to deselect, tap another tube to
   move. An illegal move, or a tap on a tube that can't be selected, plays invalid-move feedback and clears the
@@ -49,7 +50,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code. Progress a
   - Undo: Stuck → no moves → sealed → no boosters.
   - Add tube: level won → Stuck → no room → no boosters.
   - Shuffle: level won → Stuck → not available.
-- **Add tube:** appends an empty tube of capacity 4. Not undoable, doesn't seal undo history. Max 18 tubes on the board (3 rows × 6).
+- **Add tube:** appends an empty tube of capacity 4. Not undoable, doesn't seal undo history. No room once every row already has 8 cells ("No room for more tubes").
 - **Restart** (settings) reloads the level from data: hidden balls hidden again, added tubes gone, undo history cleared. Boosters already spent stay spent.
 
 ### Stuck (no legal moves and not won)
@@ -58,7 +59,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code. Progress a
 - Booster bar hidden (boosters cannot be used while stuck); tubes can still be selected.
 - Two buttons side by side in the booster bar's place: **Give up** and **Play on — 900 ●**.
   - Play on: spend 900 coins, add one empty capacity-4 tube, leave the stuck state.
-  - Play on is disabled (still showing its price) if coins < 900 or the board already has 18 tubes. Give up is then the only choice.
+  - Play on is disabled (still showing its price) if coins < 900 or every row already has 8 cells. Give up is then the only choice.
 
 ### Win
 - Input locks, progress + reward are saved, short placeholder celebration (~1 s, e.g. "Well done!" text), then the **Win panel**: "Level N complete", `+20 ●`, **Continue** → Home.

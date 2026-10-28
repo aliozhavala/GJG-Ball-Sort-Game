@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using BallSort.Core.Commands;
 using BallSort.Core.Levels;
 using BallSort.Core.Model;
@@ -22,9 +21,17 @@ namespace BallSort.Core.Session
     /// rebuild their view of the board on <see cref="Restarted"/>.
     /// </para>
     /// <para>
-    /// The stuck state is re-evaluated after every move, undo, added tube and restart, and
-    /// <see cref="StuckChanged"/> fires after that operation's board events. <see cref="Changed"/>
-    /// fires last, once the whole operation — board, history seal, boosters, stuck state — is done.
+    /// The stuck state is re-evaluated after every move, undo, added tube and restart. Event order
+    /// within one operation:
+    /// <list type="bullet">
+    /// <item>Move or undo: <see cref="MoveApplied"/> or <see cref="MoveUndone"/>, <see cref="BallRevealed"/>,
+    /// <see cref="TubeCompleted"/>, each <see cref="TubeUnveiled"/>, each <see cref="KeyFound"/> followed
+    /// by its <see cref="LockOpened"/>, <see cref="LevelCompleted"/>.</item>
+    /// <item>Added tube (booster or Play on): <see cref="TubeAdded"/>.</item>
+    /// <item>Restart: <see cref="Restarted"/>.</item>
+    /// </list>
+    /// Each operation then ends with <see cref="StuckChanged"/> (only if it changed) and finally
+    /// <see cref="Changed"/>, once the whole operation — board, history seal, boosters, stuck state — is done.
     /// </para>
     /// </remarks>
     public sealed class LevelSession
@@ -35,7 +42,7 @@ namespace BallSort.Core.Session
         private readonly CommandHistory _history = new CommandHistory();
 
         private BoardState _board;
-        private int[] _rows;
+        private BoardGrid _grid;
 
         /// <summary>The level being played; its <see cref="LoadedLevel.Source"/> is what restart rebuilds from.</summary>
         public LoadedLevel Level => _level;
@@ -46,8 +53,11 @@ namespace BallSort.Core.Session
         /// </summary>
         public BoardState Board => _board;
 
-        /// <summary>Tube counts per row, top row first, including any added tubes.</summary>
-        public IReadOnlyList<int> Rows => _rows;
+        /// <summary>
+        /// The live grid, including any added tubes. Replaced by <see cref="Restart"/>, like
+        /// <see cref="Board"/>; change it only through the session.
+        /// </summary>
+        public BoardGrid Grid => _grid;
 
         /// <summary>Moves made since the level started or was restarted, including sealed ones.</summary>
         public int MoveCount => _history.MoveCount;
@@ -100,7 +110,7 @@ namespace BallSort.Core.Session
                     return AddTubeBlockReason.Stuck;
                 }
 
-                if (!LevelLayout.CanAppendTube(_rows))
+                if (!_grid.CanAddTube)
                 {
                     return AddTubeBlockReason.NoRoom;
                 }
@@ -158,7 +168,7 @@ namespace BallSort.Core.Session
                 return PlayOnBlockReason.NotStuck;
             }
 
-            if (!LevelLayout.CanAppendTube(_rows))
+            if (!_grid.CanAddTube)
             {
                 return PlayOnBlockReason.NoRoom;
             }
@@ -175,6 +185,15 @@ namespace BallSort.Core.Session
         /// <summary>Forwarded from the board: a tube has been completed, by a move or an undo.</summary>
         public event Action<TubeCompletedEventArgs> TubeCompleted;
 
+        /// <summary>Forwarded from the board: a veil has opened because a tube completed in its colour.</summary>
+        public event Action<TubeUnveiledEventArgs> TubeUnveiled;
+
+        /// <summary>Forwarded from the board: a key has been found; its <see cref="LockOpened"/> follows.</summary>
+        public event Action<KeyFoundEventArgs> KeyFound;
+
+        /// <summary>Forwarded from the board: a lock has opened, uncovering all of its tubes.</summary>
+        public event Action<LockOpenedEventArgs> LockOpened;
+
         /// <summary>Forwarded from the board: the level has been won.</summary>
         public event Action LevelCompleted;
 
@@ -182,8 +201,8 @@ namespace BallSort.Core.Session
         public event Action<MoveEventArgs> MoveUndone;
 
         /// <summary>
-        /// Forwarded from the board: an empty tube has been appended. <see cref="Rows"/> already
-        /// includes it when this fires.
+        /// An empty tube has been appended to the board and placed on the grid; the payload says which
+        /// row and cell it went to. <see cref="Board"/> and <see cref="Grid"/> already include it.
         /// </summary>
         public event Action<TubeAddedEventArgs> TubeAdded;
 
@@ -203,7 +222,7 @@ namespace BallSort.Core.Session
 
         /// <summary>
         /// Raised after <see cref="Restart"/> has swapped in a fresh board. Views rebuild from
-        /// <see cref="Board"/> and <see cref="Rows"/>.
+        /// <see cref="Board"/> and <see cref="Grid"/>.
         /// </summary>
         public event Action Restarted;
 
@@ -223,14 +242,14 @@ namespace BallSort.Core.Session
 
             _addedTubeCapacity = addedTubeCapacity;
             _board = level.Board;
-            _rows = CopyRows(level.Rows);
+            _grid = level.Grid;
             Subscribe(_board);
             IsStuck = ComputeStuck();
         }
 
         /// <summary>
-        /// Whether the tube can start a move: it has a revealed ball on top and is neither
-        /// completed nor locked. Input uses this to decide whether a tap selects the tube.
+        /// Whether the tube can start a move: it has a revealed ball on top and is not completed,
+        /// covered or clay. Input uses this to decide whether a tap selects the tube.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">If the index is not a valid tube index.</exception>
         public bool CanSelect(int tubeIndex) => MoveRules.CanSelect(_board, tubeIndex);
@@ -280,7 +299,7 @@ namespace BallSort.Core.Session
         /// </summary>
         /// <remarks>
         /// Not recorded in the history: it cannot be undone and does not seal. The tube joins the
-        /// last row, or starts a new one — see <see cref="LevelLayout.TryAppendTube"/>.
+        /// row with the fewest cells — see <see cref="BoardGrid.TryAddTube"/>.
         /// </remarks>
         /// <param name="reason">Why the tube was not added, when this returns false.</param>
         /// <returns>True when a tube has been added.</returns>
@@ -343,7 +362,7 @@ namespace BallSort.Core.Session
         {
             Unsubscribe(_board);
             _board = LevelFactory.CreateBoard(_level.Source);
-            _rows = CopyRows(_level.Rows);
+            _grid = LevelFactory.CreateGrid(_level.Source);
             _history.Clear();
             Subscribe(_board);
 
@@ -352,12 +371,12 @@ namespace BallSort.Core.Session
             Changed?.Invoke();
         }
 
+        /// <remarks>Callers have already checked <see cref="BoardGrid.CanAddTube"/>.</remarks>
         private void AppendTube()
         {
-            // Rows first, so TubeAdded subscribers already see the new layout.
-            LevelLayout.TryAppendTube(_rows, out int[] rows);
-            _rows = rows;
-            _board.AddTube(_addedTubeCapacity);
+            _grid.TryAddTube(out int row, out int cell);
+            int tubeIndex = _board.AddTube(_addedTubeCapacity);
+            TubeAdded?.Invoke(new TubeAddedEventArgs(tubeIndex, _addedTubeCapacity, row, cell));
             RefreshStuck();
             Changed?.Invoke();
         }
@@ -376,25 +395,16 @@ namespace BallSort.Core.Session
             StuckChanged?.Invoke(stuck);
         }
 
-        private static int[] CopyRows(IReadOnlyList<int> rows)
-        {
-            var copy = new int[rows.Count];
-            for (int i = 0; i < copy.Length; i++)
-            {
-                copy[i] = rows[i];
-            }
-
-            return copy;
-        }
-
         private void Subscribe(BoardState board)
         {
             board.MoveApplied += OnMoveApplied;
             board.BallRevealed += OnBallRevealed;
             board.TubeCompleted += OnTubeCompleted;
+            board.TubeUnveiled += OnTubeUnveiled;
+            board.KeyFound += OnKeyFound;
+            board.LockOpened += OnLockOpened;
             board.LevelCompleted += OnLevelCompleted;
             board.MoveUndone += OnMoveUndone;
-            board.TubeAdded += OnTubeAdded;
         }
 
         private void Unsubscribe(BoardState board)
@@ -402,9 +412,11 @@ namespace BallSort.Core.Session
             board.MoveApplied -= OnMoveApplied;
             board.BallRevealed -= OnBallRevealed;
             board.TubeCompleted -= OnTubeCompleted;
+            board.TubeUnveiled -= OnTubeUnveiled;
+            board.KeyFound -= OnKeyFound;
+            board.LockOpened -= OnLockOpened;
             board.LevelCompleted -= OnLevelCompleted;
             board.MoveUndone -= OnMoveUndone;
-            board.TubeAdded -= OnTubeAdded;
         }
 
         private void OnMoveApplied(MoveEventArgs e) => MoveApplied?.Invoke(e);
@@ -413,10 +425,14 @@ namespace BallSort.Core.Session
 
         private void OnTubeCompleted(TubeCompletedEventArgs e) => TubeCompleted?.Invoke(e);
 
+        private void OnTubeUnveiled(TubeUnveiledEventArgs e) => TubeUnveiled?.Invoke(e);
+
+        private void OnKeyFound(KeyFoundEventArgs e) => KeyFound?.Invoke(e);
+
+        private void OnLockOpened(LockOpenedEventArgs e) => LockOpened?.Invoke(e);
+
         private void OnLevelCompleted() => LevelCompleted?.Invoke();
 
         private void OnMoveUndone(MoveEventArgs e) => MoveUndone?.Invoke(e);
-
-        private void OnTubeAdded(TubeAddedEventArgs e) => TubeAdded?.Invoke(e);
     }
 }

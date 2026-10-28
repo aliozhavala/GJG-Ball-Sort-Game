@@ -62,42 +62,62 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void AFullSingleColourTubeStillHoldingHiddenBalls_IsNotWon()
         {
-            // Follows from the completion rule; see TubeTests.IsCompleted_RequiresEveryBallRevealed.
+            // Follows from the completion rule; see CompletionTests.HiddenBalls_BlockCompletion.
             BoardState board = MakeBoard(MakeTube(3, H(1), H(1), R(1)), MakeEmptyTube(3));
 
             Assert.That(board.IsWon, Is.False);
         }
 
-        // --- Locked tubes ----------------------------------------------------------------------
-
         [Test]
-        public void ALockedMixedTube_BlocksTheWin()
+        public void ASingleColourFullTubeMissingPartOfItsColour_IsNotWon()
         {
-            // Locked tubes are not exempt from the win check. A level that locks a mixed tube must
-            // therefore also provide a way to unlock it, or it is unwinnable by construction.
+            // Both tubes are full and single-coloured, but neither holds all eight colour-1 balls.
             BoardState board = MakeBoard(
-                MakeTube(2, R(1), R(1)),
-                MakeLockedTube(2, R(1), R(2)));
+                MakeTube(4, R(1), R(1), R(1), R(1)),
+                MakeTube(4, R(1), R(1), R(1), R(1)));
 
             Assert.That(board.IsWon, Is.False);
         }
 
-        [Test]
-        public void ALockedButCompletedTube_DoesNotBlockTheWin()
+        // --- Covered and clay tubes ------------------------------------------------------------
+
+        [TestCase(CoverKind.Veil)]
+        [TestCase(CoverKind.Lock)]
+        public void ACoveredTubeHoldingBalls_BlocksTheWin(CoverKind kind)
         {
-            BoardState board = MakeBoard(
-                MakeTube(2, R(1), R(1)),
-                MakeLockedTube(2, R(2), R(2)));
+            // Covered tubes are not exempt: they must be opened and sorted like any other.
+            Tube covered = kind == CoverKind.Veil
+                ? MakeVeiledTube(1, 2, R(1), R(2))
+                : MakeLockedTube(0, 2, R(1), R(2));
+            BoardState board = MakeBoard(MakeTube(2, R(1), R(2)), covered);
+
+            Assert.That(board.IsWon, Is.False);
+        }
+
+        [TestCase(CoverKind.Veil)]
+        [TestCase(CoverKind.Lock)]
+        public void ACoveredEmptyTube_CountsAsEmpty(CoverKind kind)
+        {
+            Tube covered = kind == CoverKind.Veil ? MakeVeiledTube(1, 4) : MakeLockedTube(0, 4);
+            BoardState board = MakeBoard(MakeTube(2, R(1), R(1)), covered);
 
             Assert.That(board.IsWon, Is.True);
         }
 
         [Test]
-        public void ALockedEmptyTube_DoesNotBlockTheWin()
+        public void ACompletedClayTube_CountsAsCompleted()
         {
-            BoardState board = MakeBoard(MakeTube(2, R(1), R(1)), MakeLockedTube(4));
+            BoardState board = MakeBoard(MakeClayTube(5, R(1), R(1), R(1), R(1), R(1)), MakeEmptyTube(4));
 
             Assert.That(board.IsWon, Is.True);
+        }
+
+        [Test]
+        public void AnUnfinishedClayTube_BlocksTheWin()
+        {
+            BoardState board = MakeBoard(MakeClayTube(5, R(1)), MakeTube(4, R(1), R(1), R(1), R(1)));
+
+            Assert.That(board.IsWon, Is.False);
         }
 
         // --- Board construction ----------------------------------------------------------------

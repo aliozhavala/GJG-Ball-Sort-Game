@@ -4,63 +4,72 @@ using System.Collections.Generic;
 namespace BallSort.Core.Levels
 {
     /// <summary>
-    /// Row layout rules: how a level's tubes are split into rows on screen.
+    /// Grid layout rules (see <c>docs/mechanics.md</c>): capacities, how many rows a tube spans, and
+    /// validation of a level's <c>layout.grid</c>.
     /// </summary>
     /// <remarks>
-    /// Lives in Core, not with the views, so the editor validator and tests apply exactly the rule
-    /// the game uses.
+    /// Lives in Core, not with the views, so the validator, the session's add-tube rule and the
+    /// board view all apply exactly the same geometry.
     /// </remarks>
     public static class LevelLayout
     {
-        /// <summary>Most tubes a single row may hold; beyond this tubes get too narrow on a phone.</summary>
-        public const int MaxTubesPerRow = 6;
-
-        /// <summary>Most rows a level may use.</summary>
+        /// <summary>Most rows a level may use. Rows are never added during play.</summary>
         public const int MaxRows = 3;
 
-        /// <summary>Largest tube count any layout can hold.</summary>
-        public const int MaxTubes = MaxTubesPerRow * MaxRows;
+        /// <summary>Most cells a row may have in a level file.</summary>
+        public const int MaxCellsPerRow = 6;
+
+        /// <summary>Most cells a row may grow to during play, through added tubes.</summary>
+        public const int MaxCellsPerRowInPlay = 8;
+
+        /// <summary>Capacity of a normal tube; one grid row is exactly this tall.</summary>
+        public const int NormalCapacity = 4;
+
+        /// <summary>Largest capacity: a tube spanning all <see cref="MaxRows"/> rows.</summary>
+        public const int MaxCapacity = 16;
+
+        /// <summary>Ball slots between two rows; also the room a lifted run rises into.</summary>
+        public const int RowGapSlots = 2;
+
+        /// <summary>Vertical distance between the base lines of neighbouring rows, in ball slots.</summary>
+        public const int RowPitchSlots = NormalCapacity + RowGapSlots;
+
+        /// <summary>True for 4 (a normal tube) and 5–16 (a large tube spanning rows).</summary>
+        public static bool IsValidCapacity(int capacity) => capacity >= NormalCapacity && capacity <= MaxCapacity;
 
         /// <summary>
-        /// The automatic layout: the fewest rows of at most <see cref="MaxTubesPerRow"/> tubes, split
-        /// as evenly as possible, with any extra tubes in the upper rows.
+        /// How many grid rows a tube of <paramref name="capacity"/> spans: 1 for 4, 2 for 5–10, 3 for
+        /// 11–16. <c>n</c> rows are <c>n × 4</c> slots plus <c>(n − 1)</c> gaps of 2, so 10 and 16 fill
+        /// their span exactly.
         /// </summary>
-        /// <param name="tubeCount">Number of tubes; <c>1 .. </c><see cref="MaxTubes"/>.</param>
-        /// <returns>Tube counts per row, top row first, e.g. 7 → <c>[4, 3]</c>.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="tubeCount"/> cannot be laid out.</exception>
-        public static int[] AutoRows(int tubeCount)
+        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="capacity"/> is not valid.</exception>
+        public static int GetRowSpan(int capacity)
         {
-            if (tubeCount < 1 || tubeCount > MaxTubes)
+            if (!IsValidCapacity(capacity))
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(tubeCount), tubeCount, $"Automatic layout supports 1 to {MaxTubes} tubes.");
+                    nameof(capacity), capacity, $"Capacities run from {NormalCapacity} to {MaxCapacity}.");
             }
 
-            int rowCount = (tubeCount + MaxTubesPerRow - 1) / MaxTubesPerRow;
-            int baseSize = tubeCount / rowCount;
-            int extra = tubeCount % rowCount;
-
-            var rows = new int[rowCount];
-            for (int i = 0; i < rowCount; i++)
-            {
-                rows[i] = i < extra ? baseSize + 1 : baseSize;
-            }
-
-            return rows;
+            // The smallest n with n × pitch − gap ≥ capacity.
+            return (capacity + RowGapSlots + RowPitchSlots - 1) / RowPitchSlots;
         }
 
         /// <summary>
-        /// Checks explicit rows against the layout rules.
+        /// Checks a level's grid: 1–3 rows of 1–6 cells; every cell a tube index or <c>null</c>; every
+        /// tube on the grid; a large tube once in each row it spans, in consecutive rows and the same
+        /// cell; <c>null</c> only in aligned rows (rows holding part of a large tube).
         /// </summary>
-        /// <param name="rows">Tube counts per row, top row first.</param>
-        /// <param name="tubeCount">Number of tubes in the level.</param>
-        /// <param name="errors">Receives one human-readable message per broken rule.</param>
-        /// <returns>True when the rows are valid.</returns>
-        public static bool ValidateRows(IReadOnlyList<int> rows, int tubeCount, ICollection<string> errors)
+        /// <param name="grid">The level's <c>layout.grid</c>; may be null (reported).</param>
+        /// <param name="capacities">Capacity of every tube, by index. Invalid capacities are reported elsewhere; their span is not checked.</param>
+        /// <param name="errors">Receives one message per broken rule.</param>
+        /// <returns>True when the grid is valid.</returns>
+        public static bool ValidateGrid(
+            IReadOnlyList<IReadOnlyList<int?>> grid, IReadOnlyList<int> capacities, ICollection<string> errors)
         {
-            if (rows == null)
+            if (capacities == null)
             {
-                throw new ArgumentNullException(nameof(rows));
+                throw new ArgumentNullException(nameof(capacities));
             }
 
             if (errors == null)
@@ -68,101 +77,136 @@ namespace BallSort.Core.Levels
                 throw new ArgumentNullException(nameof(errors));
             }
 
-            int before = errors.Count;
-            if (rows.Count < 1 || rows.Count > MaxRows)
+            if (grid == null)
             {
-                errors.Add($"layout.rows has {rows.Count} row(s); expected 1 to {MaxRows}.");
+                errors.Add("layout.grid is missing; every level lists its tubes in a grid.");
+                return false;
             }
 
-            int sum = 0;
-            for (int i = 0; i < rows.Count; i++)
+            int before = errors.Count;
+            if (grid.Count < 1 || grid.Count > MaxRows)
             {
-                if (rows[i] < 1 || rows[i] > MaxTubesPerRow)
+                errors.Add($"layout.grid has {grid.Count} row(s); expected 1 to {MaxRows}.");
+            }
+
+            // Where each tube appears, as (row, cell) pairs.
+            var occurrences = new List<(int Row, int Cell)>[capacities.Count];
+            for (int t = 0; t < occurrences.Length; t++)
+            {
+                occurrences[t] = new List<(int, int)>();
+            }
+
+            for (int r = 0; r < grid.Count; r++)
+            {
+                IReadOnlyList<int?> row = grid[r];
+                if (row == null || row.Count < 1 || row.Count > MaxCellsPerRow)
                 {
-                    errors.Add($"layout.rows[{i}] is {rows[i]}; each row holds 1 to {MaxTubesPerRow} tubes.");
+                    errors.Add($"layout.grid[{r}] has {row?.Count ?? 0} cell(s); level files allow 1 to {MaxCellsPerRow}.");
+                    if (row == null)
+                    {
+                        continue;
+                    }
                 }
 
-                sum += rows[i];
+                for (int c = 0; c < row.Count; c++)
+                {
+                    int? cell = row[c];
+                    if (cell == null)
+                    {
+                        continue;
+                    }
+
+                    if (cell < 0 || cell >= capacities.Count)
+                    {
+                        errors.Add($"layout.grid[{r}][{c}] is {cell}; expected a tube index 0 to {capacities.Count - 1} or null.");
+                        continue;
+                    }
+
+                    occurrences[cell.Value].Add((r, c));
+                }
             }
 
-            if (sum != tubeCount)
+            var alignedRows = new bool[grid.Count];
+            for (int t = 0; t < occurrences.Length; t++)
             {
-                errors.Add($"layout.rows sums to {sum} but the level has {tubeCount} tube(s).");
+                ValidateTubeCells(t, capacities[t], occurrences[t], alignedRows, errors);
+            }
+
+            for (int r = 0; r < grid.Count; r++)
+            {
+                IReadOnlyList<int?> row = grid[r];
+                for (int c = 0; row != null && c < row.Count; c++)
+                {
+                    if (row[c] == null && !alignedRows[r])
+                    {
+                        errors.Add(
+                            $"layout.grid[{r}][{c}] is null; gaps are only allowed in rows holding part of a large tube.");
+                    }
+                }
             }
 
             return errors.Count == before;
         }
 
         /// <summary>
-        /// Where an added tube goes: onto the last (bottom) row if it has room, otherwise onto a new
-        /// row below it. Existing tubes never move between rows, so the board does not reshuffle
-        /// under the player.
+        /// Checks where one tube appears and marks the rows a valid large tube makes aligned.
         /// </summary>
-        /// <param name="rows">Current tube counts per row, top row first.</param>
-        /// <param name="newRows">The rows after appending, when this returns true; null otherwise.</param>
-        /// <returns>
-        /// False when the tube does not fit: the last row is full and there are already
-        /// <see cref="MaxRows"/> rows. For automatic layouts that is exactly <see cref="MaxTubes"/>
-        /// tubes; an explicit layout with a short middle row can run out of room sooner.
-        /// </returns>
-        public static bool TryAppendTube(IReadOnlyList<int> rows, out int[] newRows)
+        private static void ValidateTubeCells(
+            int tubeIndex, int capacity, List<(int Row, int Cell)> cells, bool[] alignedRows, ICollection<string> errors)
         {
-            if (rows == null)
+            string where = $"tubes[{tubeIndex}]";
+            if (cells.Count == 0)
             {
-                throw new ArgumentNullException(nameof(rows));
+                errors.Add($"{where} is not on layout.grid.");
+                return;
             }
 
-            if (rows.Count == 0)
+            if (!IsValidCapacity(capacity))
             {
-                throw new ArgumentException("A layout has at least one row.", nameof(rows));
+                return;
             }
 
-            bool lastRowHasRoom = rows[rows.Count - 1] < MaxTubesPerRow;
-            if (!lastRowHasRoom && rows.Count >= MaxRows)
+            int span = GetRowSpan(capacity);
+            if (span == 1)
             {
-                newRows = null;
-                return false;
+                if (cells.Count > 1)
+                {
+                    errors.Add($"{where} appears {cells.Count} times in layout.grid; a capacity-{capacity} tube takes one cell.");
+                }
+
+                return;
             }
 
-            newRows = new int[lastRowHasRoom ? rows.Count : rows.Count + 1];
-            for (int i = 0; i < rows.Count; i++)
+            // Listed top row first, so the rows must read r, r + 1, … in one column.
+            bool valid = cells.Count == span;
+            for (int i = 1; valid && i < cells.Count; i++)
             {
-                newRows[i] = rows[i];
+                valid = cells[i].Row == cells[0].Row + i && cells[i].Cell == cells[0].Cell;
             }
 
-            newRows[newRows.Length - 1]++;
-            return true;
+            if (!valid)
+            {
+                errors.Add(
+                    $"{where} has capacity {capacity}, so it must appear in {span} consecutive rows of layout.grid, " +
+                    $"in the same cell of each; found it at {Describe(cells)}.");
+                return;
+            }
+
+            foreach ((int Row, int Cell) cell in cells)
+            {
+                alignedRows[cell.Row] = true;
+            }
         }
 
-        /// <summary>Whether <see cref="TryAppendTube"/> would succeed for these rows.</summary>
-        public static bool CanAppendTube(IReadOnlyList<int> rows)
+        private static string Describe(List<(int Row, int Cell)> cells)
         {
-            if (rows == null)
+            var parts = new string[cells.Count];
+            for (int i = 0; i < cells.Count; i++)
             {
-                throw new ArgumentNullException(nameof(rows));
+                parts[i] = $"[{cells[i].Row}][{cells[i].Cell}]";
             }
 
-            return rows.Count > 0 && (rows[rows.Count - 1] < MaxTubesPerRow || rows.Count < MaxRows);
-        }
-
-        /// <summary>
-        /// The rows to display: the explicit rows if given, otherwise <see cref="AutoRows"/>.
-        /// </summary>
-        /// <remarks>Assumes the level has passed <see cref="LevelValidator"/>.</remarks>
-        public static int[] Resolve(int tubeCount, IReadOnlyList<int> explicitRows)
-        {
-            if (explicitRows == null)
-            {
-                return AutoRows(tubeCount);
-            }
-
-            var rows = new int[explicitRows.Count];
-            for (int i = 0; i < rows.Length; i++)
-            {
-                rows[i] = explicitRows[i];
-            }
-
-            return rows;
+            return string.Join(", ", parts);
         }
     }
 }

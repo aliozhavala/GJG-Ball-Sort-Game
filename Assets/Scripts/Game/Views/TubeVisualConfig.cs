@@ -28,12 +28,12 @@ namespace BallSort.Game.Views
         [SerializeField, Min(0f)] private float _topPadding = 0.15f;
         [SerializeField, Min(0.1f)] private float _ballDiameter = 0.9f;
         [SerializeField, Min(0.05f)] private float _capHeight = 0.5f;
-        [Tooltip("Room above the rim for a lifted run; part of the tap target.")]
+        [Tooltip("How far a selected run rises; stays inside the two-slot gap between rows. Part of the tap target.")]
         [SerializeField, Min(0f)] private float _liftHeight = 1f;
 
         [Header("Spacing")]
+        [Tooltip("Gap between neighbouring tubes. Rows are spaced by the grid rule (two ball slots), not here.")]
         [SerializeField, Min(0f)] private float _horizontalSpacing = 0.45f;
-        [SerializeField, Min(0f)] private float _verticalSpacing = 0.5f;
 
         public Sprite BackSprite => _backSprite;
         public Sprite FrontSprite => _frontSprite;
@@ -48,7 +48,6 @@ namespace BallSort.Game.Views
         public float CapHeight => _capHeight;
         public float LiftHeight => _liftHeight;
         public float HorizontalSpacing => _horizontalSpacing;
-        public float VerticalSpacing => _verticalSpacing;
 
         /// <summary>Local y of a ball's centre in <paramref name="slotIndex"/>, measured from the tube base.</summary>
         public float SlotY(int slotIndex) => _bottomOffset + slotIndex * _slotHeight;

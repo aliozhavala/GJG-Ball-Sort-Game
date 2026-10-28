@@ -14,6 +14,7 @@ namespace BallSort.Tests.EditMode
     public sealed class LevelSessionTests
     {
         private const int AddedCapacity = 4;
+        private const int PlayOnPrice = 900;
 
         private static LevelSession Start(LevelDto level, int undo = 99, int shuffle = 99, int addTube = 99) =>
             Start(level, new BoosterInventory(undo, shuffle, addTube));
@@ -22,16 +23,33 @@ namespace BallSort.Tests.EditMode
             new LevelSession(LevelFactory.Load(level, Name), boosters, AddedCapacity);
 
         /// <summary>
-        /// Three colours in full capacity-2 tubes plus one empty capacity-1 tube. Moving tube 0's
-        /// top into tube 3 leaves no legal move at all: tube 0's new top (colour 0) is buried in
-        /// tube 1, every other tube is full, and tube 3 is corked.
+        /// Five tubes in one row. Moving tube 0's top (colour 2) onto tube 3 fills tube 3 and leaves
+        /// no legal move: only tube 0 (now topped by 1s) and tube 4 (a lone 0) have free slots, and no
+        /// other tube shows either colour on top.
         /// </summary>
         private static LevelDto OneMoveFromStuck() =>
-            Level(3, T(2, 0, 1), T(2, 0, 2), T(2, 2, 1), T(1));
+            Level(4, T(4, 0, 1, 1, 2), T(4, 3, 3, 3, 2), T(4, 1, 0, 0, 3), T(4, 1, 2, 2), T(4, 0));
 
         /// <summary>One colour, one move from winning: tube 0 → tube 1 completes tube 1.</summary>
         private static LevelDto OneMoveFromWin() =>
-            Level(1, T(2, 0), T(2, 0));
+            Level(1, T(4, 0, 0), T(4, 0, 0));
+
+        /// <summary>Tube 0 → tube 1 completes colour 1 in tube 1 (and seals the history).</summary>
+        private static LevelDto OneMoveFromACompletion() =>
+            Level(2, T(4, 0, 1), T(4, 1, 1, 1), T(4, 0, 0, 0));
+
+        /// <summary>
+        /// Six tubes in one row. Colour 1 can never finish: three of its balls sit under a veil that
+        /// only colour 1 opens, the fourth in clay. Tube 3 → tube 2 completes colour 0, after which no
+        /// tube can start a move although two are empty.
+        /// </summary>
+        private static LevelDto StuckBehindCovers() =>
+            Level(2, T(4, 1, 1, 1).WithVeil(1), T(4, 1).AsClay(), T(4, 0, 0), T(4, 0, 0), T(4), T(4));
+
+        /// <summary>Tube 0 → tube 1 exposes the key for lock 0, which covers tubes 2 and 3.</summary>
+        private static LevelDto OneMoveFromALock() =>
+            Level(3, T(4, 1, 2, 0, 0).WithKey(1, 0), T(4), T(4, 2, 1, 2, 1), T(4, 0, 0, 1, 2), T(4))
+                .WithLock(0, 2, 3);
 
         // --- Moves -----------------------------------------------------------------------------
 
@@ -59,6 +77,26 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
+        public void TryMove_FromAClayTube_IsRefused()
+        {
+            LevelSession session = Start(StuckBehindCovers());
+
+            Assert.That(session.CanSelect(1), Is.False);
+            Assert.That(session.TryMove(1, 4, out MoveRejection rejection), Is.False);
+            Assert.That(rejection, Is.EqualTo(MoveRejection.SourceClay));
+        }
+
+        [Test]
+        public void TryMove_OntoACoveredTube_IsRefused()
+        {
+            LevelSession session = Start(StuckBehindCovers());
+
+            Assert.That(session.CanSelect(0), Is.False);
+            Assert.That(session.TryMove(2, 0, out MoveRejection rejection), Is.False);
+            Assert.That(rejection, Is.EqualTo(MoveRejection.TargetCovered));
+        }
+
+        [Test]
         public void BoardEvents_AreForwardedBySession()
         {
             LevelSession session = Start(OneMoveFromWin());
@@ -74,14 +112,43 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
+        public void CoverEvents_AreForwarded_BeforeStuckChangedAndChanged()
+        {
+            LevelSession session = Start(OneMoveFromALock());
+            var log = new List<string>();
+            session.MoveApplied += _ => log.Add("MoveApplied");
+            session.KeyFound += e => log.Add($"KeyFound({e.TubeIndex},{e.SlotIndex})");
+            session.LockOpened += e => log.Add($"LockOpened({string.Join(",", e.TubeIndices)})");
+            session.Changed += () => log.Add("Changed");
+
+            session.TryMove(0, 1, out _);
+
+            Assert.That(log, Is.EqualTo(new[] { "MoveApplied", "KeyFound(0,1)", "LockOpened(2,3)", "Changed" }));
+            Assert.That(session.Board[2].IsCovered || session.Board[3].IsCovered, Is.False);
+        }
+
+        [Test]
+        public void TubeUnveiled_IsForwarded()
+        {
+            LevelSession session = Start(Level(2,
+                T(4, 0, 0, 0), T(4, 1, 0), T(4, 1, 1, 1).WithVeil(0), T(4)));
+            var unveiled = new List<int>();
+            session.TubeUnveiled += e => unveiled.Add(e.TubeIndex);
+
+            session.TryMove(1, 0, out _);   // completes colour 0
+
+            Assert.That(unveiled, Is.EqualTo(new[] { 2 }));
+        }
+
+        [Test]
         public void Changed_FiresOnceAfterAMoveWithTheSealAlreadyRecorded()
         {
-            LevelSession session = Start(Level(2, T(2, 0, 1), T(2, 1, 0), T(2), T(1)));
+            LevelSession session = Start(OneMoveFromACompletion());
             var log = new List<string>();
             session.MoveApplied += _ => log.Add($"MoveApplied:{session.UndoBlockReason}");
             session.Changed += () => log.Add($"Changed:{session.UndoBlockReason}");
 
-            session.TryMove(0, 3, out _);   // colour 1 corks the capacity-1 tube 3
+            session.TryMove(0, 1, out _);
 
             Assert.That(log, Is.EqualTo(new[]
             {
@@ -104,9 +171,9 @@ namespace BallSort.Tests.EditMode
             session.TryPlayOn(new Wallet(PlayOnPrice), PlayOnPrice, out _);
             session.TryAddTube(out _);
             session.Restart();
-            session.TryMove(0, 2, out _);   // tube 2 is full
+            session.TryMove(0, 2, out _);                         // refused: tube 2 is full
             session.TryAddTube(out _);
-            session.TryMove(0, 4, out _);
+            session.TryMove(0, 5, out _);                         // into the added tube
             session.TryUndo(out _);
 
             Assert.That(changes, Is.EqualTo(7));
@@ -159,8 +226,8 @@ namespace BallSort.Tests.EditMode
         {
             // Telling the player to find more undos when a corked tube is the real obstacle would
             // send them after a booster that cannot help.
-            LevelSession session = Start(Level(2, T(2, 1, 0), T(2, 0), T(2, 1)), undo: 0);
-            session.TryMove(0, 1, out _);   // completes tube 1
+            LevelSession session = Start(OneMoveFromACompletion(), undo: 0);
+            session.TryMove(0, 1, out _);
 
             Assert.That(session.UndoBlockReason, Is.EqualTo(UndoBlockReason.SealedByTubeCompletion));
         }
@@ -203,9 +270,22 @@ namespace BallSort.Tests.EditMode
             Assert.That(session.TryUndo(out UndoBlockReason reason), Is.False);
 
             Assert.That(reason, Is.EqualTo(UndoBlockReason.SealedByTubeCompletion));
-            Assert.That(session.Board[0].IsCompleted, Is.True);
+            Assert.That(session.Board.IsCompleted(0), Is.True);
             Assert.That(session.Board[0].Count, Is.EqualTo(4));
             Assert.That(boosters.GetCount(BoosterType.Undo), Is.EqualTo(4), "only the successful undo was paid for");
+        }
+
+        [Test]
+        public void Undo_AfterALockOpened_KeepsItOpen()
+        {
+            LevelSession session = Start(OneMoveFromALock());
+            session.TryMove(0, 1, out _);
+
+            Assert.That(session.TryUndo(out _), Is.True);
+
+            Assert.That(session.Board[0].Top.ColorId, Is.EqualTo(0), "the run is back on the key's ball");
+            Assert.That(session.Board[0][1].HasKey, Is.False);
+            Assert.That(session.Board[2].IsCovered || session.Board[3].IsCovered, Is.False);
         }
 
         // --- Add tube --------------------------------------------------------------------------
@@ -224,28 +304,43 @@ namespace BallSort.Tests.EditMode
             Assert.That(session.Board.TubeCount, Is.EqualTo(4));
             Assert.That(session.Board[3].IsEmpty, Is.True);
             Assert.That(session.Board[3].Capacity, Is.EqualTo(AddedCapacity));
-            Assert.That(received.TubeIndex, Is.EqualTo(3));
-            Assert.That(session.Rows, Is.EqualTo(new[] { 4 }));
             Assert.That(boosters.GetCount(BoosterType.AddTube), Is.EqualTo(1));
+            Assert.That((received.TubeIndex, received.Capacity, received.Row, received.Cell), Is.EqualTo((3, AddedCapacity, 0, 3)));
+            Assert.That(session.Grid.GetCellCount(0), Is.EqualTo(4));
+            Assert.That(session.Grid.GetTubeAt(0, 3), Is.EqualTo(3));
         }
 
         [Test]
-        public void TubeAdded_FiresAfterRowsAlreadyIncludeTheNewTube()
+        public void TubeAdded_FiresWithTheBoardAndGridAlreadyIncludingTheTube()
         {
             LevelSession session = Start(Valid());
-            int rowTotalSeen = -1;
+            int boardTubes = -1;
+            int gridTubes = -1;
             session.TubeAdded += _ =>
             {
-                rowTotalSeen = 0;
-                foreach (int row in session.Rows)
-                {
-                    rowTotalSeen += row;
-                }
+                boardTubes = session.Board.TubeCount;
+                gridTubes = session.Grid.TubeCount;
             };
 
             session.TryAddTube(out _);
 
-            Assert.That(rowTotalSeen, Is.EqualTo(session.Board.TubeCount));
+            Assert.That(boardTubes, Is.EqualTo(4));
+            Assert.That(gridTubes, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void TubeAdded_ReportsTheRowWithTheFewestCells_TiesGoingToTheBottom()
+        {
+            // Rows of 1 and 2 cells: top (fewer), then bottom (tie), then top again.
+            LevelSession session = Start(Valid().WithGrid(new int?[] { 0 }, new int?[] { 1, 2 }));
+            var placements = new List<(int Row, int Cell)>();
+            session.TubeAdded += e => placements.Add((e.Row, e.Cell));
+
+            session.TryAddTube(out _);
+            session.TryAddTube(out _);
+            session.TryAddTube(out _);
+
+            Assert.That(placements, Is.EqualTo(new[] { (0, 1), (1, 2), (0, 2) }));
         }
 
         [Test]
@@ -273,7 +368,7 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
-        public void TryAddTube_StopsAtEighteenTubesForAnAutomaticLayout()
+        public void TryAddTube_GrowsARowToEightCells_ThenHasNoRoom()
         {
             LevelSession session = Start(Valid());   // 3 tubes, one row
 
@@ -283,41 +378,28 @@ namespace BallSort.Tests.EditMode
                 added++;
             }
 
-            Assert.That(added, Is.EqualTo(LevelLayout.MaxTubes - 3));
-            Assert.That(session.Board.TubeCount, Is.EqualTo(18));
-            Assert.That(session.Rows, Is.EqualTo(new[] { 6, 6, 6 }));
-            Assert.That(session.AddTubeBlockReason, Is.EqualTo(AddTubeBlockReason.NoRoom));
-        }
-
-        [Test]
-        public void TryAddTube_StopsWhenAnExplicitLayoutRunsOutOfRows()
-        {
-            LevelDto level = Valid();
-            level.Layout = new LayoutDto { Rows = new List<int> { 2, 1 } };
-            LevelSession session = Start(level);
-
-            while (session.TryAddTube(out _))
-            {
-            }
-
-            Assert.That(session.Rows, Is.EqualTo(new[] { 2, 6, 6 }), "existing rows never reshuffle");
-            Assert.That(session.Board.TubeCount, Is.EqualTo(14));
+            Assert.That(added, Is.EqualTo(LevelLayout.MaxCellsPerRowInPlay - 3));
+            Assert.That(session.Grid.RowCount, Is.EqualTo(1), "rows are never added");
+            Assert.That(session.Grid.GetCellCount(0), Is.EqualTo(8));
             Assert.That(session.AddTubeBlockReason, Is.EqualTo(AddTubeBlockReason.NoRoom));
         }
 
         [Test]
         public void NoRoom_OutranksNoBoostersLeft()
         {
-            LevelDto level = Valid();
-            level.Layout = new LayoutDto { Rows = new List<int> { 1, 1, 1 } };
-            var boosters = new BoosterInventory(undo: 0, shuffle: 0, addTube: 5);
-            LevelSession session = Start(level, boosters);
+            // Three one-cell rows take exactly 21 tubes to fill to eight cells each.
+            var boosters = new BoosterInventory(undo: 0, shuffle: 0, addTube: 21);
+            LevelSession session = Start(Valid().WithGrid(new int?[] { 0 }, new int?[] { 1 }, new int?[] { 2 }), boosters);
             while (session.TryAddTube(out _))
             {
             }
 
             Assert.That(boosters.GetCount(BoosterType.AddTube), Is.EqualTo(0));
-            Assert.That(session.Rows, Is.EqualTo(new[] { 1, 1, 6 }));
+            for (int row = 0; row < 3; row++)
+            {
+                Assert.That(session.Grid.GetCellCount(row), Is.EqualTo(8), $"row {row}");
+            }
+
             Assert.That(session.AddTubeBlockReason, Is.EqualTo(AddTubeBlockReason.NoRoom));
         }
 
@@ -378,6 +460,31 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
+        public void TheStuckTrapFixture_IsStuckAfterTwoMoves()
+        {
+            // The former shipped level 6, kept as a fixture for the stuck / Play on flow.
+            LevelSession session = Start(StuckTrap());
+
+            session.TryMove(1, 4, out _);
+            Assert.That(session.IsStuck, Is.False);
+            session.TryMove(0, 1, out _);
+
+            Assert.That(session.IsStuck, Is.True);
+        }
+
+        [Test]
+        public void Stuck_CountsCoveredAndClayTubesAsUnmovable_EvenWithEmptyTubesLeft()
+        {
+            LevelSession session = Start(StuckBehindCovers());
+
+            session.TryMove(3, 2, out _);   // completes colour 0
+
+            Assert.That(session.Board[4].IsEmpty && session.Board[5].IsEmpty, Is.True);
+            Assert.That(session.IsWon, Is.False);
+            Assert.That(session.IsStuck, Is.True, "nothing can start a move");
+        }
+
+        [Test]
         public void AWonLevel_IsNeverStuck()
         {
             LevelSession session = Start(OneMoveFromWin());
@@ -388,6 +495,19 @@ namespace BallSort.Tests.EditMode
 
             Assert.That(session.IsStuck, Is.False, "no legal move is left, but the level is won");
             Assert.That(stuckChanges, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ACompletionThatWins_AlsoOpensTheVeilsOfItsColour()
+        {
+            // Every colour completes on the way to a win, so no veil is left closed at the end.
+            LevelSession session = Start(Level(1, T(4, 0, 0), T(4, 0, 0), T(4).WithVeil(0)));
+
+            session.TryMove(0, 1, out _);
+
+            Assert.That(session.IsWon, Is.True);
+            Assert.That(session.Board[2].IsCovered, Is.False);
+            Assert.That(session.IsStuck, Is.False);
         }
 
         [Test]
@@ -426,26 +546,6 @@ namespace BallSort.Tests.EditMode
 
         // --- Play on ---------------------------------------------------------------------------
 
-        private const int PlayOnPrice = 900;
-
-        /// <summary>
-        /// <see cref="OneMoveFromStuck"/> padded with fourteen full, mixed, inert tubes to the
-        /// 18-tube limit, so once it is stuck there is no room for another tube.
-        /// </summary>
-        private static LevelDto OneMoveFromStuckWithAFullLayout()
-        {
-            LevelDto level = OneMoveFromStuck();
-            int colors = level.Colors;
-            for (int pair = 0; pair < 7; pair++, colors += 2)
-            {
-                level.Tubes.Add(T(2, colors, colors + 1));
-                level.Tubes.Add(T(2, colors + 1, colors));
-            }
-
-            level.Colors = colors;
-            return level;
-        }
-
         [Test]
         public void TryPlayOn_WhileStuck_ChargesAddsATubeAndClearsStuck()
         {
@@ -453,18 +553,18 @@ namespace BallSort.Tests.EditMode
             session.TryMove(0, 3, out _);
             var wallet = new Wallet(1000);
             var log = new List<string>();
-            session.TubeAdded += e => log.Add($"TubeAdded({e.TubeIndex})");
+            session.TubeAdded += e => log.Add($"TubeAdded({e.TubeIndex}@{e.Row},{e.Cell})");
             session.StuckChanged += stuck => log.Add($"StuckChanged({stuck})");
 
             Assert.That(session.TryPlayOn(wallet, PlayOnPrice, out PlayOnBlockReason reason), Is.True);
 
             Assert.That(reason, Is.EqualTo(PlayOnBlockReason.None));
             Assert.That(wallet.Coins, Is.EqualTo(100));
-            Assert.That(session.Board.TubeCount, Is.EqualTo(5));
-            Assert.That(session.Board[4].Capacity, Is.EqualTo(AddedCapacity));
-            Assert.That(session.Rows, Is.EqualTo(new[] { 5 }));
+            Assert.That(session.Board.TubeCount, Is.EqualTo(6));
+            Assert.That(session.Board[5].Capacity, Is.EqualTo(AddedCapacity));
+            Assert.That(session.Grid.GetCellCount(0), Is.EqualTo(6));
             Assert.That(session.IsStuck, Is.False);
-            Assert.That(log, Is.EqualTo(new[] { "TubeAdded(4)", "StuckChanged(False)" }));
+            Assert.That(log, Is.EqualTo(new[] { "TubeAdded(5@0,5)", "StuckChanged(False)" }));
         }
 
         [Test]
@@ -504,23 +604,25 @@ namespace BallSort.Tests.EditMode
 
             Assert.That(reason, Is.EqualTo(PlayOnBlockReason.NotEnoughCoins));
             Assert.That(wallet.Coins, Is.EqualTo(PlayOnPrice - 1));
-            Assert.That(session.Board.TubeCount, Is.EqualTo(4));
+            Assert.That(session.Board.TubeCount, Is.EqualTo(5));
             Assert.That(session.IsStuck, Is.True);
         }
 
         [Test]
-        public void TryPlayOn_WithAFullLayout_IsRefusedAsNoRoom()
+        public void TryPlayOn_WhenEveryRowHasEightCells_IsRefusedAsNoRoom()
         {
-            LevelSession session = Start(OneMoveFromStuckWithAFullLayout());
-            session.TryMove(0, 3, out _);
-            Assert.That(session.IsStuck, Is.True, "test setup: the padded board is stuck");
-            Assert.That(session.Board.TubeCount, Is.EqualTo(LevelLayout.MaxTubes), "test setup: the board is full");
+            LevelSession session = Start(StuckBehindCovers());   // one row of six
+            session.TryAddTube(out _);
+            session.TryAddTube(out _);
+            session.TryMove(3, 2, out _);
+            Assert.That(session.IsStuck, Is.True, "test setup: the board is stuck");
+            Assert.That(session.Grid.GetCellCount(0), Is.EqualTo(8), "test setup: the row is full");
             var wallet = new Wallet(0);
 
             Assert.That(session.TryPlayOn(wallet, PlayOnPrice, out PlayOnBlockReason reason), Is.False);
 
             Assert.That(reason, Is.EqualTo(PlayOnBlockReason.NoRoom), "no room outranks the coin shortage");
-            Assert.That(session.Board.TubeCount, Is.EqualTo(LevelLayout.MaxTubes));
+            Assert.That(session.Board.TubeCount, Is.EqualTo(8));
         }
 
         [Test]
@@ -557,9 +659,10 @@ namespace BallSort.Tests.EditMode
         {
             var boosters = new BoosterInventory(undo: 5, shuffle: 0, addTube: 5);
             LevelSession session = Start(
-                Level(2, Hidden(2, new[] { 1, 0 }, new[] { true, false }), T(2, 1, 0), T(2)),
+                Level(2, Hidden(4, new[] { 1, 0 }, new[] { true, false }), T(4, 1, 1, 1, 0), T(4, 0, 0)),
                 boosters);
             BoardState before = session.Board;
+            BoardGrid gridBefore = session.Grid;
             session.TryMove(0, 2, out _);   // reveals tube 0's bottom ball
             session.TryAddTube(out _);
             Assert.That(session.Board[0][0].IsRevealed, Is.True, "test setup: the ball was revealed");
@@ -567,12 +670,27 @@ namespace BallSort.Tests.EditMode
             session.Restart();
 
             Assert.That(session.Board, Is.Not.SameAs(before), "restart rebuilds from source data");
+            Assert.That(session.Grid, Is.Not.SameAs(gridBefore));
             Assert.That(session.Board[0][0].IsHidden, Is.True, "hidden balls are hidden again");
             Assert.That(session.Board.TubeCount, Is.EqualTo(3), "added tubes are gone");
-            Assert.That(session.Rows, Is.EqualTo(new[] { 3 }));
+            Assert.That(session.Grid.GetCellCount(0), Is.EqualTo(3));
             Assert.That(session.MoveCount, Is.EqualTo(0));
             Assert.That(session.UndoBlockReason, Is.EqualTo(UndoBlockReason.NoMovesToUndo));
             Assert.That(boosters.GetCount(BoosterType.AddTube), Is.EqualTo(4), "spent boosters stay spent");
+        }
+
+        [Test]
+        public void Restart_PutsCoversAndKeysBack()
+        {
+            LevelSession session = Start(OneMoveFromALock());
+            session.TryMove(0, 1, out _);
+            Assert.That(session.Board[2].IsCovered, Is.False, "test setup: the lock opened");
+
+            session.Restart();
+
+            Assert.That(session.Board[2].Cover, Is.EqualTo(TubeCover.Lock(0)));
+            Assert.That(session.Board[3].Cover, Is.EqualTo(TubeCover.Lock(0)));
+            Assert.That(session.Board[0][1].HasKey, Is.True);
         }
 
         [Test]

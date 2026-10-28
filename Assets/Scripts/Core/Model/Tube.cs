@@ -17,21 +17,25 @@ namespace BallSort.Core.Model
         private readonly Ball[] _balls;
         private int _count;
 
-        /// <summary>How many balls this tube holds when full. Varies per tube (variable-capacity mechanic).</summary>
+        /// <summary>How many balls this tube holds when full: 4, or 5–16 for a large tube.</summary>
         public int Capacity => _balls.Length;
 
         /// <summary>How many balls the tube currently holds.</summary>
         public int Count => _count;
 
         /// <summary>
-        /// True while this tube refuses to be a move source or target.
+        /// The tube's veil or lock, if any. A covered tube is neither a move source nor a target.
         /// </summary>
         /// <remarks>
-        /// The unlock trigger is a level-design concern that is not designed yet, so Core treats this
-        /// as a plain flag and never clears it on its own. Levels using locked tubes are responsible
-        /// for staying solvable. The setter is internal so only Core rules can lock or unlock.
+        /// Only the board removes covers (when a veil's colour completes or a lock's key is found),
+        /// and removal is permanent.
         /// </remarks>
-        public bool IsLocked { get; internal set; }
+        public TubeCover Cover { get; private set; }
+
+        public bool IsCovered => Cover.IsCovered;
+
+        /// <summary>True for a clay tube: never a move source, but a normal target.</summary>
+        public bool IsClay { get; }
 
         public bool IsEmpty => _count == 0;
 
@@ -72,37 +76,6 @@ namespace BallSort.Core.Model
         }
 
         /// <summary>
-        /// True when the tube is full, every ball shares one colour, and none of them is hidden — the
-        /// tube is finished and corked.
-        /// </summary>
-        /// <remarks>
-        /// A full single-colour tube that still conceals a ball is <em>not</em> complete: the player
-        /// cannot verify it, so it must not be corked behind their back. They finish it by moving the
-        /// run off, which reveals the ball beneath, and back again.
-        /// </remarks>
-        public bool IsCompleted
-        {
-            get
-            {
-                if (!IsFull || _count == 0)
-                {
-                    return false;
-                }
-
-                int color = _balls[0].ColorId;
-                for (int i = 0; i < _count; i++)
-                {
-                    if (_balls[i].IsHidden || _balls[i].ColorId != color)
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-        }
-
-        /// <summary>
         /// Length of the run: the contiguous block of same-coloured <em>revealed</em> balls at the top.
         /// Zero when the tube is empty or its top ball is hidden.
         /// </summary>
@@ -133,8 +106,9 @@ namespace BallSort.Core.Model
         }
 
         /// <param name="capacity">Slots in this tube; must be at least one.</param>
-        /// <param name="isLocked">Whether the tube starts locked.</param>
-        public Tube(int capacity, bool isLocked = false)
+        /// <param name="cover">The tube's starting cover; <see cref="TubeCover.None"/> by default.</param>
+        /// <param name="isClay">True for a clay tube.</param>
+        public Tube(int capacity, TubeCover cover = default, bool isClay = false)
         {
             if (capacity < 1)
             {
@@ -143,15 +117,17 @@ namespace BallSort.Core.Model
 
             _balls = new Ball[capacity];
             _count = 0;
-            IsLocked = isLocked;
+            Cover = cover;
+            IsClay = isClay;
         }
 
         /// <param name="capacity">Slots in this tube; must be at least one.</param>
         /// <param name="bottomToTop">Initial contents, bottom first. May hold at most <paramref name="capacity"/> balls.</param>
-        /// <param name="isLocked">Whether the tube starts locked.</param>
+        /// <param name="cover">The tube's starting cover; <see cref="TubeCover.None"/> by default.</param>
+        /// <param name="isClay">True for a clay tube.</param>
         /// <exception cref="ArgumentException">If more balls are supplied than the tube can hold.</exception>
-        public Tube(int capacity, IEnumerable<Ball> bottomToTop, bool isLocked = false)
-            : this(capacity, isLocked)
+        public Tube(int capacity, IEnumerable<Ball> bottomToTop, TubeCover cover = default, bool isClay = false)
+            : this(capacity, cover, isClay)
         {
             if (bottomToTop == null)
             {
@@ -205,7 +181,7 @@ namespace BallSort.Core.Model
         /// <summary>An independent copy; safe to mutate without affecting this tube.</summary>
         public Tube Clone()
         {
-            var clone = new Tube(Capacity, IsLocked);
+            var clone = new Tube(Capacity, Cover, IsClay);
             Array.Copy(_balls, clone._balls, _count);
             clone._count = _count;
             return clone;
@@ -246,6 +222,12 @@ namespace BallSort.Core.Model
             return true;
         }
 
+        /// <summary>Removes the cover for good. Does nothing when the tube is uncovered.</summary>
+        internal void RemoveCover() => Cover = TubeCover.None;
+
+        /// <summary>Takes the key off the ball in <paramref name="slotIndex"/>, once it has been found.</summary>
+        internal void RemoveKey(int slotIndex) => _balls[slotIndex] = _balls[slotIndex].WithoutKey();
+
         public override string ToString()
         {
             var text = new StringBuilder();
@@ -263,9 +245,14 @@ namespace BallSort.Core.Model
             text.Append(']');
             text.Append('/');
             text.Append(Capacity);
-            if (IsLocked)
+            if (IsClay)
             {
-                text.Append(" (locked)");
+                text.Append(" (clay)");
+            }
+
+            if (IsCovered)
+            {
+                text.Append(" (").Append(Cover).Append(')');
             }
 
             return text.ToString();

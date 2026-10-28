@@ -1,10 +1,15 @@
 using System.Collections.Generic;
 using BallSort.Core.Levels;
+using BallSort.LevelJson;
 using NUnit.Framework;
 using static BallSort.Tests.EditMode.TestLevels;
 
 namespace BallSort.Tests.EditMode
 {
+    /// <summary>
+    /// Format, tube, colour-count, grid and start-state validation. Veils, locks, keys and clay are
+    /// in <see cref="MechanicsValidationTests"/>; the grid rules in detail in <see cref="LevelLayoutTests"/>.
+    /// </summary>
     [TestFixture]
     public sealed class LevelValidatorTests
     {
@@ -83,18 +88,20 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void TubeOverCapacity_NamesTheTube()
         {
-            LevelDto level = Level(2, T(4, 0, 1, 0, 1), T(3, 1, 0, 1, 0), T(4));
+            LevelDto level = Level(2, T(4, 0, 1, 0, 1), T(4, 1, 0, 1, 0, 1), T(4));
 
-            Assert.That(Validate(level), Has.Some.Contains("tubes[1]: holds 4 balls but capacity is 3"));
+            Assert.That(Validate(level), Has.Some.Contains("tubes[1]: holds 5 balls but capacity is 4"));
         }
 
-        [Test]
-        public void ZeroCapacity_NamesTheTube()
+        [TestCase(0)]
+        [TestCase(3)]
+        [TestCase(17)]
+        public void CapacityOutsideFourToSixteen_NamesTheTube(int capacity)
         {
             LevelDto level = Valid();
-            level.Tubes[2].Capacity = 0;
+            level.Tubes[2].Capacity = capacity;
 
-            Assert.That(Validate(level), Has.Some.Contains("tubes[2]: capacity must be"));
+            Assert.That(Validate(level), Has.Some.Contains($"tubes[2]: capacity must be 4, or 5 to 16 for a large tube (was {capacity})"));
         }
 
         [Test]
@@ -135,6 +142,8 @@ namespace BallSort.Tests.EditMode
             Assert.That(Validate(level), Has.Exactly(1).Contains("tubes[0]: hidden has 2 entries but balls has 4"));
         }
 
+        // --- Colour counts ---------------------------------------------------------------------
+
         [Test]
         public void ColourWithTooFewBalls_IsReported()
         {
@@ -155,80 +164,113 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void MoreColoursOfACountThanTubesOfThatCapacity_IsReported()
         {
-            // Colours 0 and 1 have 2 balls each but only one tube of capacity 2 exists.
-            LevelDto level = Level(2, T(4, 0, 1, 0, 1), T(2), T(4));
+            // Colours 0 and 1 have five balls each, but only one capacity-5 tube exists.
+            LevelDto level = Level(2, T(5, 0, 1, 0, 1, 0), T(4, 1, 0, 1, 0), T(4, 1))
+                .WithGrid(new int?[] { 0, 1 }, new int?[] { 0, 2 });
 
-            Assert.That(Validate(level), Has.Exactly(1).Contains("needs 2 tube(s) of capacity 2; the level has 1"));
+            Assert.That(Validate(level), Has.Exactly(1).Contains("needs 2 tube(s) of capacity 5; the level has 1"));
         }
 
         [Test]
-        public void VariableCapacity_WithMatchingTubes_IsValid()
+        public void LargeAndNormalTubes_WithMatchingColourCounts_AreValid()
         {
-            // Colour 0 has 3 balls and colour 1 has 5; one tube of each capacity exists.
-            LevelDto level = Level(2, T(5, 1, 0, 1, 0, 1), T(3, 1, 0, 1), T(5));
+            // Colour 1 has six balls and a capacity-6 tube; colour 0 has four and capacity-4 tubes.
+            LevelDto level = Level(2, T(6, 1, 0, 1, 0, 1, 1), T(4, 1, 0, 1, 0), T(4))
+                .WithGrid(new int?[] { 0, 1 }, new int?[] { 0, 2 });
 
             Assert.That(Validate(level), Is.Empty);
         }
 
+        // --- Grid ------------------------------------------------------------------------------
+
         [Test]
-        public void ExplicitRows_AreValidated()
+        public void MissingLayout_IsReported()
         {
             LevelDto level = Valid();
-            level.Layout = new LayoutDto { Rows = new List<int> { 2, 2 } };
+            level.Layout = null;
 
-            Assert.That(Validate(level), Has.Exactly(1).Contains("sums to 4 but the level has 3"));
+            Assert.That(Validate(level), Has.Exactly(1).Contains("layout is missing"));
         }
 
         [Test]
-        public void LayoutWithoutRows_IsReported()
+        public void LayoutWithoutGrid_IsReported()
         {
             LevelDto level = Valid();
             level.Layout = new LayoutDto();
 
-            Assert.That(Validate(level), Has.Exactly(1).Contains("layout.rows is missing"));
+            Assert.That(Validate(level), Has.Exactly(1).Contains("layout.grid is missing"));
         }
 
         [Test]
-        public void TooManyTubesForAutoLayout_IsReported()
+        public void AGridError_IsPrefixedLikeEveryOther()
         {
-            var tubes = new List<TubeDto> { T(4, 0, 0, 0, 0) };
-            for (int i = 0; i < LevelLayout.MaxTubes; i++)
-            {
-                tubes.Add(T(4));
-            }
+            LevelDto level = Valid().WithGrid(new int?[] { 0, 1 });
 
-            LevelDto level = Level(1, tubes.ToArray());
-
-            Assert.That(Validate(level), Has.Exactly(1).Contains("at most 18 fit"));
+            Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: tubes[2] is not on layout.grid." }));
         }
+
+        [Test]
+        public void ALevelFileWithSevenCellsInARow_IsRejected()
+        {
+            const string json = @"{
+              ""formatVersion"": 1, ""id"": 1, ""colors"": 1,
+              ""layout"": { ""grid"": [[0, 1, 2, 3, 4, 5, 6]] },
+              ""tubes"": [
+                { ""capacity"": 4, ""balls"": [0, 0] }, { ""capacity"": 4, ""balls"": [0, 0] },
+                { ""capacity"": 4, ""balls"": [] }, { ""capacity"": 4, ""balls"": [] }, { ""capacity"": 4, ""balls"": [] },
+                { ""capacity"": 4, ""balls"": [] }, { ""capacity"": 4, ""balls"": [] }
+              ]
+            }";
+            LevelDto level = LevelJsonParser.Parse(json, Name);
+
+            Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: layout.grid[0] has 7 cell(s); level files allow 1 to 6." }));
+        }
+
+        // --- Start state -----------------------------------------------------------------------
 
         [Test]
         public void MultipleProblems_AreAllReported()
         {
             LevelDto level = Level(2,
                 Hidden(4, new[] { 0, 1, 0, 1 }, new[] { false, false, false, true }),
-                T(3, 1, 0, 1, 0), T(4));
+                T(4, 1, 0, 1, 0, 1), T(4));
 
             IReadOnlyList<string> errors = Validate(level);
 
             Assert.That(errors, Has.Some.Contains("tubes[0]: top ball is hidden"));
-            Assert.That(errors, Has.Some.Contains("tubes[1]: holds 4 balls"));
+            Assert.That(errors, Has.Some.Contains("tubes[1]: holds 5 balls"));
         }
-
-        // --- Start state -----------------------------------------------------------------------
 
         [Test]
         public void ATubeAlreadyCompletedAtStart_IsReported()
         {
-            LevelDto level = Level(2, T(2, 0, 0), T(2, 1), T(2, 1));
+            LevelDto level = Level(2, T(4, 0, 0, 0, 0), T(4, 1, 1), T(4, 1, 1));
 
             Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: tubes[0] is already completed at start." }));
         }
 
         [Test]
+        public void FourOfEightInACapacityFourTube_IsNotCompletedAtStart()
+        {
+            LevelDto level = Level(1, T(4, 0, 0, 0, 0), T(8, 0, 0, 0, 0))
+                .WithGrid(new int?[] { 0, 1 }, new int?[] { null, 1 });
+
+            Assert.That(Validate(level), Is.Empty);
+        }
+
+        [Test]
+        public void AFinishedSetBehindACover_IsReported()
+        {
+            // It could never be played, and opening the cover would complete it out of nowhere.
+            LevelDto level = Level(2, T(4, 0, 0, 0, 0).WithVeil(1), T(4, 1, 1), T(4, 1, 1));
+
+            Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: tubes[0] already holds a finished set behind its cover." }));
+        }
+
+        [Test]
         public void ALevelAlreadyWonAtStart_IsReported()
         {
-            LevelDto level = Level(1, T(2, 0, 0), T(2));
+            LevelDto level = Level(1, T(4, 0, 0, 0, 0), T(4));
 
             Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: is already won at start." }));
         }
@@ -236,7 +278,15 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void ALevelWithNoLegalMoveAtStart_IsReported()
         {
-            LevelDto level = Level(2, T(2, 0, 1), T(2, 1, 0));
+            LevelDto level = Level(2, T(4, 0, 1, 0, 1), T(4, 1, 0, 1, 0));
+
+            Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: has no legal move at start." }));
+        }
+
+        [Test]
+        public void ALevelWhoseOnlyMovesAreBlockedByCoversAndClay_HasNoLegalMoveAtStart()
+        {
+            LevelDto level = Level(2, T(4, 0, 0, 1, 1).WithVeil(0), T(4, 0, 0).AsClay(), T(4, 1, 1));
 
             Assert.That(Validate(level), Is.EqualTo(new[] { $"{Name}: has no legal move at start." }));
         }
@@ -244,7 +294,7 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void AFullSingleColourTubeWithAHiddenBall_IsNotCompletedAtStart()
         {
-            LevelDto level = Level(1, Hidden(2, new[] { 0, 0 }, new[] { true, false }), T(2));
+            LevelDto level = Level(1, Hidden(4, new[] { 0, 0, 0, 0 }, new[] { true, false, false, false }), T(4));
 
             Assert.That(Validate(level), Is.Empty);
         }
@@ -253,7 +303,7 @@ namespace BallSort.Tests.EditMode
         public void StartStateChecks_AreSkippedWhileTheStructureIsBroken()
         {
             // Building a board from malformed data could throw; structural errors come alone.
-            LevelDto level = Level(2, T(2, 0, 1), T(2, 1, 0));
+            LevelDto level = Level(2, T(4, 0, 1, 0, 1), T(4, 1, 0, 1, 0));
             level.FormatVersion = 9;
 
             Assert.That(Validate(level), Has.None.Contains("legal move"));

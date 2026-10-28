@@ -67,6 +67,9 @@ namespace BallSort.Game.UI
 
         private void ShowLives(int lives) => _livesLabel.text = string.Format(_livesFormat, lives);
 
+        /// <summary>Shows a short message over the Home screen, e.g. a notice from the previous scene.</summary>
+        public void ShowToast(string message) => _toast.Show(message);
+
         private void ShowComingSoon() => _toast.Show(_comingSoonText);
 
         private void Awake()

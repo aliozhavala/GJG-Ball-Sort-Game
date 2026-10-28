@@ -93,7 +93,7 @@ namespace BallSort.Tests.EditMode
             Assert.That(history.CanUndo, Is.False);
             Assert.That(history.UndoBlockReason, Is.EqualTo(UndoBlockReason.SealedByTubeCompletion));
             Assert.That(history.TryUndo(), Is.False);
-            Assert.That(board[1].IsCompleted, Is.True, "the tube stays corked");
+            Assert.That(board.IsCompleted(1), Is.True, "the tube stays corked");
         }
 
         [Test]
@@ -170,7 +170,7 @@ namespace BallSort.Tests.EditMode
             Assert.That(history.TryUndo(), Is.True);
 
             Assert.That(reveal.UndoCompletedTube, Is.True);
-            Assert.That(board[2].IsCompleted, Is.True);
+            Assert.That(board.IsCompleted(2), Is.True);
             Assert.That(history.UndoBlockReason, Is.EqualTo(UndoBlockReason.SealedByTubeCompletion));
             Assert.That(history.TryUndo(), Is.False);
             Assert.That(board[1].Count, Is.EqualTo(1), "the earlier move is behind the seal");
@@ -192,12 +192,12 @@ namespace BallSort.Tests.EditMode
             history.TryExecuteMove(board, 0, 2, out _);   // reveals tube 0's bottom ball
 
             Assert.That(history.TryUndo(), Is.True);
-            Assert.That(board[0].IsCompleted, Is.True, "test setup: the undo corked tube 0");
+            Assert.That(board.IsCompleted(0), Is.True, "test setup: the undo corked tube 0");
 
             Assert.That(history.UndoBlockReason, Is.EqualTo(UndoBlockReason.SealedByTubeCompletion));
             Assert.That(history.TryUndo(), Is.False);
             Assert.That(board[0].Count, Is.EqualTo(4), "the corked tube keeps every ball");
-            Assert.That(board[0].IsCompleted, Is.True);
+            Assert.That(board.IsCompleted(0), Is.True);
             Assert.That(board[1].IsEmpty, Is.True, "the move that filled it stays applied");
         }
 

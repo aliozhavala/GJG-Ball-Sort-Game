@@ -15,10 +15,29 @@ namespace BallSort.Game.Services
         /// <summary>Build index of the Level scene.</summary>
         public const int LevelSceneIndex = 1;
 
+        private string _pendingNotice;
+
         /// <summary>True from a load request until the new scene is active.</summary>
         public bool IsLoading { get; private set; }
 
         public void LoadHome() => Load(HomeSceneIndex);
+
+        /// <summary>
+        /// Loads Home and leaves it <paramref name="notice"/> to show, e.g. why a level could not be played.
+        /// </summary>
+        public void LoadHome(string notice)
+        {
+            _pendingNotice = notice;
+            Load(HomeSceneIndex);
+        }
+
+        /// <summary>Returns the notice left by <see cref="LoadHome(string)"/>, once; null when there is none.</summary>
+        public string TakePendingNotice()
+        {
+            string notice = _pendingNotice;
+            _pendingNotice = null;
+            return notice;
+        }
 
         public void LoadLevel() => Load(LevelSceneIndex);
 

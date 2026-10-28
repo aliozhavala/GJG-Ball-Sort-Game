@@ -75,7 +75,7 @@ namespace BallSort.Core.Commands
             }
 
             _board.ApplyMove(FromIndex, ToIndex, Count);
-            CompletedTube = _board[ToIndex].IsCompleted;
+            CompletedTube = _board.IsCompleted(ToIndex);
             UndoCompletedTube = false;
             _isExecuted = true;
         }

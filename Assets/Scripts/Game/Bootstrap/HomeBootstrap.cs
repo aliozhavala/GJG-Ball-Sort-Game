@@ -18,6 +18,12 @@ namespace BallSort.Game.Bootstrap
             }
 
             _homeScreen.Initialize(app.PlayerData, app.SceneLoader);
+
+            string notice = app.SceneLoader.TakePendingNotice();
+            if (!string.IsNullOrEmpty(notice))
+            {
+                _homeScreen.ShowToast(notice);
+            }
         }
     }
 }
