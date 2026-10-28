@@ -103,6 +103,32 @@ namespace BallSort.Tests.EditMode
             Assert.That(Validate(level), Has.Exactly(1).Contains("locks[0]: tubes 2, 3 must sit next to each other"));
         }
 
+        /// <summary>
+        /// Tube 5 is a capacity-6 tube spanning both rows, between the empty capacity-4 tube 4 and
+        /// tube 0, which holds the key.
+        /// </summary>
+        private static LevelDto LargeTubeLockLevel(params int[] lockedTubes) =>
+            Level(4,
+                    T(4, 3, 2, 0, 0).WithKey(1, 0), T(4), T(4, 2, 1, 2, 1), T(4, 0, 0, 1, 2),
+                    T(4), T(6, 3, 3, 3, 3, 3, 1))
+                .WithLock(0, lockedTubes)
+                .WithGrid(new int?[] { 4, 5, 0, 1 }, new int?[] { 2, 5, 3 });
+
+        [Test]
+        public void ALockOverALargeTube_IsValid()
+        {
+            Assert.That(Validate(LargeTubeLockLevel(5)), Is.Empty);
+        }
+
+        [Test]
+        public void ALockOverTubesOfDifferentCapacities_IsReported()
+        {
+            Assert.That(Validate(LargeTubeLockLevel(4, 5)), Is.EqualTo(new[]
+            {
+                $"{Name}: locks[0]: tubes 4, 5 mix capacities 4 and 6; all tubes under one lock must have the same capacity.",
+            }));
+        }
+
         [Test]
         public void LockTubeOutOfRange_IsReported()
         {

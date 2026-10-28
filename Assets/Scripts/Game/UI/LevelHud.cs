@@ -44,9 +44,10 @@ namespace BallSort.Game.UI
         /// <summary>True while a modal popup covers the board.</summary>
         public bool IsPopupOpen => _settingsPopup.Popup.IsOpen || _winPopup.Popup.IsOpen;
 
-        public void Initialize(int levelNumber, PlayerData player)
+        /// <param name="levelLabel">The level's number, or a level file's name (editor testing).</param>
+        public void Initialize(string levelLabel, PlayerData player)
         {
-            _levelTitle.text = string.Format(_levelFormat, levelNumber);
+            _levelTitle.text = string.Format(_levelFormat, levelLabel);
             _settingsPopup.Initialize(player, showLevelActions: true);
             _settingsPopup.RestartRequested += OnRestartRequested;
             _settingsPopup.HomeRequested += OnHomeRequested;

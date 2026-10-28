@@ -75,9 +75,10 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - Art is swappable: sprites only via ScriptableObjects (`ColorPalette`, `TubeVisualConfig`) or prefab fields. Placeholders: built-in Circle and 9-slice sprites, tinted, copied to `Art/Sprites/Placeholder/` (the originals sit in a package `Editor/` folder, which builds exclude).
 - Board: world-space SpriteRenderers, orthographic camera. `BoardLayout` places tubes on the level's grid (free and aligned rows, large tubes spanning rows) and scales the board root to fit the widest row and the row count inside the HUD's `BoardArea` rect (the space between the top HUD and the booster bar, so it holds at any aspect ratio; falls back to top/bottom fractions of the safe area), with a scale cap.
 - Tube: back layer + balls + front (glass) layer; 9-sliced body; `BoxCollider2D` tap target covering tube and lift area.
-- Sorting layers (bottom→top): Background, TubeBack, Balls, TubeFront, VFX. Lifted/in-flight balls render above TubeFront.
+- Sorting layers (bottom→top): Background, TubeBack, Balls, TubeFront, VFX. On TubeFront: glass, cap, clay, covers, then lifted/in-flight balls (`TubeView._raisedSortingOrder`); the invalid-tap flash is on VFX.
 - Ball slot y = bottomOffset + index × slotHeight. Hidden balls show a "?" overlay; reveal = quick flip.
-- Every ball position change goes through `BallView.MoveTo` (snaps now; step 6 swaps in tweens there). Feedback hooks for step 6 live in `LevelFeedback` (invalid move, tube completed, celebration); the flow code does not change.
+- Mechanic views: a `CoverView` per veil and one door per lock across its tubes (refitted after every layout change), a translucent clay overlay at the bottom of clay tubes, a key mark on keyed balls once revealed. Sprites: veil, veil badge, door, lock icon, clay in `TubeVisualConfig`; key mark in `ColorPalette`. Lock colours (lock icon, key mark) come from `LockPalette`, never the ball palette.
+- Every ball position change goes through `BallView.MoveTo`, every cover change through `CoverView.SetOpen` (it also hides/shows the covered balls, so cover art may be translucent), every key-mark change through `BallView.UpdateKeyMark` (all snap now; step 6 swaps in tweens there). Feedback hooks for step 6 live in `LevelFeedback` (invalid move — placeholder tube flash, tube completed, celebration); the flow code does not change.
 - UI: uGUI + TextMeshPro, Canvas Scaler 1080×1920, match 0.5, `SafeArea` on root panel.
 
 Screens, flow, boosters and economy: read docs/screens.md when working on UI or flow.
@@ -86,7 +87,7 @@ Screens, flow, boosters and economy: read docs/screens.md when working on UI or 
 
 ### Progression
 - **Linear only in the game:** no level select screen. The player always continues from their highest unlocked level (saved via a `SaveService`, PlayerPrefs-backed).
-- **Editor-only level jump:** a developer tool to pick and play any level (1–100) from the Editor, for testing and tuning. It must not ship in player builds (`#if UNITY_EDITOR` or the Editor assembly).
+- **Editor-only level jump:** **Ball Sort ▸ Play Level…** (or Play on a Validate Levels row) picks and plays any level from the Editor, for testing and tuning, for one visit (SessionState, read by `LevelBootstrap`). It can also play a level file outside the run: test and draft levels live in `Assets/Data/TestLevels/`, never in `LevelDatabase`, and winning one never pays a reward or moves progress. It must not ship in player builds (`#if UNITY_EDITOR` or the Editor assembly).
 
 Level JSON schema, validation, solver and generator details: read docs/levels.md when working on levels.
 
@@ -107,7 +108,7 @@ Assets/
   Tests/EditMode/    BallSort.Tests.EditMode.asmdef
   Art/               Sprites/, Atlases/, Materials/, VFX/
   Audio/
-  Data/              Config/ (ScriptableObjects), Levels/ (*.json), LevelDatabase.asset
+  Data/              Config/ (ScriptableObjects), Levels/ (*.json), TestLevels/ (test/draft *.json, never in the database), LevelDatabase.asset
   Prefabs/
   Scenes/            Home.unity (index 0), Level.unity (index 1)
   Plugins/           third-party (DOTween) — do not modify
@@ -137,9 +138,9 @@ Assets/
 - Keep changes small and commit-sized. Don't rewrite working code for style alone.
 
 ## Roadmap
-1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b ✅ Solver, solvability checks, Validate Levels, Shuffle · 4c Mechanic views (placeholders) and editor level jump · 5 Generator and level-design tools · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
+1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b ✅ Solver, solvability checks, Validate Levels, Shuffle · 4c ✅ Mechanic views (placeholders) and editor level jump · 5 Generator and level-design tools · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
 
 ## Open decisions (update as they're settled)
-- Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size (12 colours today; a level may not use more), colorblind patterns.
+- Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size (12 colours today; a level may not use more), lock palette (4 colours today, so lock ids 0–3), colorblind patterns.
 - Shuffle limits (20 attempts × 2k nodes): re-measure with generated levels in step 5.
 - Difficulty curve shape and mechanic introduction levels (product).

@@ -21,18 +21,26 @@ namespace BallSort.Game.Views
         [SerializeField] private GameObject _celebration;
 
         private LevelSession _session;
+        private BoardView _board;
 
-        public void Initialize(LevelSession session)
+        /// <param name="session">The session whose events trigger feedback.</param>
+        /// <param name="board">The board view the feedback plays on.</param>
+        public void Initialize(LevelSession session, BoardView board)
         {
             Unsubscribe();
             _session = session;
+            _board = board;
             _session.TubeCompleted += OnTubeCompleted;
             _celebration.SetActive(false);
         }
 
-        /// <summary>A tap could not be acted on. Step 6: shake the tube, error sound, light haptic.</summary>
+        /// <summary>
+        /// A tap could not be acted on, including taps on covered and clay tubes. Placeholder: the
+        /// tube flashes. Step 6: shake the tube, error sound, light haptic.
+        /// </summary>
         public void PlayInvalidMove(int tubeIndex)
         {
+            _board.Tubes[tubeIndex].Flash(_animation.InvalidFlashColor, _animation.InvalidFlashDuration);
         }
 
         /// <summary>A tube was corked. Step 6: cap drop, sparkle, chime, haptic.</summary>

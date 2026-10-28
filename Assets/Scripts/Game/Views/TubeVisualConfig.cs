@@ -35,6 +35,28 @@ namespace BallSort.Game.Views
         [Tooltip("Gap between neighbouring tubes. Rows are spaced by the grid rule (two ball slots), not here.")]
         [SerializeField, Min(0f)] private float _horizontalSpacing = 0.45f;
 
+        [Header("Veil (9-sliced; may be translucent, covered balls are hidden separately)")]
+        [Tooltip("Stretched over the whole tube body, large tubes included.")]
+        [SerializeField] private Sprite _veilSprite;
+        [SerializeField] private Color _veilTint = new Color(0.55f, 0.53f, 0.62f);
+        [Tooltip("Drawn in the veil's centre, tinted with the ball colour that opens it.")]
+        [SerializeField] private Sprite _veilBadgeSprite;
+        [SerializeField, Min(0.05f)] private float _veilBadgeSize = 0.8f;
+
+        [Header("Door (9-sliced; one per lock, across all of its tubes)")]
+        [SerializeField] private Sprite _doorSprite;
+        [SerializeField] private Color _doorTint = new Color(0.22f, 0.26f, 0.33f);
+        [Tooltip("Drawn in the door's centre, tinted from the LockPalette.")]
+        [SerializeField] private Sprite _lockIconSprite;
+        [SerializeField, Min(0.05f)] private float _lockIconSize = 1f;
+
+        [Header("Clay (9-sliced overlay on the bottom of a clay tube)")]
+        [SerializeField] private Sprite _claySprite;
+        [Tooltip("Keep it translucent so the bottom ball stays visible.")]
+        [SerializeField] private Color _clayTint = new Color(0.60f, 0.46f, 0.34f, 0.6f);
+        [Tooltip("Height of the clay from the tube's base.")]
+        [SerializeField, Min(0.05f)] private float _clayHeight = 1.2f;
+
         public Sprite BackSprite => _backSprite;
         public Sprite FrontSprite => _frontSprite;
         public Sprite CapSprite => _capSprite;
@@ -48,6 +70,17 @@ namespace BallSort.Game.Views
         public float CapHeight => _capHeight;
         public float LiftHeight => _liftHeight;
         public float HorizontalSpacing => _horizontalSpacing;
+        public Sprite VeilSprite => _veilSprite;
+        public Color VeilTint => _veilTint;
+        public Sprite VeilBadgeSprite => _veilBadgeSprite;
+        public float VeilBadgeSize => _veilBadgeSize;
+        public Sprite DoorSprite => _doorSprite;
+        public Color DoorTint => _doorTint;
+        public Sprite LockIconSprite => _lockIconSprite;
+        public float LockIconSize => _lockIconSize;
+        public Sprite ClaySprite => _claySprite;
+        public Color ClayTint => _clayTint;
+        public float ClayHeight => _clayHeight;
 
         /// <summary>Local y of a ball's centre in <paramref name="slotIndex"/>, measured from the tube base.</summary>
         public float SlotY(int slotIndex) => _bottomOffset + slotIndex * _slotHeight;
@@ -60,6 +93,12 @@ namespace BallSort.Game.Views
             if (_backSprite == null || _frontSprite == null)
             {
                 Debug.LogWarning($"{name}: back and front sprites must be assigned.", this);
+            }
+
+            // Covered balls are hidden either way, so a missing cover sprite would show an empty tube.
+            if (_veilSprite == null || _doorSprite == null || _claySprite == null)
+            {
+                Debug.LogWarning($"{name}: veil, door and clay sprites must be assigned.", this);
             }
         }
     }

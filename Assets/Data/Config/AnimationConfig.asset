@@ -23,3 +23,6 @@ MonoBehaviour:
   _invalidShakeDuration: 0.25
   _invalidShakeStrength: 0.12
   _capDropDuration: 0.2
+  _invalidFlashColor: {r: 1, g: 0.25, b: 0.2, a: 0.6}
+  _invalidFlashDuration: 0.3
+  _celebrationDuration: 1

@@ -8,13 +8,13 @@ Read this when working on UI, scene flow, boosters, or player data. All UI is pl
 - `Level` → stuck → **Give up** → `Home` (no progress, no reward).
 - `Level` → settings → **Home** → `Home` (same as giving up).
 - `Level` → the level file fails to load → `Home` with the toast "Level N could not be loaded" (the error is logged).
-- The Level scene always loads `PlayerData.CurrentLevel`. Editor-only override for testing (temporary Inspector field until the step 4 level jump).
+- The Level scene always loads `PlayerData.CurrentLevel`. Editor-only level jump for testing: **Ball Sort ▸ Play Level…** (or Play on a Validate Levels row) opens the Level scene on any level, or on a level file outside the run (test and draft levels in `Assets/Data/TestLevels/`), for one visit; the next visit uses the save again. A level file's title is its file name, and winning it pays no reward (the Win panel shows none) and moves no progress.
 - Pressing Play in either scene in the Editor must work (persistent services auto-create).
 
 ## Persistent player data (one save, survives scenes and restarts)
 | Field | Start value | Notes |
 |---|---|---|
-| CurrentLevel | 1 | Advances when the current level is won. After level 100 is won: stays 100, `AllLevelsComplete = true`. Replays (level 100 after the run, editor override) pay the reward but never move progress. |
+| CurrentLevel | 1 | Advances when the current level is won. After level 100 is won: stays 100, `AllLevelsComplete = true`. Replays (level 100 after the run, or any level other than the current one through the editor level jump) pay the reward but never move progress. |
 | Coins | 1000 | +20 per win. Play on costs 900. |
 | Lives | 5 | Display only for now. |
 | Boosters: Undo / Shuffle / AddTube | 99 / 99 / 99 | Global totals, spent in any level, no refills. |

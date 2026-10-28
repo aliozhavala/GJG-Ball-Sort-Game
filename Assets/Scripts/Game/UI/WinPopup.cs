@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace BallSort.Game.UI
 {
-    /// <summary>The Win panel: "Level N complete", the coin reward, and Continue.</summary>
+    /// <summary>The Win panel: "Level N complete", the coin reward (if any), and Continue.</summary>
     /// <remarks>
     /// Shown only after progress and reward have been saved, so it is purely informational:
     /// closing the app here loses nothing. It has no close button; Continue is the way out.
@@ -24,10 +24,13 @@ namespace BallSort.Game.UI
 
         public Popup Popup => _popup;
 
-        public void Show(int levelNumber, int reward)
+        /// <param name="levelLabel">The level's number, or a level file's name (editor testing).</param>
+        /// <param name="reward">Coins paid for the win; 0 hides the reward line (a level file pays nothing).</param>
+        public void Show(string levelLabel, int reward)
         {
-            _title.text = string.Format(_titleFormat, levelNumber);
+            _title.text = string.Format(_titleFormat, levelLabel);
             _reward.text = string.Format(_rewardFormat, reward);
+            _reward.enabled = reward > 0;
             _popup.Open();
         }
 

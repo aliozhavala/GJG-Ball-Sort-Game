@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BallSort.Editor.Tools;
 using BallSort.Game.Services;
 using UnityEditor;
 using UnityEngine;
@@ -23,12 +24,12 @@ namespace BallSort.Editor.Validation
         private static readonly GUILayoutOption[] Columns =
         {
             GUILayout.Width(80), GUILayout.Width(100), GUILayout.Width(150), GUILayout.Width(70),
-            GUILayout.Width(70), GUILayout.Width(130), GUILayout.Width(110),
+            GUILayout.Width(70), GUILayout.Width(130), GUILayout.Width(110), GUILayout.Width(50),
         };
 
         private static readonly string[] Headers =
         {
-            "Level", "Colours / tubes", "Mechanics", "Solvable", "Optimal", "Nodes (fast / opt)", "Time (fast / opt)",
+            "Level", "Colours / tubes", "Mechanics", "Solvable", "Optimal", "Nodes (fast / opt)", "Time (fast / opt)", string.Empty,
         };
 
         [SerializeField] private LevelDatabase _database;
@@ -55,11 +56,7 @@ namespace BallSort.Editor.Validation
         {
             if (_database == null)
             {
-                string[] guids = AssetDatabase.FindAssets($"t:{nameof(LevelDatabase)}");
-                if (guids.Length > 0)
-                {
-                    _database = AssetDatabase.LoadAssetAtPath<LevelDatabase>(AssetDatabase.GUIDToAssetPath(guids[0]));
-                }
+                _database = LevelDatabaseFinder.FindFirst();
             }
         }
 
@@ -131,6 +128,16 @@ namespace BallSort.Editor.Validation
                 GUILayout.Label(report.OptimalText, Columns[4]);
                 GUILayout.Label(report.NodesText, Columns[5]);
                 GUILayout.Label(report.TimeText, Columns[6]);
+                using (new EditorGUI.DisabledScope(
+                           IsRunning || EditorApplication.isPlayingOrWillChangePlaymode || report.Source.AssetPath == null))
+                {
+                    if (GUILayout.Button("Play", Columns[7]))
+                    {
+                        int levelNumber = report.Source.Number;
+                        EditorApplication.delayCall += () => PlayLevelWindow.Play(levelNumber);
+                    }
+                }
+
                 EditorGUILayout.EndHorizontal();
 
                 if (!report.IsValid)

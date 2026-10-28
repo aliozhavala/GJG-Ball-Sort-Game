@@ -31,6 +31,14 @@ namespace BallSort.Game.Views
         [Tooltip("Width of the hidden mark as a fraction of the ball's diameter.")]
         [SerializeField, Range(0.1f, 1f)] private float _hiddenMarkSize = 0.55f;
 
+        [Header("Keys")]
+        [Tooltip("Drawn on a revealed ball that carries a key, tinted from the LockPalette.")]
+        [SerializeField] private Sprite _keyMarkSprite;
+        [Tooltip("Width of the key mark as a fraction of the ball's diameter.")]
+        [SerializeField, Range(0.1f, 1f)] private float _keyMarkSize = 0.75f;
+        [Tooltip("Centre of the key mark relative to the ball's centre, in ball diameters.")]
+        [SerializeField] private Vector2 _keyMarkOffset = new Vector2(0.25f, -0.25f);
+
         /// <summary>How many colour ids this palette can draw.</summary>
         public int Count => _entries.Length;
 
@@ -41,6 +49,12 @@ namespace BallSort.Game.Views
         public Sprite HiddenMarkSprite => _hiddenMarkSprite;
 
         public float HiddenMarkSize => _hiddenMarkSize;
+
+        public Sprite KeyMarkSprite => _keyMarkSprite;
+
+        public float KeyMarkSize => _keyMarkSize;
+
+        public Vector2 KeyMarkOffset => _keyMarkOffset;
 
         public Sprite GetSprite(int colorId)
         {

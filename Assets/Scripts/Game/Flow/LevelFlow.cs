@@ -19,7 +19,8 @@ namespace BallSort.Game.Flow
     /// <remarks>
     /// The session owns the rules; this class only reacts to its events and to the HUD's buttons.
     /// On a win, progress and reward are saved first, then the celebration plays and the Win panel
-    /// opens — so leaving the app mid-celebration loses nothing.
+    /// opens — so leaving the app mid-celebration loses nothing. A level file (editor testing) is
+    /// outside the run: its win saves nothing.
     /// </remarks>
     public sealed class LevelFlow : MonoBehaviour
     {
@@ -38,7 +39,7 @@ namespace BallSort.Game.Flow
         private PlayerData _player;
         private EconomyConfig _economy;
         private SceneLoader _sceneLoader;
-        private int _levelNumber;
+        private LevelVisit _visit;
 
         public LevelState State { get; private set; } = LevelState.Loading;
 
@@ -46,8 +47,9 @@ namespace BallSort.Game.Flow
         public LevelSession Session => _session;
 
         /// <summary>Starts play on <paramref name="session"/>. Call once, from the scene's bootstrap.</summary>
+        /// <param name="visit">Which level this is, and whether its win is recorded.</param>
         public void Begin(
-            LevelSession session, int levelNumber, PlayerData player, EconomyConfig economy, SceneLoader sceneLoader)
+            LevelSession session, LevelVisit visit, PlayerData player, EconomyConfig economy, SceneLoader sceneLoader)
         {
             if (_session != null)
             {
@@ -58,12 +60,12 @@ namespace BallSort.Game.Flow
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _economy = economy != null ? economy : throw new ArgumentNullException(nameof(economy));
             _sceneLoader = sceneLoader ?? throw new ArgumentNullException(nameof(sceneLoader));
-            _levelNumber = levelNumber;
+            _visit = visit;
 
             _boardView.Initialize(session);
-            _feedback.Initialize(session);
+            _feedback.Initialize(session, _boardView);
             _input.Initialize(session, () => _hud.IsPopupOpen);
-            _hud.Initialize(levelNumber, player);
+            _hud.Initialize(visit.Label, player);
 
             _input.SelectionChanged += _boardView.ShowSelection;
             _input.InvalidMove += _feedback.PlayInvalidMove;
@@ -136,7 +138,11 @@ namespace BallSort.Game.Flow
             }
 
             Enter(LevelState.Won);
-            _player.RecordWin(_levelNumber, _economy.WinReward);
+            if (!_visit.IsFromFile)
+            {
+                _player.RecordWin(_visit.LevelNumber, _economy.WinReward);
+            }
+
             PlayWinSequence();
         }
 
@@ -146,7 +152,7 @@ namespace BallSort.Game.Flow
             try
             {
                 await _feedback.PlayCelebrationAsync(destroyCancellationToken);
-                _hud.Win.Show(_levelNumber, _economy.WinReward);
+                _hud.Win.Show(_visit.Label, _visit.IsFromFile ? 0 : _economy.WinReward);
             }
             catch (OperationCanceledException)
             {

@@ -15,26 +15,35 @@ namespace BallSort.Game.Views
     /// step with the session's events.
     /// </summary>
     /// <remarks>
-    /// The board is built in full only when the level loads, restarts or is shuffled; every other event
-    /// changes just the views it touches (balls change tubes, a ball turns face up, a cap appears,
-    /// a tube is appended). Tubes and balls are pooled, so nothing is instantiated or destroyed
-    /// once the pools are warm.
+    /// The board is built in full only when the level loads, restarts or is shuffled, reading balls,
+    /// keys, covers and clay from the board state; every other event changes just the views it
+    /// touches (balls change tubes, a ball turns face up, a key mark goes, a cover opens, a cap
+    /// appears, a tube is appended). Tubes, balls and covers are pooled, so nothing is instantiated
+    /// or destroyed once the pools are warm.
+    /// <para>
+    /// Covers are separate views over the tubes: one per veil, one door per lock across all of its
+    /// tubes. They are refitted after every layout change.
+    /// </para>
     /// </remarks>
     [RequireComponent(typeof(BoardLayout))]
     public sealed class BoardView : MonoBehaviour
     {
         [SerializeField] private TubeView _tubePrefab;
         [SerializeField] private BallView _ballPrefab;
+        [SerializeField] private CoverView _coverPrefab;
         [SerializeField] private ColorPalette _palette;
+        [SerializeField] private LockPalette _lockPalette;
         [SerializeField] private TubeVisualConfig _tubeConfig;
         [SerializeField] private BoardLayout _layout;
         [Tooltip("Inactive holder for pooled views.")]
         [SerializeField] private Transform _poolRoot;
 
         private readonly List<TubeView> _tubes = new List<TubeView>();
+        private readonly List<CoverView> _covers = new List<CoverView>();
         private readonly List<BallView> _ballBuffer = new List<BallView>();
         private ObjectPool<TubeView> _tubePool;
         private ObjectPool<BallView> _ballPool;
+        private ObjectPool<CoverView> _coverPool;
         private LevelSession _session;
         private int _liftedTube = -1;
 
@@ -50,6 +59,9 @@ namespace BallSort.Game.Views
             _session.MoveUndone += OnMoveUndone;
             _session.BallRevealed += OnBallRevealed;
             _session.TubeCompleted += OnTubeCompleted;
+            _session.TubeUnveiled += OnTubeUnveiled;
+            _session.KeyFound += OnKeyFound;
+            _session.LockOpened += OnLockOpened;
             _session.TubeAdded += OnTubeAdded;
             _session.Shuffled += Rebuild;
             _session.Restarted += Rebuild;
@@ -74,9 +86,16 @@ namespace BallSort.Game.Views
             }
         }
 
-        /// <summary>Returns every tube and ball to the pools.</summary>
+        /// <summary>Returns every tube, ball and cover to the pools.</summary>
         public void Clear()
         {
+            foreach (CoverView cover in _covers)
+            {
+                _coverPool.Release(cover);
+            }
+
+            _covers.Clear();
+
             foreach (TubeView tube in _tubes)
             {
                 tube.TakeAllBalls(_ballBuffer);
@@ -104,32 +123,92 @@ namespace BallSort.Game.Views
                     $"{level.Name} uses {level.Colors} colours but {_palette.name} defines {_palette.Count}.", this);
             }
 
-            // Covered and clay tubes look like normal tubes until their placeholder views (roadmap 4c).
             BoardState board = _session.Board;
             for (int t = 0; t < board.TubeCount; t++)
             {
                 Tube tube = board[t];
-                TubeView tubeView = SpawnTube(t, tube.Capacity);
+                TubeView tubeView = SpawnTube(t, tube.Capacity, tube.IsClay);
                 tubeView.SetCapVisible(board.IsCompleted(t));
 
                 for (int slot = 0; slot < tube.Count; slot++)
                 {
                     BallView ballView = _ballPool.Get();
-                    ballView.Show(tube[slot], _palette, _tubeConfig.BallDiameter);
+                    ballView.Show(tube[slot], _palette, _lockPalette, _tubeConfig.BallDiameter);
                     tubeView.AddBall(ballView);
+                }
+
+                if (tube.IsCovered)
+                {
+                    GetOrSpawnCover(tube.Cover).AddTube(tubeView);
                 }
             }
 
             _layout.Arrange(_session.Grid, _tubes, _tubeConfig);
+
+            foreach (CoverView cover in _covers)
+            {
+                cover.FitToTubes(_tubeConfig.TubeWidth);
+                cover.SetOpen(false);
+            }
         }
 
-        private TubeView SpawnTube(int tubeIndex, int capacity)
+        private TubeView SpawnTube(int tubeIndex, int capacity, bool isClay)
         {
             TubeView tubeView = _tubePool.Get();
             tubeView.name = $"Tube {tubeIndex}";
-            tubeView.Setup(tubeIndex, capacity, _tubeConfig);
+            tubeView.Setup(tubeIndex, capacity, isClay, _tubeConfig);
             _tubes.Add(tubeView);
             return tubeView;
+        }
+
+        /// <summary>
+        /// The view for <paramref name="cover"/>: a new one per veil, and one per lock shared by all
+        /// the tubes it covers.
+        /// </summary>
+        private CoverView GetOrSpawnCover(TubeCover cover)
+        {
+            if (cover.Kind == CoverKind.Lock && TryFindDoor(cover.Id, out CoverView door))
+            {
+                return door;
+            }
+
+            CoverView view = _coverPool.Get();
+            if (cover.Kind == CoverKind.Veil)
+            {
+                view.name = $"Veil {cover.Id}";
+                view.Setup(CoverKind.Veil, cover.Id, _tubeConfig.VeilSprite, _tubeConfig.VeilTint,
+                    _tubeConfig.VeilBadgeSprite, _palette.GetTint(cover.Id), _tubeConfig.VeilBadgeSize);
+            }
+            else
+            {
+                if (cover.Id >= _lockPalette.Count)
+                {
+                    Debug.LogError(
+                        $"{_session.Level.Name} uses lock {cover.Id} but {_lockPalette.name} defines {_lockPalette.Count} lock colours.", this);
+                }
+
+                view.name = $"Door {cover.Id}";
+                view.Setup(CoverKind.Lock, cover.Id, _tubeConfig.DoorSprite, _tubeConfig.DoorTint,
+                    _tubeConfig.LockIconSprite, _lockPalette.GetTint(cover.Id), _tubeConfig.LockIconSize);
+            }
+
+            _covers.Add(view);
+            return view;
+        }
+
+        private bool TryFindDoor(int lockId, out CoverView door)
+        {
+            foreach (CoverView cover in _covers)
+            {
+                if (cover.Kind == CoverKind.Lock && cover.Id == lockId)
+                {
+                    door = cover;
+                    return true;
+                }
+            }
+
+            door = null;
+            return false;
         }
 
         private void Transfer(int fromIndex, int toIndex, int count)
@@ -155,10 +234,40 @@ namespace BallSort.Game.Views
 
         private void OnTubeCompleted(TubeCompletedEventArgs e) => _tubes[e.TubeIndex].SetCapVisible(true);
 
+        private void OnTubeUnveiled(TubeUnveiledEventArgs e)
+        {
+            foreach (CoverView cover in _covers)
+            {
+                if (cover.Kind == CoverKind.Veil && cover.Tubes[0].TubeIndex == e.TubeIndex)
+                {
+                    cover.SetOpen(true);
+                    return;
+                }
+            }
+        }
+
+        private void OnKeyFound(KeyFoundEventArgs e) => _tubes[e.TubeIndex].Balls[e.SlotIndex].RemoveKey();
+
+        private void OnLockOpened(LockOpenedEventArgs e)
+        {
+            if (TryFindDoor(e.LockId, out CoverView door))
+            {
+                door.SetOpen(true);
+            }
+        }
+
         private void OnTubeAdded(TubeAddedEventArgs e)
         {
-            SpawnTube(e.TubeIndex, e.Capacity);
+            // Added tubes are never clay or covered.
+            SpawnTube(e.TubeIndex, e.Capacity, isClay: false);
             _layout.Arrange(_session.Grid, _tubes, _tubeConfig);
+
+            // Re-centring can move the covered tubes; doors and veils follow them.
+            foreach (CoverView cover in _covers)
+            {
+                cover.FitToTubes(_tubeConfig.TubeWidth);
+            }
+
             AssertInSync(e.TubeIndex);
         }
 
@@ -190,6 +299,9 @@ namespace BallSort.Game.Views
             _session.MoveUndone -= OnMoveUndone;
             _session.BallRevealed -= OnBallRevealed;
             _session.TubeCompleted -= OnTubeCompleted;
+            _session.TubeUnveiled -= OnTubeUnveiled;
+            _session.KeyFound -= OnKeyFound;
+            _session.LockOpened -= OnLockOpened;
             _session.TubeAdded -= OnTubeAdded;
             _session.Shuffled -= Rebuild;
             _session.Restarted -= Rebuild;
@@ -198,8 +310,8 @@ namespace BallSort.Game.Views
 
         private void Awake()
         {
-            if (_tubePrefab == null || _ballPrefab == null || _palette == null ||
-                _tubeConfig == null || _layout == null || _poolRoot == null)
+            if (_tubePrefab == null || _ballPrefab == null || _coverPrefab == null || _palette == null ||
+                _lockPalette == null || _tubeConfig == null || _layout == null || _poolRoot == null)
             {
                 Debug.LogError($"{name}: all references must be assigned.", this);
                 enabled = false;
@@ -219,6 +331,13 @@ namespace BallSort.Game.Views
                 ball => { ball.gameObject.SetActive(false); ball.transform.SetParent(_poolRoot, false); },
                 ball => Destroy(ball.gameObject),
                 collectionCheck: true, defaultCapacity: 48, maxSize: 128);
+
+            _coverPool = new ObjectPool<CoverView>(
+                () => Instantiate(_coverPrefab, _poolRoot),
+                cover => { cover.transform.SetParent(transform, false); cover.gameObject.SetActive(true); },
+                cover => { cover.gameObject.SetActive(false); cover.transform.SetParent(_poolRoot, false); },
+                cover => Destroy(cover.gameObject),
+                collectionCheck: true, defaultCapacity: 4, maxSize: 18);
         }
 
         private void OnDestroy() => Unsubscribe();

@@ -4,14 +4,20 @@ using UnityEngine;
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// One ball on screen. Pooled by <see cref="BoardView"/>; never shows a hidden ball's colour.
+    /// One ball on screen. Pooled by <see cref="BoardView"/>; never shows a hidden ball's colour or key.
     /// </summary>
     /// <remarks>
-    /// The root is scaled to the ball diameter; the body and the hidden mark are normalised to it,
-    /// so any sprite size works. Both are SpriteRenderers so they scale and sort together.
+    /// The root is scaled to the ball diameter; the body and the marks are normalised to it, so any
+    /// sprite size works. All are SpriteRenderers so they scale and sort together.
     /// <para>
-    /// Every change of position goes through <see cref="MoveTo"/>, so the animation pass can swap
-    /// the instant snap for a tween in one place.
+    /// Every change of position goes through <see cref="MoveTo"/>, and every change of the key mark
+    /// through <see cref="UpdateKeyMark"/>, so the animation pass can swap each instant snap for a
+    /// tween in one place.
+    /// </para>
+    /// <para>
+    /// The ball keeps its own copy of its key: by the time a reveal is announced the board has
+    /// already found the key (docs/mechanics.md), so the mark must show on the reveal and only go
+    /// when <see cref="RemoveKey"/> follows.
     /// </para>
     /// </remarks>
     public sealed class BallView : MonoBehaviour
@@ -19,11 +25,18 @@ namespace BallSort.Game.Views
         [SerializeField] private SpriteRenderer _body;
         [Tooltip("The \"?\" drawn over the body while the ball is hidden.")]
         [SerializeField] private SpriteRenderer _hiddenMark;
+        [Tooltip("The key drawn on a revealed ball that carries one.")]
+        [SerializeField] private SpriteRenderer _keyMark;
 
         private int _bodySortingLayer;
         private int _bodySortingOrder;
         private int _markSortingLayer;
         private int _markSortingOrder;
+        private int _keySortingLayer;
+        private int _keySortingOrder;
+
+        private bool _isHidden;
+        private int _keyLockId = Ball.NoKey;
 
         /// <summary>Board index of the tube holding this ball.</summary>
         public int TubeIndex { get; private set; } = -1;
@@ -34,16 +47,31 @@ namespace BallSort.Game.Views
         /// <summary>True while drawn above the tube's glass front (selected or in flight).</summary>
         public bool IsRaised { get; private set; }
 
-        public void Show(Ball ball, ColorPalette palette, float diameter)
+        /// <summary>Shows <paramref name="ball"/> as the board holds it: colour or hidden, with or without its key.</summary>
+        public void Show(Ball ball, ColorPalette palette, LockPalette locks, float diameter)
         {
             _hiddenMark.sprite = palette.HiddenMarkSprite;
             _hiddenMark.transform.localScale = Vector3.one * (palette.HiddenMarkSize / SpriteWidth(palette.HiddenMarkSprite));
-            ShowColour(ball, palette);
+
+            _keyMark.sprite = palette.KeyMarkSprite;
+            _keyMark.transform.localScale = Vector3.one * (palette.KeyMarkSize / SpriteWidth(palette.KeyMarkSprite));
+            _keyMark.transform.localPosition = palette.KeyMarkOffset;
+            _keyMark.color = locks.GetTint(ball.KeyLockId);
+            _keyLockId = ball.KeyLockId;
+
+            ShowColour(ball.ColorId, ball.IsHidden, palette);
             transform.localScale = Vector3.one * diameter;
         }
 
-        /// <summary>Turns a hidden ball face up.</summary>
-        public void Reveal(int colorId, ColorPalette palette) => ShowColour(new Ball(colorId), palette);
+        /// <summary>Turns a hidden ball face up. A key it carries stays, now visible, until <see cref="RemoveKey"/>.</summary>
+        public void Reveal(int colorId, ColorPalette palette) => ShowColour(colorId, false, palette);
+
+        /// <summary>The ball's key has been found; its mark goes.</summary>
+        public void RemoveKey()
+        {
+            _keyLockId = Ball.NoKey;
+            UpdateKeyMark();
+        }
 
         /// <summary>Records which tube and slot this ball now belongs to.</summary>
         public void AssignSlot(int tubeIndex, int slot)
@@ -56,34 +84,45 @@ namespace BallSort.Game.Views
         public void MoveTo(Vector3 localPosition) => transform.localPosition = localPosition;
 
         /// <summary>
-        /// Draws the ball above (<paramref name="raised"/>) or back inside its tube. Raised balls use
-        /// the glass front's sorting layer, just above <paramref name="frontSortingOrder"/>.
+        /// Draws the ball above (<paramref name="raised"/>) or back inside its tube. A raised ball's
+        /// lowest part sorts at <paramref name="sortingOrder"/> on <paramref name="sortingLayer"/>.
         /// </summary>
-        public void SetRaised(bool raised, int frontSortingLayer, int frontSortingOrder)
+        public void SetRaised(bool raised, int sortingLayer, int sortingOrder)
         {
             IsRaised = raised;
             if (raised)
             {
-                // Keep the body/mark order: the mark stays on top of the body.
-                int baseOrder = frontSortingOrder + 1 - Mathf.Min(_bodySortingOrder, _markSortingOrder);
-                Apply(_body, frontSortingLayer, baseOrder + _bodySortingOrder);
-                Apply(_hiddenMark, frontSortingLayer, baseOrder + _markSortingOrder);
+                // Keep the parts' order: body, then the marks on top of it.
+                int baseOrder = sortingOrder - Mathf.Min(_bodySortingOrder, Mathf.Min(_markSortingOrder, _keySortingOrder));
+                Apply(_body, sortingLayer, baseOrder + _bodySortingOrder);
+                Apply(_hiddenMark, sortingLayer, baseOrder + _markSortingOrder);
+                Apply(_keyMark, sortingLayer, baseOrder + _keySortingOrder);
             }
             else
             {
                 Apply(_body, _bodySortingLayer, _bodySortingOrder);
                 Apply(_hiddenMark, _markSortingLayer, _markSortingOrder);
+                Apply(_keyMark, _keySortingLayer, _keySortingOrder);
             }
         }
 
-        private void ShowColour(Ball ball, ColorPalette palette)
+        private void ShowColour(int colorId, bool hidden, ColorPalette palette)
         {
-            Sprite sprite = ball.IsHidden ? palette.HiddenSprite : palette.GetSprite(ball.ColorId);
+            _isHidden = hidden;
+            Sprite sprite = hidden ? palette.HiddenSprite : palette.GetSprite(colorId);
             _body.sprite = sprite;
-            _body.color = ball.IsHidden ? palette.HiddenTint : palette.GetTint(ball.ColorId);
-            _hiddenMark.enabled = ball.IsHidden && _hiddenMark.sprite != null;
+            _body.color = hidden ? palette.HiddenTint : palette.GetTint(colorId);
+            _hiddenMark.enabled = hidden && _hiddenMark.sprite != null;
             _body.transform.localScale = Vector3.one / SpriteWidth(sprite);
+            UpdateKeyMark();
         }
+
+        /// <summary>
+        /// The single entry point for the key mark: drawn while the ball is revealed and still carries
+        /// its key, so a key on a hidden ball stays invisible. Snaps for now.
+        /// </summary>
+        private void UpdateKeyMark() =>
+            _keyMark.enabled = _keyLockId != Ball.NoKey && !_isHidden && _keyMark.sprite != null;
 
         private static float SpriteWidth(Sprite sprite) => sprite != null ? sprite.bounds.size.x : 1f;
 
@@ -95,9 +134,9 @@ namespace BallSort.Game.Views
 
         private void Awake()
         {
-            if (_body == null || _hiddenMark == null)
+            if (_body == null || _hiddenMark == null || _keyMark == null)
             {
-                Debug.LogError($"{name}: body and hidden mark must be assigned.", this);
+                Debug.LogError($"{name}: body, hidden mark and key mark must be assigned.", this);
                 return;
             }
 
@@ -105,6 +144,8 @@ namespace BallSort.Game.Views
             _bodySortingOrder = _body.sortingOrder;
             _markSortingLayer = _hiddenMark.sortingLayerID;
             _markSortingOrder = _hiddenMark.sortingOrder;
+            _keySortingLayer = _keyMark.sortingLayerID;
+            _keySortingOrder = _keyMark.sortingOrder;
         }
     }
 }

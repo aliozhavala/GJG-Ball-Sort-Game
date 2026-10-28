@@ -26,4 +26,14 @@ MonoBehaviour:
   _capHeight: 0.5
   _liftHeight: 1
   _horizontalSpacing: 0.45
-  _verticalSpacing: 0.5
+  _veilSprite: {fileID: 21300000, guid: 7770bd4a35ee54144b430d61cd7331c0, type: 3}
+  _veilTint: {r: 0.55, g: 0.53, b: 0.62, a: 1}
+  _veilBadgeSprite: {fileID: 21300000, guid: 83b96e5eb5e915a4aaa53cf1d752d237, type: 3}
+  _veilBadgeSize: 0.8
+  _doorSprite: {fileID: 21300000, guid: 7770bd4a35ee54144b430d61cd7331c0, type: 3}
+  _doorTint: {r: 0.22, g: 0.26, b: 0.33, a: 1}
+  _lockIconSprite: {fileID: 21300000, guid: aaa5f5764fc1db6498ba3066f29996b9, type: 3}
+  _lockIconSize: 1
+  _claySprite: {fileID: 21300000, guid: 7770bd4a35ee54144b430d61cd7331c0, type: 3}
+  _clayTint: {r: 0.6, g: 0.46, b: 0.34, a: 0.6}
+  _clayHeight: 1.2

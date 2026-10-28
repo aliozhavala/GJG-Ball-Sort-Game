@@ -211,3 +211,67 @@ Newest entries at the bottom.
   `AppRoot` only, nothing saved): "Shuffling…" appeared at 0.32 s, the search ended at 0.97 s, the label hid, the
   toast said "Can't shuffle right now", no booster spent. A fast shuffle on the saved current level spent one booster
   from the Editor save (now 96 Shuffle). The synthetic level's 15 colours logged a palette-size error (palette has 12).
+
+## 2026-10-28 — Roadmap 4c: mechanic views (placeholders), editor level jump
+
+### Placeholder sprites
+- New, generated through MCP (white fill, dark outline, so a tint colours only the fill), imported as Sprite,
+  256 ppu, Full Rect, no mipmaps, Clamp:
+  - `Assets/Art/Sprites/Placeholder/Lock_Icon.png` (padlock), `Key_Icon.png` (key), `Veil_Badge.png` (disc).
+
+### Assets
+- `Assets/Data/Config/LockPalette.asset` (new `LockPalette`): tints mint (0.55, 1, 0.78), lavender (0.80, 0.64, 1),
+  peach (1, 0.74, 0.58), magenta (1, 0.2, 1); unknown-id tint black. Picked by CIELAB distance: each is at least
+  ΔE 36 from every ball colour and the hidden tint, and ΔE 63 from the others (gold/silver/gunmetal came within
+  ΔE 4–21 of yellow, white and the hidden tint). Magenta is lock 3, so unknown ids use black instead.
+- `TubeVisualConfig.asset`: veil sprite `Tube_9Sliced`, tint (0.55, 0.53, 0.62), badge `Veil_Badge` size 0.8;
+  door sprite `Tube_9Sliced`, tint (0.22, 0.26, 0.33), lock icon `Lock_Icon` size 1; clay sprite `Tube_9Sliced`,
+  tint (0.60, 0.46, 0.34, 0.6), height 1.2.
+- `ColorPalette.asset`: key mark `Key_Icon`, size 0.75, offset (0.25, −0.25).
+- `AnimationConfig.asset`: invalid flash colour (1, 0.25, 0.2, 0.6), duration 0.3.
+
+### Prefabs
+- `Assets/Prefabs/Cover.prefab` (new): root `CoverView`; `Body` SpriteRenderer (`Tube_9Sliced`, Sliced,
+  `Sprite-Unlit-Default`, TubeFront order 3); `Icon` SpriteRenderer (TubeFront order 4). `_body`/`_icon` wired.
+- `Tube.prefab`: new children `Clay` (SpriteRenderer, Sliced, TubeFront order 2, disabled) and `Flash`
+  (SpriteRenderer, Sliced, VFX order 0, colour clear); `TubeView._clay`, `_flash` wired, `_raisedSortingOrder` 10.
+  Draw order on TubeFront: glass 0, cap 1, clay 2, cover body 3, cover icon 4, lifted balls 10+.
+- `Ball.prefab`: new child `KeyMark` (SpriteRenderer `Key_Icon`, Balls order 2, disabled, at (0.25, −0.25));
+  `BallView._keyMark` wired.
+
+### Scenes
+- `Level.unity`: `Board` → `BoardView._coverPrefab` = `Cover.prefab`, `_lockPalette` = `LockPalette.asset`. Saved;
+  the removed `LevelBootstrap._editorLevelOverride` key dropped out. The scene re-dirtied itself afterwards with
+  the usual layout-driven anchor noise; a save-as-copy showed it had returned to the committed values, so it was
+  saved again and the diff holds only the two references and the removed key.
+
+### Verification runs (no persistent changes)
+- EditMode tests via `TestRunnerApi` (`runSynchronously`, scene clean): 395 passed, 0 failed.
+- Play mode through `PlayLevelWindow.Play` and in-play-mode jumps (SessionState + `SceneLoader.LoadLevel`), save's
+  current level 4 throughout:
+  - Level 7: door across tubes 3–4 (centred between them, width 2.65), their balls hidden, mint lock icon, key mark
+    on tube 0 slot 1. Invalid tap on the door flashed (VFX layer). Add tube → bottom row re-centred and the door
+    followed (x 0 → −0.78). Move 0→2 → key mark gone, door open, balls shown. Restart → door and key back.
+    Shuffle → key stayed, door closed.
+  - Level 6: veil over tube 3 with a red badge; completing colour 0 opened it and showed its balls.
+  - Level 8: clay overlay only on the capacity-10 tube; clay tube not selectable, flash on tap; moves into it work.
+  - Level 3: hidden marks shown; a reveal turned the new top face up.
+  - In-memory database (play-mode `AppRoot` only) with two temporary levels: a key on a hidden ball had no mark;
+    on the revealing move the views saw `BallRevealed` (mark shown), `KeyFound` (mark gone), `LockOpened` (balls
+    shown). A stuck trap with a closed door reached Stuck with the door still closed; Play on added a 7th tube and
+    the door followed its tube (x 3.88 → 3.10).
+  - Exhaustive move search: levels 3, 6, 7 and 8 can never reach a stuck position (19,877 / 463 / 1,192 / 9,986
+    positions).
+- The checks spent 900 coins, one Add tube and one Shuffle from the Editor save; restored afterwards through
+  `SaveService` (2040 coins, Shuffle 96, Add tube 62, current level 4).
+
+### 4c follow-up: level files outside the run
+- New folder `Assets/Data/TestLevels/` with `stuck_lock.json` (written as a text file, imported by an MCP
+  `AssetDatabase.Refresh`; Unity generated both `.meta` files). Not in `LevelDatabase.asset`.
+- No scene, prefab or config asset changed.
+- Verification: EditMode 397 passed (2 new in `TestLevelFileTests`). Play mode through `PlayLevelWindow.PlayFile`:
+  HUD "Level stuck_lock"; red tube 1 → 4, yellow tube 0 → 1 got stuck with the door closed (stuck panel shown,
+  booster bar hidden, hidden key without a mark); Play on (900 coins) added a 7th tube and the door followed its tube
+  (x 3.88 → 3.10). The level was then won with the solver's moves: coins and current level unchanged, Win panel
+  "Level stuck_lock complete" with the reward line hidden. The 900 coins were restored through `SaveService`
+  (2120 coins, current level 4 — the save had gained 80 coins outside these checks).

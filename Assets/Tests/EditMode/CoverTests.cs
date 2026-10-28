@@ -170,7 +170,7 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
-        public void Key_OnAHiddenBall_IsFoundOnlyOnceRevealed()
+        public void Key_OnAHiddenBall_IsFoundByTheMoveThatRevealsIt()
         {
             BoardState board = MakeBoard(
                 MakeTube(4, HK(1, 0), H(2), R(3)),
@@ -180,12 +180,17 @@ namespace BallSort.Tests.EditMode
 
             Move(board, 0, 1);
             Assert.That(board[3].IsCovered, Is.True, "the key's ball is still hidden");
+            List<string> log = RecordEvents(board);
 
             Move(board, 0, 2);
 
             Assert.That(board[0].Top.IsRevealed, Is.True);
             Assert.That(board[0].Top.HasKey, Is.False);
             Assert.That(board[3].IsCovered, Is.False);
+            Assert.That(log, Is.EqualTo(new[]
+            {
+                nameof(BoardState.MoveApplied), nameof(BoardState.BallRevealed), "KeyFound(0)", "LockOpened(0)",
+            }), "the revealed ball is the open tube's top, so its key is found by the same move");
         }
 
         [Test]

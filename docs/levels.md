@@ -8,7 +8,7 @@ Ball arrays run **bottom → top**. This file is the schema; the rules and valid
 - Parse strictly: unknown fields are errors (Newtonsoft `MissingMemberHandling.Error`), so typos in hand-edited levels are caught. An unsupported `formatVersion` is an error.
 - `layout.grid` (required): rows of cells, top row first; each cell is a tube index or `null`. At most 3 rows and 6 cells per row. A large tube is listed in every row it spans, in the same cell.
 - Per tube: `capacity` and `balls` (required); optional `hidden` (parallel to `balls`), `veil: { "color": c }` (a ball colour id), `clay: true`, `keys: [{ "slot": s, "lock": id }]` (`slot` indexes `balls`).
-- Top level: optional `locks: [{ "id": id, "tubes": [i, j, …] }]` (`id` an integer ≥ 0; it also picks the lock's colour). `meta` (optional) never affects gameplay; `meta.mechanics` names are `hidden`, `veil`, `lock`, `clay`, `large`.
+- Top level: optional `locks: [{ "id": id, "tubes": [i, j, …] }]` (`id` an integer ≥ 0; it also picks the lock's colour from `LockPalette`, which has 4 colours today, so use ids 0–3: a larger id draws black and logs an error, the validator does not catch it). `meta` (optional) never affects gameplay; `meta.mechanics` names are `hidden`, `veil`, `lock`, `clay`, `large`.
 
 ```json
 {
@@ -42,6 +42,15 @@ Current files are placeholders until the generator lands: `level_001`–`level_0
 `ShippedLevelTests` solves every file with the solver and plays the solution to a win; the mechanic levels also keep
 a scripted solution that checks their mechanic fires. The former stuck trap is the test fixture `TestLevels.StuckTrap()`.
 
+### Test and draft levels
+Level files outside the run live in `Assets/Data/TestLevels/` (ids from 901, file names free). The `LevelDatabase` must
+never list them (its `OnValidate` logs an error if it does), and `ShippedLevelTests` does not read that folder. Play one
+with **Ball Sort ▸ Play Level… ▸ Level file**: it is one visit, and winning it pays no reward and moves no progress.
+- `stuck_lock.json`: the former stuck trap plus a locked empty tube 5 whose key sits on a hidden ball at the bottom of
+  tube 2. Red from tube 1 into the empty tube 4, then yellow from tube 0 onto tube 1, gets stuck with the door closed;
+  Play on adds a tube to the same row, so the row re-centres and the door must follow its tube.
+  `TestLevelFileTests` keeps it valid, solvable and stuck-able that way.
+
 ### Solver
 `BoardSolver.Solve(board, mode, nodeLimit, cancellationToken)` in `Core/Solver/`; pure C#, safe on a worker thread (it copies the board on entry).
 - **Real rules:** moves come from `MoveRules` and are applied with the board's own `ApplyMove` cascade (reveal, completion, veils, keys, locks) on copies, never by undo (undo keeps reveals, opened covers and found keys, so it cannot backtrack). Full knowledge of hidden colours, but hidden flags still block runs.
@@ -52,7 +61,7 @@ a scripted solution that checks their mechanic fires. The former stuck trap is t
 - **Speed (Editor):** about 15–25 µs per expanded node. The current levels need under 100 nodes in Fast mode; `level_005` (10 colours, 12 tubes) takes 695 nodes / ~11 ms in Optimal mode.
 
 ### Validate Levels (Editor)
-**Ball Sort ▸ Validate Levels…** runs, for every level in the `LevelDatabase`: the loader's validation, the solver in Fast mode, then in Optimal mode if Fast found a solution (each with an editable node limit). The table shows level, colours / tubes, the mechanics found in the data, solvable, optimal moves (or `≥ n`), nodes and time. Solving runs on a worker thread behind a cancelable progress bar. **Write meta.optimalMoves** writes each proven optimum into its file by editing the text (formatting and key order are kept; the edit is re-parsed and refused if anything else would change).
+**Ball Sort ▸ Validate Levels…** runs, for every level in the `LevelDatabase`: the loader's validation, the solver in Fast mode, then in Optimal mode if Fast found a solution (each with an editable node limit). The table shows level, colours / tubes, the mechanics found in the data, solvable, optimal moves (or `≥ n`), nodes and time. Solving runs on a worker thread behind a cancelable progress bar. **Write meta.optimalMoves** writes each proven optimum into its file by editing the text (formatting and key order are kept; the edit is re-parsed and refused if anything else would change). Each row's **Play** button opens that level through the editor level jump (**Ball Sort ▸ Play Level…**).
 
 ### Generator
 - **Generator** (Editor window): parameters (colors, capacity, empty tubes, mechanics) → random fill → solve → reject unsolvable/trivial → score difficulty → export JSON.

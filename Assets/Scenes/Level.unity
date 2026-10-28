@@ -594,7 +594,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Bootstrap.GameBootstrap
   _flow: {fileID: 1281242728}
-  _editorLevelOverride: 0
   _loadFailedFormat: Level {0} could not be loaded
 --- !u!4 &482350312
 Transform:
@@ -2281,7 +2280,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Views.BoardView
   _tubePrefab: {fileID: 4467317513203420993, guid: b80212293f231244a92cd15d5ffae063, type: 3}
   _ballPrefab: {fileID: 6128008911709652983, guid: a697323d856f12c4896f15533c6da082, type: 3}
+  _coverPrefab: {fileID: 1192613290087273491, guid: aca1998290a727a48b4cdfeff171043a, type: 3}
   _palette: {fileID: 11400000, guid: 91416c9d554ab2047a198c2cbf75825a, type: 2}
+  _lockPalette: {fileID: 11400000, guid: 7705364bfdd784d45a18365fdda53858, type: 2}
   _tubeConfig: {fileID: 11400000, guid: ba3a82e04befdc74788de24b9a64a390, type: 2}
   _layout: {fileID: 1142962736}
   _poolRoot: {fileID: 1801952057}

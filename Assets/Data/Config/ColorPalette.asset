@@ -42,3 +42,6 @@ MonoBehaviour:
   _hiddenTint: {r: 0.32, g: 0.33, b: 0.38, a: 1}
   _hiddenMarkSprite: {fileID: 21300000, guid: 23592f0fd163465418a00eaae762c45a, type: 3}
   _hiddenMarkSize: 0.55
+  _keyMarkSprite: {fileID: 21300000, guid: f1d53f472bf59a94ea9796f7472b0c73, type: 3}
+  _keyMarkSize: 0.75
+  _keyMarkOffset: {x: 0.25, y: -0.25}

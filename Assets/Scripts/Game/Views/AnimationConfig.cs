@@ -26,6 +26,9 @@ namespace BallSort.Game.Views
         [SerializeField, Min(0f)] private float _invalidShakeDuration = 0.25f;
         [SerializeField, Min(0f)] private float _invalidShakeStrength = 0.12f;
         [SerializeField, Min(0f)] private float _capDropDuration = 0.2f;
+        [Tooltip("Placeholder until step 6: a refused tap flashes its tube in this colour, fading out.")]
+        [SerializeField] private Color _invalidFlashColor = new Color(1f, 0.25f, 0.2f, 0.6f);
+        [SerializeField, Min(0f)] private float _invalidFlashDuration = 0.3f;
 
         [Header("Win")]
         [Tooltip("How long the celebration plays before the Win panel opens.")]
@@ -42,6 +45,8 @@ namespace BallSort.Game.Views
         public float InvalidShakeDuration => _invalidShakeDuration;
         public float InvalidShakeStrength => _invalidShakeStrength;
         public float CapDropDuration => _capDropDuration;
+        public Color InvalidFlashColor => _invalidFlashColor;
+        public float InvalidFlashDuration => _invalidFlashDuration;
         public float CelebrationDuration => _celebrationDuration;
     }
 }

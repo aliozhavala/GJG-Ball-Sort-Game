@@ -8,7 +8,7 @@ A tube is **completed** when it is full, all its balls are revealed, and it hold
 Validation: for each color, its ball count must equal the capacity of some tube, and for each capacity value, the number of colors with that count must not exceed the number of tubes with that capacity.
 
 ## Covers: veil and lock
-A **covered** tube is neither a move source nor a target, and its contents are drawn covered (not visible). A tube has at most one cover. When the cover is removed, the tube behaves normally and its balls follow their own `hidden` flags. Removing a cover is permanent (never undone).
+A **covered** tube is neither a move source nor a target, and its contents are drawn covered (not visible). A tube has at most one cover. Any tube can be covered, large tubes included. When the cover is removed, the tube behaves normally and its balls follow their own `hidden` flags. Removing a cover is permanent (never undone).
 - Validation: a covered tube must not already hold a finished set (it would complete the moment its cover opened, and removing a cover never completes a tube).
 
 ### Veil
@@ -17,11 +17,12 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 - Validation: the veil color exists in the level.
 
 ### Lock and key
-- A **lock** covers one or more tubes that are **adjacent in the same grid row**. Locks have an `id`; their color comes from a separate lock palette (never confused with ball colors).
+- A **lock** covers one or more tubes that are **adjacent in the same grid row** and have the **same capacity**: one door spans them all, so they share a height. A lock may cover large tubes, but never a mix of large and capacity-4 tubes. Locks have an `id`; their color comes from a separate lock palette (never confused with ball colors).
 - A **key** sits on one specific ball and opens the lock with the same id.
 - A key is **found** when its ball is part of its tube's selectable run (revealed, top run, tube not covered/clay). Check after every move, undo, reveal and cover removal. Found → the lock opens, the key mark disappears from the ball.
 - Consequences: a key on a hidden ball can't be found until revealed; a key inside a covered tube can't be found until that tube is uncovered.
-- Validation: every lock has exactly one key and every key's lock exists; no key is in a selectable run at level start; lock tubes are adjacent in one row; no key in a clay tube; lock ids are unique; a ball holds at most one key; no key inside a tube covered by its own lock.
+- A key on a hidden ball is **invisible** (no key mark) until the ball is revealed. A key's ball is only revealed by becoming the top of the tube a move just left (a shuffle never moves it), and that tube is open and not clay, so revealing the ball also finds the key, in the same move. Its events fire `BallRevealed`, then `KeyFound`, then `LockOpened` (order documented on `BoardState`), and the step 6 animations must play them in that order: the ball flips and shows its key, the key mark leaves, then the door opens.
+- Validation: every lock has exactly one key and every key's lock exists; no key is in a selectable run at level start; lock tubes are adjacent in one row and have the same capacity; no key in a clay tube; lock ids are unique; a ball holds at most one key; no key inside a tube covered by its own lock.
 - Level design note: put keys on the top ball of a run so the visual matches.
 
 ## Clay
