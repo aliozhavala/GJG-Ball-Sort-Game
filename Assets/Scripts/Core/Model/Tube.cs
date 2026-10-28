@@ -228,6 +228,35 @@ namespace BallSort.Core.Model
         /// <summary>Takes the key off the ball in <paramref name="slotIndex"/>, once it has been found.</summary>
         internal void RemoveKey(int slotIndex) => _balls[slotIndex] = _balls[slotIndex].WithoutKey();
 
+        /// <summary>Replaces the ball in a filled slot. Shuffle's only way to change a tube.</summary>
+        internal void SetBall(int slotIndex, Ball ball)
+        {
+            if (slotIndex < 0 || slotIndex >= _count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(slotIndex), slotIndex, $"Tube holds {_count} ball(s).");
+            }
+
+            _balls[slotIndex] = ball;
+        }
+
+        /// <summary>
+        /// Overwrites this tube's balls and cover with <paramref name="source"/>'s, without allocating.
+        /// Both must be the same tube of the same level: equal capacity and clay flag.
+        /// </summary>
+        internal void CopyStateFrom(Tube source)
+        {
+            Array.Copy(source._balls, _balls, source._count);
+            _count = source._count;
+            Cover = source.Cover;
+        }
+
+        /// <summary>Empties the tube and sets its cover; the solver then refills it with <see cref="Push"/>.</summary>
+        internal void Reset(TubeCover cover)
+        {
+            _count = 0;
+            Cover = cover;
+        }
+
         public override string ToString()
         {
             var text = new StringBuilder();

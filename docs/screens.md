@@ -51,7 +51,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code. Progress a
   - Add tube: level won → Stuck → no room → no boosters.
   - Shuffle: level won → Stuck → no boosters → no valid shuffle (known only after trying, so the button stays enabled until then).
 - **Add tube:** appends an empty tube of capacity 4. Not undoable, doesn't seal undo history. No room once every row already has 8 cells ("No room for more tubes").
-- **Shuffle:** rearranges the balls of the open tubes, keeping the board solvable (rules in docs/mechanics.md). Spent only when it succeeds; clears the undo history, so Undo then shows "Nothing to undo". Not undoable.
+- **Shuffle:** rearranges the balls of the open tubes, keeping the board solvable (rules in docs/mechanics.md). Spent only when it succeeds; clears the undo history, so Undo then shows "Nothing to undo". Not undoable. The search runs off the main thread; until it is applied or refused, taps, boosters and settings are locked (flow state `Shuffling`). If it takes longer than 0.3 s (`LevelFlow._shufflingIndicatorDelay`), a "Shuffling…" label appears where the stuck banner would be, and goes when the search ends. The board is rebuilt in place (no animation until step 6).
 - **Restart** (settings) reloads the level from data: hidden balls hidden again, added tubes gone, undo history cleared. Boosters already spent stay spent.
 
 ### Stuck (no legal moves and not won)

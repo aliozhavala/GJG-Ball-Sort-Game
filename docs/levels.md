@@ -28,7 +28,7 @@ Ball arrays run **bottom → top**. This file is the schema; the rules and valid
 }
 ```
 
-Loader validates the format (below) and every completion, cover, clay, large-tube and grid rule in docs/mechanics.md. Solvability is an editor-time check.
+Loader validates the format (below) and every completion, cover, clay, large-tube and grid rule in docs/mechanics.md. Solvability is an editor-time check (Validate Levels and `ShippedLevelTests`, below); it also catches what the rules can't, e.g. two locks whose keys sit inside each other.
 
 - Required fields carry no parser attributes: a missing one arrives as `0`/`null` and the validator reports it (`formatVersion` missing, `id < 1`, `colors < 1`, `capacity < 1`, `balls` missing — use `[]` for an empty tube). Required ints for which 0 is a valid value (`veil.color`, a key's `slot` and `lock`, a lock's `id`) are nullable in the DTOs, so a missing one is reported rather than read as 0.
 - `id` is 1-based and matches the file name (`level_007.json` → `7`); an EditMode test checks every shipped file.
@@ -38,16 +38,23 @@ Loader validates the format (below) and every completion, cover, clay, large-tub
 - Split: Core owns the DTOs, `LevelValidator`, `LevelLayout` and `LevelFactory` (no serializer dependency); `LevelJsonParser` lives in its own engine-free assembly, `BallSort.LevelJson` (Core + Newtonsoft), so Game, Editor and Tests share it without depending on each other.
 
 Current files are placeholders until the generator lands: `level_001`–`level_005` are plain, `level_006` (veil),
-`level_007` (lock and key) and `level_008` (clay and a capacity-10 tube spanning 2 rows) are hand-made mechanic tests,
-each played to a win by a scripted solution in `ShippedLevelTests`. The former stuck trap is the test fixture
-`TestLevels.StuckTrap()`.
+`level_007` (lock and key) and `level_008` (clay and a capacity-10 tube spanning 2 rows) are hand-made mechanic tests.
+`ShippedLevelTests` solves every file with the solver and plays the solution to a win; the mechanic levels also keep
+a scripted solution that checks their mechanic fires. The former stuck trap is the test fixture `TestLevels.StuckTrap()`.
 
-### Solver and generator
-- **Solver** (Core): BFS / A* over board states using the **same `MoveRules` as the game** (single source of truth), with full knowledge of hidden colors but honoring hidden flags for run building.
-  - Search on clones (`BoardState.Clone`), never by undo: undo keeps reveals, opened covers and found keys, so it cannot backtrack.
-  - State to compare: every tube's balls bottom → top (colour, hidden flag, key) and its cover; capacity and clay are fixed per tube. The grid never affects legality.
-  - Canonical state hash: sort tubes that are interchangeable (same capacity, clay flag and cover) before hashing.
-  - Pruning: never move out of a completed tube; never move a single-color tube's entire content into an empty tube; never immediately reverse the previous move.
+### Solver
+`BoardSolver.Solve(board, mode, nodeLimit, cancellationToken)` in `Core/Solver/`; pure C#, safe on a worker thread (it copies the board on entry).
+- **Real rules:** moves come from `MoveRules` and are applied with the board's own `ApplyMove` cascade (reveal, completion, veils, keys, locks) on copies, never by undo (undo keeps reveals, opened covers and found keys, so it cannot backtrack). Full knowledge of hidden colours, but hidden flags still block runs.
+- **Modes:** `Optimal` = A* with an admissible, consistent heuristic (the argument is in `SolverHeuristic`: blocks above the bottom of a tube, plus surplus bottom blocks per colour); `Fast` = weighted A* (g + 3h), usually short but not guaranteed shortest. Both prove `Unsolvable` exactly when the search runs out.
+- **Result:** `Solved` / `Unsolvable` / `Unknown` (node limit hit), the moves (replayed and checked before returning), whether optimal, a proven lower bound (`≥ n` when Optimal stops at its limit), nodes expanded, largest frontier, elapsed time.
+- **Position key** (`BoardStateKey`): a packed byte encoding of every tube (capacity, clay flag, cover, balls with colour, hidden flag and key) plus the tube count. Interchangeable tubes (same capacity, clay flag, cover kind and id) are sorted first. Compared byte for byte, so a hash collision can never hide an unvisited position.
+- **Skipped moves** (each only reaches a position already seen): moves out of a completed tube; pouring a tube that is one revealed run into an equivalent empty tube (same capacity, not clay, not covered); moving the previous move's balls straight back, unless that move revealed a ball, found a key or opened a cover.
+- **Speed (Editor):** about 15–25 µs per expanded node. The current levels need under 100 nodes in Fast mode; `level_005` (10 colours, 12 tubes) takes 695 nodes / ~11 ms in Optimal mode.
+
+### Validate Levels (Editor)
+**Ball Sort ▸ Validate Levels…** runs, for every level in the `LevelDatabase`: the loader's validation, the solver in Fast mode, then in Optimal mode if Fast found a solution (each with an editable node limit). The table shows level, colours / tubes, the mechanics found in the data, solvable, optimal moves (or `≥ n`), nodes and time. Solving runs on a worker thread behind a cancelable progress bar. **Write meta.optimalMoves** writes each proven optimum into its file by editing the text (formatting and key order are kept; the edit is re-parsed and refused if anything else would change).
+
+### Generator
 - **Generator** (Editor window): parameters (colors, capacity, empty tubes, mechanics) → random fill → solve → reject unsolvable/trivial → score difficulty → export JSON.
   - Difficulty signals: optimal move count, states explored, dead-end ratio, number of empty tubes, hidden-ball count.
 - Product teammate curates the final 100 and hand-authors tutorial levels for each mechanic.

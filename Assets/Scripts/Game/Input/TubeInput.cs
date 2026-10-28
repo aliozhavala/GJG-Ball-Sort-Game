@@ -60,6 +60,7 @@ namespace BallSort.Game.Input
 
             _session.MoveUndone += OnMoveUndone;
             _session.TubeAdded += OnTubeAdded;
+            _session.Shuffled += ClearSelection;
             _session.Restarted += ClearSelection;
             _session.StuckChanged += OnStuckChanged;
             _session.LevelCompleted += ClearSelection;
@@ -178,6 +179,7 @@ namespace BallSort.Game.Input
 
             _session.MoveUndone -= OnMoveUndone;
             _session.TubeAdded -= OnTubeAdded;
+            _session.Shuffled -= ClearSelection;
             _session.Restarted -= ClearSelection;
             _session.StuckChanged -= OnStuckChanged;
             _session.LevelCompleted -= ClearSelection;

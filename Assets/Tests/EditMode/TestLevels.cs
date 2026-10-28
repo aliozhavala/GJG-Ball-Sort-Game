@@ -40,6 +40,14 @@ namespace BallSort.Tests.EditMode
         public static LevelDto StuckTrap() =>
             Level(4, T(4, 0, 1, 1, 2), T(4, 1, 2, 2, 0), T(4, 3, 3, 3, 2), T(4, 1, 0, 0, 3), T(4));
 
+        /// <summary>
+        /// Six tubes in one row. Colour 1 can never finish: three of its balls sit under a veil that
+        /// only colour 1 opens, the fourth in clay. Tube 3 → tube 2 completes colour 0, after which no
+        /// tube can start a move although two are empty.
+        /// </summary>
+        public static LevelDto StuckBehindCovers() =>
+            Level(2, T(4, 1, 1, 1).WithVeil(1), T(4, 1).AsClay(), T(4, 0, 0), T(4, 0, 0), T(4), T(4));
+
         // --- Mechanics -------------------------------------------------------------------------
 
         public static TubeDto WithVeil(this TubeDto tube, int? color)

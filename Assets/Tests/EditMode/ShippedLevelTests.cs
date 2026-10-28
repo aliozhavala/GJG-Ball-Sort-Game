@@ -5,6 +5,7 @@ using BallSort.Core.Model;
 using BallSort.Core.Player;
 using BallSort.Core.Rules;
 using BallSort.Core.Session;
+using BallSort.Core.Solver;
 using BallSort.LevelJson;
 using NUnit.Framework;
 using UnityEngine;
@@ -12,13 +13,16 @@ using UnityEngine;
 namespace BallSort.Tests.EditMode
 {
     /// <summary>
-    /// Every level file in the project must parse and pass validation. Solvability is checked by
-    /// the solver once it exists (roadmap 4b); until then the hand-made mechanic levels are played
-    /// through here with a scripted solution.
+    /// Every level file in the project must parse, pass validation and be solvable: the fast solver
+    /// must find a solution, and that solution must win when played through a session. The
+    /// hand-made mechanic levels also keep a scripted solution that checks their mechanic fires.
     /// </summary>
     [TestFixture]
     public sealed class ShippedLevelTests
     {
+        /// <summary>Generous for the fast solver, which solves current levels in well under 100 nodes.</summary>
+        private const int SolverNodeLimit = 200000;
+
         private static string LevelsFolder => Path.Combine(Application.dataPath, "Data", "Levels");
 
         private static IEnumerable<string> LevelFiles() =>
@@ -47,6 +51,22 @@ namespace BallSort.Tests.EditMode
         public void LevelFile_ParsesAndValidates(string path)
         {
             Assert.DoesNotThrow(() => LoadFile(Path.GetFileName(path)));
+        }
+
+        [TestCaseSource(nameof(LevelFiles))]
+        public void LevelFile_IsSolvable_AndTheSolutionWinsWhenPlayed(string path)
+        {
+            string fileName = Path.GetFileName(path);
+            SolverResult result = BoardSolver.Solve(LoadFile(fileName).Board, SolverMode.Fast, SolverNodeLimit);
+            Assert.That(result.Outcome, Is.EqualTo(SolverOutcome.Solved), $"{fileName}: {result}");
+
+            var moves = new (int From, int To)[result.Moves.Count];
+            for (int i = 0; i < moves.Length; i++)
+            {
+                moves[i] = (result.Moves[i].FromIndex, result.Moves[i].ToIndex);
+            }
+
+            Assert.That(Play(fileName, moves).IsWon, Is.True, $"{fileName}: the solver's moves must win");
         }
 
         [Test]

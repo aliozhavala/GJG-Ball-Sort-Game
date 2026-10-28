@@ -22,6 +22,8 @@ namespace BallSort.Game.UI
         [SerializeField] private SettingsPopup _settingsPopup;
         [SerializeField] private WinPopup _winPopup;
         [SerializeField] private Toast _toast;
+        [Tooltip("\"Shuffling…\" label above the board, shown while a slow shuffle search runs. Not a raycast target.")]
+        [SerializeField] private TMP_Text _shufflingIndicator;
         [SerializeField] private string _levelFormat = "Level {0}";
 
         /// <summary>The player chose Restart in the settings popup.</summary>
@@ -50,7 +52,11 @@ namespace BallSort.Game.UI
             _settingsPopup.HomeRequested += OnHomeRequested;
             _settingsButton.onClick.AddListener(_settingsPopup.Popup.Open);
             ShowStuck(false);
+            ShowShuffling(false);
         }
+
+        /// <summary>Shows or hides the "Shuffling…" label.</summary>
+        public void ShowShuffling(bool visible) => _shufflingIndicator.gameObject.SetActive(visible);
 
         /// <summary>Swaps the booster bar for the stuck panel, or back.</summary>
         public void ShowStuck(bool stuck)
@@ -73,7 +79,7 @@ namespace BallSort.Game.UI
         private void Awake()
         {
             if (_levelTitle == null || _settingsButton == null || _boosterBar == null || _stuckPanel == null ||
-                _settingsPopup == null || _winPopup == null || _toast == null)
+                _settingsPopup == null || _winPopup == null || _toast == null || _shufflingIndicator == null)
             {
                 Debug.LogError($"{name}: every reference must be assigned.", this);
             }

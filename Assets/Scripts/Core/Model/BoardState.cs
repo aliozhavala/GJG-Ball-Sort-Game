@@ -196,6 +196,55 @@ namespace BallSort.Core.Model
             return new BoardState(clones, _ballsPerColor, _lockTubes, _keysRemaining);
         }
 
+        /// <summary>Keys not found yet. A found key never comes back, so this only goes down.</summary>
+        internal int KeysRemaining => _keysRemaining;
+
+        /// <summary>True when some key sits in a selectable run, i.e. would be found by the next settle.</summary>
+        internal bool HasFindableKey => _keysRemaining > 0 && TryFindKey(out _, out _);
+
+        /// <summary>
+        /// Overwrites every tube's balls and cover with <paramref name="source"/>'s, without allocating
+        /// and without raising events. Both boards must come from the same level (one cloned from
+        /// the other), so their tubes match in count, capacity and clay flag.
+        /// </summary>
+        /// <remarks>
+        /// Lets the solver reuse two boards for a whole search instead of cloning per move, and lets
+        /// a shuffle found on a copy be written back into the live board.
+        /// </remarks>
+        internal void CopyStateFrom(BoardState source)
+        {
+            if (source._tubes.Count != _tubes.Count)
+            {
+                throw new ArgumentException(
+                    $"Boards differ in tube count ({source._tubes.Count} vs {_tubes.Count}).", nameof(source));
+            }
+
+            for (int i = 0; i < _tubes.Count; i++)
+            {
+                _tubes[i].CopyStateFrom(source._tubes[i]);
+            }
+
+            _keysRemaining = source._keysRemaining;
+        }
+
+        /// <summary>Recounts unfound keys after the solver has written tube contents directly.</summary>
+        internal void RecountKeys()
+        {
+            int keys = 0;
+            foreach (Tube tube in _tubes)
+            {
+                for (int slot = 0; slot < tube.Count; slot++)
+                {
+                    if (tube[slot].HasKey)
+                    {
+                        keys++;
+                    }
+                }
+            }
+
+            _keysRemaining = keys;
+        }
+
         /// <summary>
         /// Moves <paramref name="count"/> balls from one tube to another, reveals the source's new
         /// top ball, settles the covers, then announces what happened.

@@ -6,7 +6,7 @@ namespace BallSort.Core.Model
         /// <summary>The tube is uncovered and plays normally.</summary>
         None = 0,
 
-        /// <summary>Opens when any tube completes in the veil's colour.</summary>
+        /// <summary>Opens only when a tube completes in the veil's own colour; other colours leave it closed.</summary>
         Veil,
 
         /// <summary>Opens when the key for this lock is found.</summary>

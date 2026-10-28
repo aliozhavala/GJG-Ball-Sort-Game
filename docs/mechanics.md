@@ -57,7 +57,9 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 - **Which tubes:** only tubes that are **not covered** (veil or lock), **not clay** and **not completed**. Balls move only between these tubes, and each of them keeps its ball count. Every other tube is untouched.
 - **Keys stay put:** a ball that still carries a key keeps its tube and slot.
 - **Hidden balls take part:** every ball keeps its hidden flag, except that a hidden ball landing on **top** of a tube is revealed. After a shuffle every tube's top ball is revealed.
-- **Valid result:** it differs from the current arrangement, no tube is completed, no key is findable (no key in a selectable run), and the board is solvable (solver, Fast mode; a result the solver can't confirm within its node limit counts as unsolvable). Random arrangements are tried up to N times.
+- **Valid result:** it differs from the current arrangement, no tube is completed, no key is findable (no key in a selectable run), and the board is solvable (solver, Fast mode; a result the solver can't confirm within its node limit counts as unsolvable).
+- **Limits** (constants in `BoardShuffler`): up to **20** random arrangements (`MaxAttempts`), each solved within **2,000** nodes (`NodeLimit`). Basis (Editor, random solvable boards up to the full 3×6 grid): a shuffle takes 1–6 ms and a solvable candidate needed at most ~130 nodes; the worst case, every attempt failing at the limit, is ~1 s on 18 tubes. Re-measure in step 5 with generated levels.
+- **Timing:** the search runs off the main thread with input locked; "Shuffling…" appears only if it takes longer than 0.3 s (docs/screens.md).
 - **No valid shuffle found:** nothing changes, the booster isn't spent, and a toast says so.
 - **Success:** spends one Shuffle booster and **clears the undo history** (the recorded moves no longer match the board). A shuffle is not undoable.
 - Like every booster, unavailable once the level is won or while stuck.

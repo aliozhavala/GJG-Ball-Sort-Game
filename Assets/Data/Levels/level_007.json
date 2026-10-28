@@ -11,5 +11,5 @@
     { "capacity": 4, "balls": [] }
   ],
   "locks": [{ "id": 0, "tubes": [3, 4] }],
-  "meta": { "mechanics": ["lock"], "tutorial": true }
+  "meta": { "optimalMoves": 8, "mechanics": ["lock"], "tutorial": true }
 }

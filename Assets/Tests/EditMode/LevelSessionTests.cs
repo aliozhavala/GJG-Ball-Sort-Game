@@ -38,14 +38,6 @@ namespace BallSort.Tests.EditMode
         private static LevelDto OneMoveFromACompletion() =>
             Level(2, T(4, 0, 1), T(4, 1, 1, 1), T(4, 0, 0, 0));
 
-        /// <summary>
-        /// Six tubes in one row. Colour 1 can never finish: three of its balls sit under a veil that
-        /// only colour 1 opens, the fourth in clay. Tube 3 → tube 2 completes colour 0, after which no
-        /// tube can start a move although two are empty.
-        /// </summary>
-        private static LevelDto StuckBehindCovers() =>
-            Level(2, T(4, 1, 1, 1).WithVeil(1), T(4, 1).AsClay(), T(4, 0, 0), T(4, 0, 0), T(4), T(4));
-
         /// <summary>Tube 0 → tube 1 exposes the key for lock 0, which covers tubes 2 and 3.</summary>
         private static LevelDto OneMoveFromALock() =>
             Level(3, T(4, 1, 2, 0, 0).WithKey(1, 0), T(4), T(4, 2, 1, 2, 1), T(4, 0, 0, 1, 2), T(4))
@@ -413,19 +405,7 @@ namespace BallSort.Tests.EditMode
             Assert.That(reason, Is.EqualTo(AddTubeBlockReason.LevelWon));
         }
 
-        // --- Shuffle ---------------------------------------------------------------------------
-
-        [Test]
-        public void TryShuffle_IsNotAvailableYetAndSpendsNothing()
-        {
-            var boosters = new BoosterInventory(undo: 0, shuffle: 3, addTube: 0);
-            LevelSession session = Start(Valid(), boosters);
-
-            Assert.That(session.TryShuffle(out ShuffleBlockReason reason), Is.False);
-
-            Assert.That(reason, Is.EqualTo(ShuffleBlockReason.NotAvailable));
-            Assert.That(boosters.GetCount(BoosterType.Shuffle), Is.EqualTo(3));
-        }
+        // --- Shuffle (the rules themselves are in ShuffleTests) ------------------------------------
 
         [Test]
         public void TryShuffle_AfterTheWin_IsBlocked()
@@ -519,7 +499,7 @@ namespace BallSort.Tests.EditMode
 
             Assert.That(session.TryUndo(out UndoBlockReason undo), Is.False);
             Assert.That(session.TryAddTube(out AddTubeBlockReason addTube), Is.False);
-            Assert.That(session.TryShuffle(out ShuffleBlockReason shuffle), Is.False);
+            Assert.That(session.TryShuffle(new System.Random(1), out ShuffleBlockReason shuffle), Is.False);
 
             Assert.That(undo, Is.EqualTo(UndoBlockReason.Stuck));
             Assert.That(addTube, Is.EqualTo(AddTubeBlockReason.Stuck));

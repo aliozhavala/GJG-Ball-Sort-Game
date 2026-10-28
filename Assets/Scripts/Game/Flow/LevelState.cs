@@ -12,6 +12,12 @@ namespace BallSort.Game.Flow
         /// <summary>No legal move: boosters are swapped for Give up / Play on; taps still select.</summary>
         Stuck,
 
+        /// <summary>
+        /// A shuffle is being searched for off the main thread: taps and the HUD are locked so the
+        /// board it started from stays current. Returns to Playing when it is applied or refused.
+        /// </summary>
+        Shuffling,
+
         /// <summary>The level is won: input is locked while the celebration and Win panel play.</summary>
         Won,
     }

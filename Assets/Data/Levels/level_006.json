@@ -10,5 +10,5 @@
     { "capacity": 4, "balls": [2, 2, 1, 2], "veil": { "color": 0 } },
     { "capacity": 4, "balls": [] }
   ],
-  "meta": { "mechanics": ["veil"], "tutorial": true }
+  "meta": { "optimalMoves": 6, "mechanics": ["veil"], "tutorial": true }
 }

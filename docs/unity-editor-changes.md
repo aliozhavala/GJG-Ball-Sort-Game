@@ -178,3 +178,36 @@ Newest entries at the bottom.
   added tubes went to top then bottom, the scale refitted only when the widest row grew.
 - Load failure: the play-mode `AppRoot` was pointed at an in-memory database holding one broken file; the Level scene
   logged the validator error and returned to Home with the toast "Level 1 could not be loaded". Nothing was saved.
+
+## 2026-10-28 — Roadmap 4b: solver, Validate Levels, Shuffle
+
+### Assets
+- `Assets/Data/Levels/level_001.json`–`level_008.json`: `meta.optimalMoves` written by the new Validate Levels
+  writer (run through MCP, same code as the window's button): 10, 16, 13, 16, 16, 6, 8, 10. One line changed per
+  file; formatting, key order, LF endings and no BOM kept.
+- `BoosterBar._shuffleComingSoon` was replaced by `_noValidShuffle` ("Can't shuffle right now"). `Level.unity` was
+  saved from the test runner's "Scene(s) Have Been Modified" prompt: it now serializes `_noValidShuffle` (stale key
+  gone) and `LevelBootstrap._loadFailedFormat`; the layout-driven anchor noise was dropped. It still carries the
+  earlier uncommitted `_editorLevelOverride: 8`.
+
+### Verification runs (no persistent changes except the save)
+- EditMode tests via `TestRunnerApi` (`runSynchronously`): 393 passed, 0 failed.
+- Validate Levels logic (`LevelValidationRunner`) over all 8 levels; the window opened from its menu item without
+  console errors.
+- Play mode, level 8 (the scene's editor override): Shuffle pressed twice through its button — flow went
+  Playing → Shuffling → Playing within 2–3 frames, the board view rebuilt in sync with the model, undo history
+  cleared. This spent 2 Shuffle boosters from the Editor save (99 → 97).
+
+### 4b follow-up: shuffle limits and "Shuffling…" indicator
+- `BoardShuffler.NodeLimit` 20,000 → 2,000 (20 attempts kept). Worst case re-measured (every attempt failing at the
+  limit): ~0.59 s on 12 tubes, ~0.97–1.08 s on 18 tubes.
+- `Level.unity` (through MCP, saved):
+  - New `LevelCanvas/SafeArea/ShufflingIndicator` (sibling after `StuckPanel`, inactive): same rect as
+    `StuckPanel/Banner` (top stretch, y −185, height 80); TextMeshProUGUI "Shuffling…", LiberationSans SDF 50,
+    white, centred, not a raycast target.
+  - `LevelHud._shufflingIndicator` → that label. `LevelFlow._shufflingIndicatorDelay` 0.3 (script default).
+  - `LevelBootstrap._editorLevelOverride` 8 → 0.
+- Verification: EditMode 393 passed. Play mode on a temporary in-memory 18-tube worst-case level (play-mode
+  `AppRoot` only, nothing saved): "Shuffling…" appeared at 0.32 s, the search ended at 0.97 s, the label hid, the
+  toast said "Can't shuffle right now", no booster spent. A fast shuffle on the saved current level spent one booster
+  from the Editor save (now 96 Shuffle). The synthetic level's 15 colours logged a palette-size error (palette has 12).

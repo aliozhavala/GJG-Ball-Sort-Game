@@ -13,5 +13,5 @@
     { "capacity": 4, "balls": [] },
     { "capacity": 4, "balls": [] }
   ],
-  "meta": { "mechanics": [], "tutorial": false }
+  "meta": { "optimalMoves": 16, "mechanics": [], "tutorial": false }
 }

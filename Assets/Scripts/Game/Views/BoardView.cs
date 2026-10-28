@@ -15,7 +15,7 @@ namespace BallSort.Game.Views
     /// step with the session's events.
     /// </summary>
     /// <remarks>
-    /// The board is built in full only when the level loads and when it restarts; every other event
+    /// The board is built in full only when the level loads, restarts or is shuffled; every other event
     /// changes just the views it touches (balls change tubes, a ball turns face up, a cap appears,
     /// a tube is appended). Tubes and balls are pooled, so nothing is instantiated or destroyed
     /// once the pools are warm.
@@ -51,6 +51,7 @@ namespace BallSort.Game.Views
             _session.BallRevealed += OnBallRevealed;
             _session.TubeCompleted += OnTubeCompleted;
             _session.TubeAdded += OnTubeAdded;
+            _session.Shuffled += Rebuild;
             _session.Restarted += Rebuild;
             Rebuild();
         }
@@ -190,6 +191,7 @@ namespace BallSort.Game.Views
             _session.BallRevealed -= OnBallRevealed;
             _session.TubeCompleted -= OnTubeCompleted;
             _session.TubeAdded -= OnTubeAdded;
+            _session.Shuffled -= Rebuild;
             _session.Restarted -= Rebuild;
             _session = null;
         }

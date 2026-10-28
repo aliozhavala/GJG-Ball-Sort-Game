@@ -14,20 +14,21 @@ namespace BallSort.Core.Session
     /// <remarks>
     /// Wraps the live <see cref="BoardState"/>, its <see cref="CommandHistory"/> and the player's
     /// global <see cref="BoosterInventory"/>, and owns the rules that span them: booster spending,
-    /// the stuck state, added tubes and restart.
+    /// the stuck state, added tubes, shuffle and restart.
     /// <para>
     /// Restart builds a brand-new <see cref="BoardState"/>, so the session re-raises every board
     /// event as its own. Subscribers attach once, to the session, and survive restarts; they
     /// rebuild their view of the board on <see cref="Restarted"/>.
     /// </para>
     /// <para>
-    /// The stuck state is re-evaluated after every move, undo, added tube and restart. Event order
-    /// within one operation:
+    /// The stuck state is re-evaluated after every move, undo, added tube, shuffle and restart.
+    /// Event order within one operation:
     /// <list type="bullet">
     /// <item>Move or undo: <see cref="MoveApplied"/> or <see cref="MoveUndone"/>, <see cref="BallRevealed"/>,
     /// <see cref="TubeCompleted"/>, each <see cref="TubeUnveiled"/>, each <see cref="KeyFound"/> followed
     /// by its <see cref="LockOpened"/>, <see cref="LevelCompleted"/>.</item>
     /// <item>Added tube (booster or Play on): <see cref="TubeAdded"/>.</item>
+    /// <item>Shuffle: <see cref="Shuffled"/>.</item>
     /// <item>Restart: <see cref="Restarted"/>.</item>
     /// </list>
     /// Each operation then ends with <see cref="StuckChanged"/> (only if it changed) and finally
@@ -44,6 +45,9 @@ namespace BallSort.Core.Session
         private BoardState _board;
         private BoardGrid _grid;
 
+        // Bumped by every change to the board, so a shuffle searched on an older copy is refused.
+        private int _revision;
+
         /// <summary>The level being played; its <see cref="LoadedLevel.Source"/> is what restart rebuilds from.</summary>
         public LoadedLevel Level => _level;
 
@@ -59,7 +63,7 @@ namespace BallSort.Core.Session
         /// </summary>
         public BoardGrid Grid => _grid;
 
-        /// <summary>Moves made since the level started or was restarted, including sealed ones.</summary>
+        /// <summary>Moves made since the level started, was restarted or was shuffled, including sealed ones.</summary>
         public int MoveCount => _history.MoveCount;
 
         /// <summary>True when every tube is either empty or completed.</summary>
@@ -122,8 +126,9 @@ namespace BallSort.Core.Session
         }
 
         /// <summary>
-        /// Why shuffle is unavailable. Until the solver exists this is never
-        /// <see cref="Session.ShuffleBlockReason.None"/>.
+        /// Why shuffle is unavailable, or <see cref="Session.ShuffleBlockReason.None"/>. Whether a valid
+        /// arrangement exists is only known after searching, so
+        /// <see cref="Session.ShuffleBlockReason.NoValidShuffle"/> never appears here.
         /// </summary>
         public ShuffleBlockReason ShuffleBlockReason
         {
@@ -139,9 +144,9 @@ namespace BallSort.Core.Session
                     return ShuffleBlockReason.Stuck;
                 }
 
-                // Checked before the booster count: "coming soon" is the honest answer even to a
-                // player who has run out.
-                return ShuffleBlockReason.NotAvailable;
+                return _boosters.GetCount(BoosterType.Shuffle) > 0
+                    ? ShuffleBlockReason.None
+                    : ShuffleBlockReason.NoBoostersLeft;
             }
         }
 
@@ -206,12 +211,18 @@ namespace BallSort.Core.Session
         /// </summary>
         public event Action<TubeAddedEventArgs> TubeAdded;
 
+        /// <summary>
+        /// The balls of the open tubes have been rearranged and the undo history cleared. Tubes,
+        /// covers and indices are unchanged; views refresh the balls from <see cref="Board"/>.
+        /// </summary>
+        public event Action Shuffled;
+
         /// <summary>Raised when <see cref="IsStuck"/> changes, with its new value.</summary>
         public event Action<bool> StuckChanged;
 
         /// <summary>
-        /// Raised once after every successful move, undo, added tube (booster or Play on) and
-        /// restart, when all of the session's state is final.
+        /// Raised once after every successful move, undo, added tube (booster or Play on), shuffle
+        /// and restart, when all of the session's state is final.
         /// </summary>
         /// <remarks>
         /// Board events fire mid-operation: during <see cref="MoveApplied"/> the history has not
@@ -269,6 +280,7 @@ namespace BallSort.Core.Session
                 return false;
             }
 
+            _revision++;
             RefreshStuck();
             Changed?.Invoke();
             return true;
@@ -289,6 +301,7 @@ namespace BallSort.Core.Session
 
             _history.TryUndo();
             _boosters.TrySpend(BoosterType.Undo);
+            _revision++;
             RefreshStuck();
             Changed?.Invoke();
             return true;
@@ -343,15 +356,85 @@ namespace BallSort.Core.Session
         }
 
         /// <summary>
-        /// Shuffles the board and spends one Shuffle booster. Not implemented until the solver
-        /// exists, so this always refuses — see <see cref="ShuffleBlockReason"/>.
+        /// Shuffles the open tubes and spends one Shuffle booster, searching on the calling thread.
         /// </summary>
-        /// <param name="reason">Why the shuffle was refused.</param>
-        /// <returns>Always false for now.</returns>
-        public bool TryShuffle(out ShuffleBlockReason reason)
+        /// <remarks>
+        /// The search can take a while (up to 20 solver runs), so the game uses
+        /// <see cref="TryBeginShuffle"/>, <see cref="PendingShuffle.Search"/> on a worker thread and
+        /// <see cref="TryApplyShuffle"/> instead; this is the same in one blocking call.
+        /// </remarks>
+        /// <param name="random">Source of the arrangements.</param>
+        /// <param name="reason">Why nothing was shuffled, when this returns false.</param>
+        /// <returns>True when the board has been shuffled.</returns>
+        public bool TryShuffle(Random random, out ShuffleBlockReason reason)
+        {
+            if (!TryBeginShuffle(out PendingShuffle shuffle, out reason))
+            {
+                return false;
+            }
+
+            shuffle.Search(random);
+            return TryApplyShuffle(shuffle, out reason);
+        }
+
+        /// <summary>
+        /// Starts a shuffle, if <see cref="ShuffleBlockReason"/> allows: takes a private copy of the
+        /// board for <see cref="PendingShuffle.Search"/>. Nothing is spent yet. Main thread only.
+        /// </summary>
+        /// <param name="shuffle">The shuffle to search, when this returns true.</param>
+        /// <param name="reason">Why no shuffle can start, when this returns false.</param>
+        public bool TryBeginShuffle(out PendingShuffle shuffle, out ShuffleBlockReason reason)
         {
             reason = ShuffleBlockReason;
-            return false;
+            shuffle = reason == ShuffleBlockReason.None ? new PendingShuffle(this, _board.Clone(), _revision) : null;
+            return shuffle != null;
+        }
+
+        /// <summary>
+        /// Applies a searched shuffle: writes its arrangement into the board, clears the undo history
+        /// and spends one Shuffle booster. Main thread only.
+        /// </summary>
+        /// <remarks>
+        /// Refused, with nothing changed or spent, when the board changed since
+        /// <see cref="TryBeginShuffle"/> (<see cref="Session.ShuffleBlockReason.BoardChanged"/>), when
+        /// shuffling is no longer allowed, or when the search found nothing
+        /// (<see cref="Session.ShuffleBlockReason.NoValidShuffle"/>). A shuffle cannot be undone.
+        /// </remarks>
+        /// <param name="shuffle">A shuffle begun on this session and searched.</param>
+        /// <param name="reason">Why the shuffle was not applied, when this returns false.</param>
+        /// <exception cref="ArgumentException">If <paramref name="shuffle"/> was begun on another session.</exception>
+        public bool TryApplyShuffle(PendingShuffle shuffle, out ShuffleBlockReason reason)
+        {
+            if (shuffle == null)
+            {
+                throw new ArgumentNullException(nameof(shuffle));
+            }
+
+            if (shuffle.Session != this)
+            {
+                throw new ArgumentException("The shuffle was begun on another session.", nameof(shuffle));
+            }
+
+            reason = shuffle.Revision != _revision ? ShuffleBlockReason.BoardChanged : ShuffleBlockReason;
+            if (reason == ShuffleBlockReason.None && !shuffle.IsFound)
+            {
+                reason = ShuffleBlockReason.NoValidShuffle;
+            }
+
+            if (reason != ShuffleBlockReason.None)
+            {
+                return false;
+            }
+
+            _board.CopyStateFrom(shuffle.Result);
+            _history.Clear();
+            _boosters.TrySpend(BoosterType.Shuffle);
+            _revision++;
+
+            Shuffled?.Invoke();
+            RefreshStuck();
+            Changed?.Invoke();
+            return true;
         }
 
         /// <summary>
@@ -364,6 +447,7 @@ namespace BallSort.Core.Session
             _board = LevelFactory.CreateBoard(_level.Source);
             _grid = LevelFactory.CreateGrid(_level.Source);
             _history.Clear();
+            _revision++;
             Subscribe(_board);
 
             Restarted?.Invoke();
@@ -376,6 +460,7 @@ namespace BallSort.Core.Session
         {
             _grid.TryAddTube(out int row, out int cell);
             int tubeIndex = _board.AddTube(_addedTubeCapacity);
+            _revision++;
             TubeAdded?.Invoke(new TubeAddedEventArgs(tubeIndex, _addedTubeCapacity, row, cell));
             RefreshStuck();
             Changed?.Invoke();

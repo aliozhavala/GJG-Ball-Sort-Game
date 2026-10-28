@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using BallSort.Core.Player;
 using BallSort.Core.Session;
 using BallSort.Game.Input;
@@ -11,7 +13,8 @@ namespace BallSort.Game.Flow
 {
     /// <summary>
     /// Runs one visit to the Level scene: wires the session to the board, input, HUD and feedback,
-    /// and moves through <see cref="LevelState"/>: Loading → Playing ⇄ Stuck → Won.
+    /// and moves through <see cref="LevelState"/>: Loading → Playing ⇄ Stuck → Won, with a short
+    /// Playing → Shuffling → Playing detour while a shuffle is searched for.
     /// </summary>
     /// <remarks>
     /// The session owns the rules; this class only reacts to its events and to the HUD's buttons.
@@ -24,6 +27,12 @@ namespace BallSort.Game.Flow
         [SerializeField] private TubeInput _input;
         [SerializeField] private LevelHud _hud;
         [SerializeField] private LevelFeedback _feedback;
+
+        [Tooltip("Seconds a shuffle search may run before \"Shuffling…\" appears. Most finish in a few milliseconds.")]
+        [SerializeField, Min(0f)] private float _shufflingIndicatorDelay = 0.3f;
+
+        // Used only by the shuffle search, one search at a time.
+        private readonly System.Random _shuffleRandom = new System.Random();
 
         private LevelSession _session;
         private PlayerData _player;
@@ -154,11 +163,55 @@ namespace BallSort.Game.Flow
             }
         }
 
-        private void OnShuffleClicked()
+        // The search runs the solver up to 20 times, too slow for one frame on a phone, so it runs on
+        // a worker thread against the session's private copy while input is locked.
+        private async void OnShuffleClicked()
         {
-            if (!_session.TryShuffle(out var reason))
+            if (!_session.TryBeginShuffle(out PendingShuffle shuffle, out ShuffleBlockReason reason))
             {
                 ShowRefusal(_hud.Boosters.Describe(reason));
+                return;
+            }
+
+            CancellationToken cancellation = destroyCancellationToken;
+            Enter(LevelState.Shuffling);
+            Task<bool> search = Task.Run(() => shuffle.Search(_shuffleRandom, cancellation), cancellation);
+            try
+            {
+                // Only a search slow enough to notice earns the label; a quick one would just flicker.
+                var delay = TimeSpan.FromSeconds(_shufflingIndicatorDelay);
+                if (await Task.WhenAny(search, Task.Delay(delay, cancellation)) != search &&
+                    !cancellation.IsCancellationRequested)
+                {
+                    _hud.ShowShuffling(true);
+                }
+
+                await search;
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception e)
+            {
+                // Logged, then refused below as "no valid shuffle": the player keeps playing.
+                Debug.LogException(e, this);
+            }
+
+            if (cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+
+            _hud.ShowShuffling(false);
+            if (!_session.TryApplyShuffle(shuffle, out reason))
+            {
+                ShowRefusal(_hud.Boosters.Describe(reason));
+            }
+
+            if (State == LevelState.Shuffling)
+            {
+                Enter(_session.IsStuck ? LevelState.Stuck : LevelState.Playing);
             }
         }
 

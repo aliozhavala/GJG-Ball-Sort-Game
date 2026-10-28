@@ -24,8 +24,8 @@ namespace BallSort.Game.UI
         [SerializeField] private string _noUndosLeft = "No undos left";
         [SerializeField] private string _noAddTubesLeft = "No add-tube boosters left";
         [SerializeField] private string _noRoomForTubes = "No room for more tubes";
-        [SerializeField] private string _shuffleComingSoon = "Coming soon";
         [SerializeField] private string _noShufflesLeft = "No shuffles left";
+        [SerializeField] private string _noValidShuffle = "Can't shuffle right now";
 
         public event Action UndoClicked;
         public event Action ShuffleClicked;
@@ -65,9 +65,9 @@ namespace BallSort.Game.UI
         public string Describe(ShuffleBlockReason reason) =>
             reason switch
             {
-                ShuffleBlockReason.NotAvailable => _shuffleComingSoon,
                 ShuffleBlockReason.NoBoostersLeft => _noShufflesLeft,
-                _ => null,
+                ShuffleBlockReason.NoValidShuffle => _noValidShuffle,
+                _ => null,   // Won, Stuck, or the board changed mid-search: nothing for the player to act on.
             };
 
         private void OnUndoClicked() => UndoClicked?.Invoke();
