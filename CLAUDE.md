@@ -49,7 +49,7 @@ Mechanics, completion and board layout rules: read docs/mechanics.md when workin
 ## Architecture
 Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (tools)**.
 
-- **Core** (`BallSort.Core`, asmdef with `noEngineReferences: true`): plain C#, no `UnityEngine`. Board state, rules, commands, solver, level DTOs, `LevelSession`, `BoosterInventory`, `Wallet`, `PlayerData` and its save shape `SaveData`. Must be usable from tests, editor tools, and background threads.
+- **Core** (`BallSort.Core`, asmdef with `noEngineReferences: true`): plain C#, no `UnityEngine`. Board state, rules, commands, solver, level DTOs, `LevelSession`, `BoosterInventory`, `Wallet`, `PlayerData` (progress and attempts, `Lives`, name, tutorials seen, settings; time through `IClock`) and its save shape `SaveData`. Must be usable from tests, editor tools, and background threads.
   - **`LevelSession`** is the single gameplay entry point: `TryMove`, `TryUndo`, `TryAddTube`, `TryShuffle` (or `TryBeginShuffle`/`TryApplyShuffle` around an off-thread search), `Restart`, `IsStuck`, booster spending, and events. It wraps `BoardState` + `CommandHistory` + `BoosterInventory`. **UI and input talk only to `LevelSession`**, never to the board or history directly.
   - Completion is a board query (`BoardState.IsCompleted`): it needs the level's colour totals, counted once per board and shared by its clones. The grid (`BoardGrid`) lives on the session, not the board; it never affects move legality.
 - **Game** (`BallSort.Game`): MonoBehaviours — views, input, layout, game flow, UI, audio, haptics, services (save, level loading). Depends on Core.

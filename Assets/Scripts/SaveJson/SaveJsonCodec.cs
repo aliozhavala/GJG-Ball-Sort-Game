@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using BallSort.Core.Levels;
 using BallSort.Core.Player;
@@ -19,6 +20,9 @@ namespace BallSort.SaveJson
     /// </remarks>
     public static class SaveJsonCodec
     {
+        // Version 2's name for the tries started at the current level; version 3 counts retries instead.
+        private const string Version2TryCount = "LevelTry";
+
         private static readonly JsonSerializerSettings ReadSettings = new JsonSerializerSettings
         {
             ContractResolver = new RequireEveryPropertyResolver(),
@@ -73,6 +77,12 @@ namespace BallSort.SaveJson
                 if (version == 1)
                 {
                     MigrateFromVersion1(root);
+                    version = 2;
+                }
+
+                if (version == 2)
+                {
+                    MigrateFromVersion2(root);
                 }
 
                 save = root.ToObject<SaveData>(JsonSerializer.Create(ReadSettings));
@@ -83,28 +93,58 @@ namespace BallSort.SaveJson
                 return SaveData.CreateDefault(rules);
             }
 
-            return Sanitize(save, Math.Max(1, levelCount));
+            return Sanitize(save, rules, Math.Max(1, levelCount));
         }
 
         /// <summary>Version 2 added the tries at the current level (level variants); a version 1 save starts with none.</summary>
         private static void MigrateFromVersion1(JObject save)
         {
-            save[nameof(SaveData.LevelTry)] = 0;
+            save[Version2TryCount] = 0;
             save[nameof(SaveData.LastVariant)] = 0;
             save[nameof(SaveData.Version)] = 2;
         }
 
+        /// <summary>
+        /// Version 3 added lives that refill, the level-in-progress mark, the player name and the tutorials
+        /// seen, and replaced the tries started by the retries counted. The variants already played keep
+        /// their order: version 2 counted a try on entering, so its count is the retries a version 3 save
+        /// would hold after the same attempts. The life timer is left empty, so it starts at load if lives
+        /// are below the maximum.
+        /// </summary>
+        private static void MigrateFromVersion2(JObject save)
+        {
+            if (save.TryGetValue(Version2TryCount, out JToken tries))
+            {
+                save[nameof(SaveData.RetryCount)] = tries;
+                save.Remove(Version2TryCount);
+            }
+
+            save[nameof(SaveData.LifeTimerStartUnixMs)] = 0;
+            save[nameof(SaveData.LevelInProgress)] = 0;
+            save[nameof(SaveData.PlayerName)] = PlayerNameRules.Default;
+            save[nameof(SaveData.TutorialsSeen)] = new JArray();
+            save[nameof(SaveData.Version)] = 3;
+        }
+
         /// <summary>Clamps values a hand-edited or stale save could have pushed out of range.</summary>
-        private static SaveData Sanitize(SaveData save, int levelCount)
+        private static SaveData Sanitize(SaveData save, PlayerRules rules, int levelCount)
         {
             save.CurrentLevel = Math.Clamp(save.CurrentLevel, 1, levelCount);
             save.Coins = Math.Max(0, save.Coins);
-            save.Lives = Math.Max(0, save.Lives);
+            save.Lives = Math.Clamp(save.Lives, 0, rules.MaxLives);
+            save.LifeTimerStartUnixMs = Math.Max(0, save.LifeTimerStartUnixMs);
             save.UndoBoosters = Math.Max(0, save.UndoBoosters);
             save.ShuffleBoosters = Math.Max(0, save.ShuffleBoosters);
             save.AddTubeBoosters = Math.Max(0, save.AddTubeBoosters);
-            save.LevelTry = Math.Max(0, save.LevelTry);
+            save.RetryCount = Math.Max(0, save.RetryCount);
             save.LastVariant = Math.Clamp(save.LastVariant, 0, VariantSelector.VariantCount);
+            if (save.LevelInProgress < 0 || save.LevelInProgress > levelCount)
+            {
+                save.LevelInProgress = 0;
+            }
+
+            save.PlayerName = PlayerNameRules.Validate(save.PlayerName) ?? PlayerNameRules.Default;
+            save.TutorialsSeen = save.TutorialsSeen.Where(id => id > 0).Distinct().OrderBy(id => id).ToArray();
             return save;
         }
 

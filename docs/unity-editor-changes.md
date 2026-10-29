@@ -369,3 +369,13 @@ so the GUIDs are kept. No scene, prefab or config asset changed.
   (the same 1100 unchanged, plus 14 codec tests), 0 failed. Console clean.
 - The Editor's stored save, read through the new `SaveService` and written back in memory (not saved), gave the same
   JSON string.
+
+## 2026-10-29 — Lives, tutorials and Home tabs, stage 2: Core rules and save version 3
+
+No scene, prefab or asset changed. `EconomyConfig.asset` still stores `_startLives: 5`; the script reads it as
+`_maxLives` (`FormerlySerializedAs`) and `_lifeRefillMinutes` takes its default of 30 until the asset is next saved.
+
+### Verification runs (no persistent changes)
+- EditMode tests via `TestRunnerApi` (`runSynchronously`, scene clean): 1189 passed, 0 failed. Console clean.
+- The Editor's stored save (version 2) read through the version 3 code without a warning: level 1, 100 coins, 5/5
+  lives, retries 0, name `Player`, no tutorials seen. The stored string was not rewritten (the next Play migrates it).

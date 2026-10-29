@@ -20,26 +20,30 @@ namespace BallSort.Game.Services
 
         private readonly EconomyConfig _economy;
         private readonly int _levelCount;
+        private readonly IClock _clock;
 
-        /// <param name="economy">Supplies a new player's starting values.</param>
+        /// <param name="economy">Supplies a new player's starting values and the lives rules.</param>
         /// <param name="levelCount">Levels in the game; a saved level number is clamped into range.</param>
-        public SaveService(EconomyConfig economy, int levelCount)
+        /// <param name="clock">The current time, for the lives refill.</param>
+        public SaveService(EconomyConfig economy, int levelCount, IClock clock)
         {
             _economy = economy != null ? economy : throw new ArgumentNullException(nameof(economy));
             _levelCount = Math.Max(1, levelCount);
+            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         }
 
         /// <summary>Loads the saved player, or a new player when there is no usable save.</summary>
         public PlayerData Load()
         {
+            PlayerRules rules = _economy.CreatePlayerRules();
             string json = PlayerPrefs.GetString(PrefsKey, string.Empty);
-            SaveData save = SaveJsonCodec.Read(json, _economy.CreatePlayerRules(), _levelCount, out string warning);
+            SaveData save = SaveJsonCodec.Read(json, rules, _levelCount, out string warning);
             if (warning != null)
             {
                 Debug.LogWarning(warning);
             }
 
-            return new PlayerData(save, _levelCount);
+            return new PlayerData(save, _levelCount, rules, _clock);
         }
 
         /// <summary>Writes <paramref name="player"/> and flushes PlayerPrefs to disk.</summary>

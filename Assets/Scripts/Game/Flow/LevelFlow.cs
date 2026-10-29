@@ -22,9 +22,11 @@ namespace BallSort.Game.Flow
     /// On a win, progress and reward are saved first, then the celebration plays and the Win panel
     /// opens — so leaving the app mid-celebration loses nothing.
     /// <para>
-    /// Entering the level and Restart each start a try, which picks the variant to play (docs/levels.md,
-    /// Variants and tries); Play on continues the try. An editor test visit plays its chosen variant on
-    /// every try and saves nothing: no try, no reward, no progress.
+    /// Entering the level begins an attempt, which picks the variant to play; Restart, settings → Home
+    /// and Give up end it, each spending a life and counting a retry, so the next attempt plays the next
+    /// variant (docs/levels.md, Variants and retries). Play on continues the attempt; a win spends
+    /// nothing. An editor test visit plays its chosen variant on every attempt and saves nothing: no
+    /// life, no retry, no reward, no progress.
     /// </para>
     /// </remarks>
     public sealed class LevelFlow : MonoBehaviour
@@ -48,6 +50,9 @@ namespace BallSort.Game.Flow
         private EconomyConfig _economy;
         private SceneLoader _sceneLoader;
         private LevelVisit _visit;
+
+        // Set once the player leaves for Home, so a second tap cannot spend a second life.
+        private bool _isLeaving;
 
         public LevelState State { get; private set; } = LevelState.Loading;
 
@@ -77,8 +82,8 @@ namespace BallSort.Game.Flow
             _sceneLoader = sceneLoader ?? throw new ArgumentNullException(nameof(sceneLoader));
             _visit = visit;
 
-            // Entering the level starts a try, like Restart does.
-            LevelSession session = new LevelSession(level, StartTry(), player.Boosters, economy.AddedTubeCapacity);
+            int variant = _visit.IsEditorTest ? _visit.Variant : player.BeginAttempt(_variantRandom);
+            LevelSession session = new LevelSession(level, variant, player.Boosters, economy.AddedTubeCapacity);
             _session = session;
 
             _boardView.Initialize(session);
@@ -98,11 +103,11 @@ namespace BallSort.Game.Flow
             _hud.Boosters.UndoClicked += OnUndoClicked;
             _hud.Boosters.ShuffleClicked += OnShuffleClicked;
             _hud.Boosters.AddTubeClicked += OnAddTubeClicked;
-            _hud.Stuck.GiveUpClicked += LeaveToHome;
+            _hud.Stuck.GiveUpClicked += LeaveBeforeWin;
             _hud.Stuck.PlayOnClicked += OnPlayOnClicked;
             _hud.Win.ContinueClicked += LeaveToHome;
             _hud.RestartRequested += OnRestartRequested;
-            _hud.HomeRequested += LeaveToHome;
+            _hud.HomeRequested += LeaveBeforeWin;
 
             // The validator rejects levels with no move at start, but a stuck start stays playable.
             Enter(_session.IsStuck ? LevelState.Stuck : LevelState.Playing);
@@ -259,18 +264,46 @@ namespace BallSort.Game.Flow
 
         private void OnRestartRequested()
         {
-            if (State == LevelState.Playing || State == LevelState.Stuck)
+            if (State != LevelState.Playing && State != LevelState.Stuck)
             {
-                _session.Restart(StartTry());
+                return;
+            }
+
+            if (_visit.IsEditorTest)
+            {
+                _session.Restart(_visit.Variant);
+            }
+            else if (_player.TryRestartAttempt(_variantRandom, out int variant))
+            {
+                _session.Restart(variant);
             }
         }
 
-        /// <summary>Starts a try and returns its variant: by the try rules, or the test visit's own variant.</summary>
-        private int StartTry() => _visit.IsEditorTest ? _visit.Variant : _player.StartTry(_variantRandom);
+        /// <summary>Give up and settings → Home: the attempt ends without a win, which costs a life.</summary>
+        private void LeaveBeforeWin()
+        {
+            if (_isLeaving)
+            {
+                return;
+            }
 
-        /// <summary>Give up, settings → Home, and Continue after a win: all leave without further progress.</summary>
+            if (!_visit.IsEditorTest)
+            {
+                _player.LeaveAttempt();
+            }
+
+            LeaveToHome();
+        }
+
+        /// <summary>Leaves for Home without further progress; after a win (Continue) it costs nothing.</summary>
         private void LeaveToHome()
         {
+            if (_isLeaving)
+            {
+                return;
+            }
+
+            _isLeaving = true;
             _input.IsAcceptingTaps = false;
             _hud.SetLocked(true);
             _sceneLoader.LoadHome();
@@ -310,11 +343,11 @@ namespace BallSort.Game.Flow
                 _hud.Boosters.UndoClicked -= OnUndoClicked;
                 _hud.Boosters.ShuffleClicked -= OnShuffleClicked;
                 _hud.Boosters.AddTubeClicked -= OnAddTubeClicked;
-                _hud.Stuck.GiveUpClicked -= LeaveToHome;
+                _hud.Stuck.GiveUpClicked -= LeaveBeforeWin;
                 _hud.Stuck.PlayOnClicked -= OnPlayOnClicked;
                 _hud.Win.ContinueClicked -= LeaveToHome;
                 _hud.RestartRequested -= OnRestartRequested;
-                _hud.HomeRequested -= LeaveToHome;
+                _hud.HomeRequested -= LeaveBeforeWin;
             }
         }
 

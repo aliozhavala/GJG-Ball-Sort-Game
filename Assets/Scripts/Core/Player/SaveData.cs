@@ -12,23 +12,36 @@ namespace BallSort.Core.Player
     public sealed class SaveData
     {
         /// <summary>The save format this build writes. Older versions are migrated on load.</summary>
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         public int Version { get; set; }
         public int CurrentLevel { get; set; }
         public bool AllLevelsComplete { get; set; }
         public int Coins { get; set; }
         public int Lives { get; set; }
+
+        /// <summary>When the current wait for a life began, in Unix milliseconds (UTC); 0 for none (full).</summary>
+        public long LifeTimerStartUnixMs { get; set; }
+
         public int UndoBoosters { get; set; }
         public int ShuffleBoosters { get; set; }
         public int AddTubeBoosters { get; set; }
-        public int LevelTry { get; set; }
+        public int RetryCount { get; set; }
         public int LastVariant { get; set; }
+
+        /// <summary>The level whose attempt has started and not ended; 0 for none.</summary>
+        public int LevelInProgress { get; set; }
+
+        public string PlayerName { get; set; }
+
+        /// <summary>Ids of the levels whose tutorial popup has been dismissed, ascending.</summary>
+        public int[] TutorialsSeen { get; set; }
+
         public bool SoundOn { get; set; }
         public bool MusicOn { get; set; }
         public bool HapticsOn { get; set; }
 
-        /// <summary>A brand-new player's save.</summary>
+        /// <summary>A brand-new player's save: full lives, nothing in progress, no tutorial seen.</summary>
         public static SaveData CreateDefault(PlayerRules rules) =>
             new SaveData
             {
@@ -36,12 +49,16 @@ namespace BallSort.Core.Player
                 CurrentLevel = 1,
                 AllLevelsComplete = false,
                 Coins = rules.StartCoins,
-                Lives = rules.StartLives,
+                Lives = rules.MaxLives,
+                LifeTimerStartUnixMs = 0,
                 UndoBoosters = rules.StartUndo,
                 ShuffleBoosters = rules.StartShuffle,
                 AddTubeBoosters = rules.StartAddTube,
-                LevelTry = 0,
+                RetryCount = 0,
                 LastVariant = 0,
+                LevelInProgress = 0,
+                PlayerName = PlayerNameRules.Default,
+                TutorialsSeen = new int[0],
                 SoundOn = true,
                 MusicOn = true,
                 HapticsOn = true,

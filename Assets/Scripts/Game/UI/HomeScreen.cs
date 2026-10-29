@@ -53,7 +53,7 @@ namespace BallSort.Game.UI
             _player.Wallet.Changed += ShowCoins;
             _player.LivesChanged += ShowLives;
             ShowCoins(_player.Wallet.Coins);
-            ShowLives(_player.Lives);
+            ShowLives(_player.LifeCount);
 
             // An all-complete player replays the last level, which CurrentLevel already points at.
             _levelLabel.text = _player.AllLevelsComplete

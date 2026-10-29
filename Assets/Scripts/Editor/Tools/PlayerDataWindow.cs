@@ -80,7 +80,7 @@ namespace BallSort.Editor.Tools
             }
 
             _coins = player.Wallet.Coins;
-            _lives = player.Lives;
+            _lives = player.LifeCount;
             _undo = player.Boosters.GetCount(BoosterType.Undo);
             _shuffle = player.Boosters.GetCount(BoosterType.Shuffle);
             _addTube = player.Boosters.GetCount(BoosterType.AddTube);
@@ -123,7 +123,7 @@ namespace BallSort.Editor.Tools
                 return null;
             }
 
-            offlineSave = new SaveService(prefab.Economy, prefab.Levels.Count);
+            offlineSave = new SaveService(prefab.Economy, prefab.Levels.Count, new SystemClock());
             return offlineSave.Load();
         }
 

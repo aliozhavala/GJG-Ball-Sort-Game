@@ -15,10 +15,16 @@ namespace BallSort.Game.Services
     {
         [Header("New player")]
         [SerializeField, Min(0)] private int _startCoins = 1000;
-        [SerializeField, Min(0)] private int _startLives = 5;
         [SerializeField, Min(0)] private int _startUndo = 99;
         [SerializeField, Min(0)] private int _startShuffle = 99;
         [SerializeField, Min(0)] private int _startAddTube = 99;
+
+        [Header("Lives")]
+        [Tooltip("Most lives a player can hold. A new player starts full.")]
+        [FormerlySerializedAs("_startLives")]
+        [SerializeField, Min(1)] private int _maxLives = 5;
+        [Tooltip("Minutes for one life to come back while below the maximum.")]
+        [SerializeField, Min(0.1f)] private float _lifeRefillMinutes = 30f;
 
         [Header("Rewards and prices")]
         [Tooltip("Coins granted for winning a regular level.")]
@@ -36,16 +42,17 @@ namespace BallSort.Game.Services
         [SerializeField, Min(1)] private int _addedTubeCapacity = 4;
 
         public int StartCoins => _startCoins;
-        public int StartLives => _startLives;
+        public int MaxLives => _maxLives;
+        public TimeSpan LifeRefillInterval => TimeSpan.FromMinutes(_lifeRefillMinutes);
         public int StartUndo => _startUndo;
         public int StartShuffle => _startShuffle;
         public int StartAddTube => _startAddTube;
         public int PlayOnCost => _playOnCost;
         public int AddedTubeCapacity => _addedTubeCapacity;
 
-        /// <summary>A new player's starting values, for the save.</summary>
+        /// <summary>A new player's starting values and the lives rules, for the player data.</summary>
         public PlayerRules CreatePlayerRules() =>
-            new PlayerRules(_startCoins, _startLives, _startUndo, _startShuffle, _startAddTube);
+            new PlayerRules(_startCoins, _maxLives, LifeRefillInterval, _startUndo, _startShuffle, _startAddTube);
 
         /// <summary>Coins granted for winning a level of <paramref name="tier"/>.</summary>
         public int GetWinReward(LevelTier tier) =>

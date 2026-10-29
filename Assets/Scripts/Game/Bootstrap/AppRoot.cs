@@ -81,9 +81,13 @@ namespace BallSort.Game.Bootstrap
             DontDestroyOnLoad(gameObject);
             Application.targetFrameRate = 60;
 
-            _saveService = new SaveService(_economy, _levelDatabase.Count);
+            _saveService = new SaveService(_economy, _levelDatabase.Count, new SystemClock());
             PlayerData = _saveService.Load();
             PlayerData.Changed += Save;
+
+            // A level still marked in progress was cut off by closing the app: settle it (a life and a
+            // retry) before any scene reads the player.
+            PlayerData.ResolveInterruptedAttempt();
             SceneLoader = new SceneLoader();
         }
 
