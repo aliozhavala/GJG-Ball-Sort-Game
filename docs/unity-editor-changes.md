@@ -379,3 +379,47 @@ No scene, prefab or asset changed. `EconomyConfig.asset` still stores `_startLiv
 - EditMode tests via `TestRunnerApi` (`runSynchronously`, scene clean): 1189 passed, 0 failed. Console clean.
 - The Editor's stored save (version 2) read through the version 3 code without a warning: level 1, 100 coins, 5/5
   lives, retries 0, name `Player`, no tutorials seen. The stored string was not rewritten (the next Play migrates it).
+
+## 2026-10-29 — Lives, tutorials and Home tabs, stage 3: Level scene
+
+All changes made through Unity MCP Editor commands; Unity generated every new `.meta` file.
+
+### Placeholder sprites (generated, imported as Sprite, single, 100 PPU, no mipmaps, alpha is transparency)
+- New folder `Assets/Art/Sprites/Placeholder/UI/` with `Heart.png` (128×128, white fill and dark outline, so a tint
+  colours only the fill).
+- New folder `Assets/Art/Sprites/Placeholder/Mascots/` with `Episode1_Mascot.png` … `Episode5_Mascot.png` (160×200: a
+  scientist with goggles and a lab coat in a gold frame, on the episode's Home background hue).
+
+### Config assets
+- `Assets/Data/Config/TutorialConfig.asset` (new, `TutorialConfig`): entries for levels 1, 7, 20, 30, 55 and 80 with
+  placeholder text on the mechanic each introduces (basic sorting, hidden balls, clay + large tube, veil, normal-size
+  clay, lock and key); no images.
+- `Assets/Data/Config/EpisodeConfig.asset`: `_mascotFrame` of episodes 1–5 = `Episode1_Mascot` … `Episode5_Mascot`.
+
+### Prefabs (new, in `Assets/Prefabs/UI/`, built from copies of `WinPopup.prefab`; root inactive)
+- `AreYouSurePopup.prefab`: `Popup` + `AreYouSurePopup`; Panel: Title "Are you sure?", LifeCost "You will lose a
+  life.", ConfirmButton (red, "Confirm"), CloseButton (copied from `SettingsPopup.prefab`, wired as the popup's close).
+- `MoreLivesPopup.prefab`: `Popup` + `MoreLivesPopup`; Panel: Title "More lives", Heart (`Heart.png` tinted #E53935,
+  220 high) with the Count label on it, Timer "Next life in 30:00", CloseButton.
+- `TutorialPopup.prefab`: `Popup` + `TutorialPopup` + a `Button` on the root (no transition) as the tap-anywhere
+  dismiss area; Panel: Picture (inactive, 360 high, preserve aspect), Text, Hint "Tap anywhere to continue".
+
+### Scene `Assets/Scenes/Level.unity`
+- `LevelCanvas`: instances of `AreYouSurePopup`, `MoreLivesPopup` and `TutorialPopup` (inactive) between `WinPopup`
+  and `Toast`, so they draw over the settings popup and under the toast.
+- `LevelCanvas/SafeArea/TopBar/MascotFrame` (new `Image`, anchored top right at -40, 136×170, preserve aspect, not a
+  raycast target; sprite `Episode1_Mascot`, replaced at runtime by the level's episode).
+- `LevelHud`: `_mascotFrame`, `_areYouSurePopup`, `_moreLivesPopup`, `_tutorialPopup` assigned.
+- `LevelBootstrap`: `_tutorials` = `TutorialConfig.asset`.
+
+### Verification runs
+- EditMode tests via `TestRunnerApi` (`runSynchronously`, scene clean): 1189 passed, 0 failed. Console clean.
+- Play mode on the Editor save (backed up first and restored afterwards), driving the real buttons: level 1 opened
+  with its tutorial popup and the episode 1 mascot (the version 2 save migrated); dismissing saved it as seen;
+  Restart → Are You Sure → Close kept the settings popup open and spent nothing; Restart → Confirm spent a life,
+  counted a retry and played V2; at 0 lives Restart opened More Lives ("0", "Next life in 30:00") over the settings
+  popup; Home at 0 lives hid the life line, kept 0 lives and counted the retry (Confirm tapped twice counted once).
+  Level 20 won with the solver handed Home "episode 2 unlocked". Stopping Play mode on level 21 and starting again
+  charged the interrupted attempt (4 lives, 1 retry, V2).
+- Setting `Time.timeScale` during that run made Unity rewrite `ProjectSettings/TimeManager.asset` in its newer format
+  (same values); the file was restored from git.

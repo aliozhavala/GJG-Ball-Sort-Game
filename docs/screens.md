@@ -137,7 +137,8 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - Placeholder settings icon is "≡": LiberationSans has no gear glyph.
 - Canvas Scaler 1080×1920, match 0.5; `SafeArea` on root panels.
 - **Art slots:** every sprite the lives, popup, tab, episode and tutorial pieces need has a slot holding a placeholder
-  today (Unity's built-in UI sprites, tinted), so final art drops in without code changes. Per-episode art (Home and
+  today (Unity's built-in UI sprites, tinted; the heart and the five mascot frames are generated placeholders in
+  `Art/Sprites/Placeholder/UI/` and `Art/Sprites/Placeholder/Mascots/`), so final art drops in without code changes. Per-episode art (Home and
   Level backgrounds, mascot frame) is in `EpisodeConfig`, the tutorial image in `TutorialConfig`, and everything else is
   an `Image` on its screen or popup object: the avatar, the heart (Home lives display and More Lives; it replaces the
   `♥` glyph), the tab icons and the selected-tab highlight, the popup panels (Are You Sure, More Lives, Edit Profile,

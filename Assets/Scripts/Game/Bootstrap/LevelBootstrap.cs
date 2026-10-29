@@ -9,13 +9,14 @@ namespace BallSort.Game.Bootstrap
 {
     /// <summary>
     /// Level scene composition root: loads the player's current level, shows its episode's
-    /// background and hands the level to the <see cref="LevelFlow"/>, which starts the first try. A
-    /// level that fails to load sends the player back to Home with a toast instead of an empty board.
+    /// background and hands the level to the <see cref="LevelFlow"/>, which begins the first attempt. A
+    /// level that fails to load sends the player back to Home with a toast instead of an empty board,
+    /// costing no life.
     /// </summary>
     /// <remarks>
     /// In the Editor, Ball Sort ▸ Play Level… can choose for one visit any level of the run or a level
     /// file outside it, such as a test level, in any variant. Such a visit is a test: it plays the
-    /// chosen variant on every try and records no try, reward or progress.
+    /// chosen variant on every attempt and records no life, retry, reward, progress or tutorial seen.
     /// </remarks>
     public sealed class LevelBootstrap : MonoBehaviour
     {
@@ -41,6 +42,7 @@ namespace BallSort.Game.Bootstrap
 
         [SerializeField] private LevelFlow _flow;
         [SerializeField] private BackgroundSprite _background;
+        [SerializeField] private TutorialConfig _tutorials;
 
         [Tooltip("Toast shown on Home when a level file cannot be loaded; {0} is the level number or file name.")]
         [SerializeField] private string _loadFailedFormat = "Level {0} could not be loaded";
@@ -50,9 +52,9 @@ namespace BallSort.Game.Bootstrap
         private void Start()
         {
             _app = AppRoot.Instance;
-            if (_app == null || _flow == null || _background == null)
+            if (_app == null || _flow == null || _background == null || _tutorials == null)
             {
-                Debug.LogError($"{name}: needs a running AppRoot, an assigned level flow and a background.", this);
+                Debug.LogError($"{name}: needs a running AppRoot, an assigned level flow, background and tutorial config.", this);
                 return;
             }
 
@@ -60,11 +62,11 @@ namespace BallSort.Game.Bootstrap
             _background.Show(_app.Episodes.GetEpisodeForLevel(visit.LevelNumber).LevelBackground);
             if (!TryLoad(visit, editorFile, out LoadedLevel level))
             {
-                _app.SceneLoader.LoadHome(string.Format(_loadFailedFormat, visit.Label));
+                _app.SceneLoader.LoadHome(HomeArrival.WithNotice(string.Format(_loadFailedFormat, visit.Label)));
                 return;
             }
 
-            _flow.Begin(level, visit, _app.PlayerData, _app.Economy, _app.SceneLoader);
+            _flow.Begin(level, visit, _app.PlayerData, _app.Economy, _app.Episodes, _tutorials, _app.SceneLoader);
         }
 
         /// <param name="editorFile">The level file to play when the visit is from a file; otherwise null.</param>

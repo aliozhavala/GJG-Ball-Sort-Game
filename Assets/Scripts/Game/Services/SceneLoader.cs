@@ -5,7 +5,8 @@ namespace BallSort.Game.Services
 {
     /// <summary>
     /// Switches between the game's two scenes by build index, ignoring requests while a load is
-    /// already in flight (a double tap must not load the scene twice).
+    /// already in flight (a double tap must not load the scene twice). Hands Home what to show on
+    /// arriving (<see cref="HomeArrival"/>).
     /// </summary>
     public sealed class SceneLoader
     {
@@ -15,28 +16,34 @@ namespace BallSort.Game.Services
         /// <summary>Build index of the Level scene.</summary>
         public const int LevelSceneIndex = 1;
 
-        private string _pendingNotice;
+        private HomeArrival _pendingArrival = HomeArrival.None;
 
         /// <summary>True from a load request until the new scene is active.</summary>
         public bool IsLoading { get; private set; }
 
-        public void LoadHome() => Load(HomeSceneIndex);
+        public void LoadHome() => LoadHome(HomeArrival.None);
 
         /// <summary>
-        /// Loads Home and leaves it <paramref name="notice"/> to show, e.g. why a level could not be played.
+        /// Loads Home and leaves it <paramref name="arrival"/> to show, e.g. why a level could not be
+        /// played, or the episode a win just unlocked.
         /// </summary>
-        public void LoadHome(string notice)
+        public void LoadHome(HomeArrival arrival)
         {
-            _pendingNotice = notice;
+            if (IsLoading)
+            {
+                return;
+            }
+
+            _pendingArrival = arrival;
             Load(HomeSceneIndex);
         }
 
-        /// <summary>Returns the notice left by <see cref="LoadHome(string)"/>, once; null when there is none.</summary>
-        public string TakePendingNotice()
+        /// <summary>Returns what <see cref="LoadHome(HomeArrival)"/> left, once; <see cref="HomeArrival.None"/> afterwards.</summary>
+        public HomeArrival TakePendingArrival()
         {
-            string notice = _pendingNotice;
-            _pendingNotice = null;
-            return notice;
+            HomeArrival arrival = _pendingArrival;
+            _pendingArrival = HomeArrival.None;
+            return arrival;
         }
 
         public void LoadLevel() => Load(LevelSceneIndex);

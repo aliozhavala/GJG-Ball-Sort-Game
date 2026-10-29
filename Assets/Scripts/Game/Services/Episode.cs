@@ -3,7 +3,10 @@ using UnityEngine;
 
 namespace BallSort.Game.Services
 {
-    /// <summary>One episode of the run: where it starts and its two backgrounds. Listed in an <see cref="EpisodeConfig"/>.</summary>
+    /// <summary>
+    /// One episode of the run: where it starts, its two backgrounds and its mascot frame. Listed in an
+    /// <see cref="EpisodeConfig"/>.
+    /// </summary>
     [Serializable]
     public sealed class Episode
     {
@@ -12,6 +15,9 @@ namespace BallSort.Game.Services
         [SerializeField] private Sprite _homeBackground;
         [SerializeField] private Sprite _levelBackground;
 
+        [Tooltip("The scientist in a frame: top right of the Level scene, and on the Episode Unlocked overlay.")]
+        [SerializeField] private Sprite _mascotFrame;
+
         public int FirstLevel => _firstLevel;
 
         /// <summary>Full-screen background of the Home screen while this episode is current.</summary>
@@ -19,5 +25,8 @@ namespace BallSort.Game.Services
 
         /// <summary>Full-screen background of the Level scene for this episode's levels.</summary>
         public Sprite LevelBackground => _levelBackground;
+
+        /// <summary>The episode's mascot (the scientist in a frame).</summary>
+        public Sprite MascotFrame => _mascotFrame;
     }
 }

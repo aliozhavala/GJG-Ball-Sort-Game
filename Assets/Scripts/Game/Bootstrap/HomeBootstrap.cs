@@ -28,10 +28,10 @@ namespace BallSort.Game.Bootstrap
             _background.Show(app.Episodes.GetEpisodeForLevel(player.CurrentLevel).HomeBackground);
             _homeScreen.Initialize(player, app.SceneLoader, ReadCurrentTier(app));
 
-            string notice = app.SceneLoader.TakePendingNotice();
-            if (!string.IsNullOrEmpty(notice))
+            HomeArrival arrival = app.SceneLoader.TakePendingArrival();
+            if (!string.IsNullOrEmpty(arrival.Notice))
             {
-                _homeScreen.ShowToast(notice);
+                _homeScreen.ShowToast(arrival.Notice);
             }
         }
 

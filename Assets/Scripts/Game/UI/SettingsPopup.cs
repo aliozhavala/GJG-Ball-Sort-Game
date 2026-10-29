@@ -17,10 +17,13 @@ namespace BallSort.Game.UI
         [SerializeField] private Button _restartButton;
         [SerializeField] private Button _homeButton;
 
-        /// <summary>The player tapped Restart. The popup has already closed.</summary>
+        /// <summary>
+        /// The player tapped Restart. The popup stays open beneath the confirmation (Are You Sure or
+        /// More Lives), so closing that comes back here; the level flow closes it once confirmed.
+        /// </summary>
         public event Action RestartRequested;
 
-        /// <summary>The player tapped Home. The popup has already closed.</summary>
+        /// <summary>The player tapped Home. The popup stays open, as for <see cref="RestartRequested"/>.</summary>
         public event Action HomeRequested;
 
         public Popup Popup => _popup;
@@ -43,17 +46,9 @@ namespace BallSort.Game.UI
             _homeButton.onClick.AddListener(OnHomeClicked);
         }
 
-        private void OnRestartClicked()
-        {
-            _popup.Close();
-            RestartRequested?.Invoke();
-        }
+        private void OnRestartClicked() => RestartRequested?.Invoke();
 
-        private void OnHomeClicked()
-        {
-            _popup.Close();
-            HomeRequested?.Invoke();
-        }
+        private void OnHomeClicked() => HomeRequested?.Invoke();
 
         private void OnDestroy()
         {

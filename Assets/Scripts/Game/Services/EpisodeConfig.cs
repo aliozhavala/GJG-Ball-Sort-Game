@@ -5,8 +5,9 @@ using UnityEngine;
 namespace BallSort.Game.Services
 {
     /// <summary>
-    /// The run's episodes, in order: each one's first level and its Home and Level backgrounds
-    /// (docs/screens.md, Episodes). The current episode is derived from a level number, never stored.
+    /// The run's episodes, in order: each one's first level, its Home and Level backgrounds and its
+    /// mascot frame (docs/screens.md, Episodes). The current episode is derived from a level number,
+    /// never stored.
     /// </summary>
     [CreateAssetMenu(fileName = "EpisodeConfig", menuName = "Ball Sort/Episode Config")]
     public sealed class EpisodeConfig : ScriptableObject
@@ -30,9 +31,26 @@ namespace BallSort.Game.Services
                 return new Episode();
             }
 
-            _firstLevels ??= ReadFirstLevels();
-            return _episodes[EpisodeMap.Find(_firstLevels, level)];
+            return _episodes[GetEpisodeIndex(level)];
         }
+
+        /// <summary>
+        /// The 0-based position of the episode <paramref name="level"/> belongs to, e.g. to tell that a
+        /// win moved the player into the next episode. 0 when there are no episodes.
+        /// </summary>
+        public int GetEpisodeIndex(int level)
+        {
+            if (_episodes.Length == 0)
+            {
+                return 0;
+            }
+
+            _firstLevels ??= ReadFirstLevels();
+            return EpisodeMap.Find(_firstLevels, level);
+        }
+
+        /// <summary>The episode at <paramref name="index"/> (0-based), as <see cref="GetEpisodeIndex"/> returns it.</summary>
+        public Episode GetEpisode(int index) => _episodes[index];
 
         private int[] ReadFirstLevels()
         {
@@ -58,7 +76,8 @@ namespace BallSort.Game.Services
             var missing = new List<int>();
             for (int i = 0; i < _episodes.Length; i++)
             {
-                if (_episodes[i] == null || _episodes[i].HomeBackground == null || _episodes[i].LevelBackground == null)
+                if (_episodes[i] == null || _episodes[i].HomeBackground == null || _episodes[i].LevelBackground == null ||
+                    _episodes[i].MascotFrame == null)
                 {
                     missing.Add(i + 1);
                 }
@@ -66,7 +85,7 @@ namespace BallSort.Game.Services
 
             if (missing.Count > 0)
             {
-                Debug.LogWarning($"{name}: episode(s) {string.Join(", ", missing)} miss a background sprite.", this);
+                Debug.LogWarning($"{name}: episode(s) {string.Join(", ", missing)} miss a background or mascot sprite.", this);
             }
         }
     }
