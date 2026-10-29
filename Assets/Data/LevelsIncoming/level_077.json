@@ -1,0 +1,63 @@
+{
+  "formatVersion": 2,
+  "id": 77,
+  "tier": "regular",
+  "layout": { "grid": [[1, 0, 8, 2, 3], [4, 6, 7, 5]] },
+  "variants": [
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [0, 0, 1, 0], "hidden": [true, true, false, false], "veil": {"color": 3}},
+        {"capacity": 4, "balls": [2, 5, 2, 1], "hidden": [true, false, true, false], "veil": {"color": 4}},
+        {"capacity": 4, "balls": [5, 1, 2, 6], "veil": {"color": 3}},
+        {"capacity": 4, "balls": [6, 1, 2, 0], "veil": {"color": 4}},
+        {"capacity": 4, "balls": [6]},
+        {"capacity": 4, "balls": [4, 4]},
+        {"capacity": 4, "balls": [3, 6, 3]},
+        {"capacity": 4, "balls": [3, 5, 4]},
+        {"capacity": 4, "balls": [3, 5, 4], "hidden": [false, true, false]}
+      ], "meta": {"difficulty": 0.27, "optimalMoves": 23, "notes": "Bot wins 73%."} },
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [0, 3, 3, 0], "veil": {"color": 5}},
+        {"capacity": 4, "balls": [3, 4, 3, 6], "veil": {"color": 1}},
+        {"capacity": 4, "balls": [6, 2, 4, 4], "veil": {"color": 5}},
+        {"capacity": 4, "balls": [2, 6, 2, 4], "veil": {"color": 1}},
+        {"capacity": 4, "balls": [1, 5, 0]},
+        {"capacity": 4, "balls": [5, 1]},
+        {"capacity": 4, "balls": [6]},
+        {"capacity": 4, "balls": [2, 1, 0]},
+        {"capacity": 4, "balls": [5, 1, 5]}
+      ], "meta": {"difficulty": 0.28, "optimalMoves": 21, "notes": "Bot wins 72%."} },
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [5, 5, 3, 4], "veil": {"color": 1}},
+        {"capacity": 4, "balls": [0, 0, 0, 4], "veil": {"color": 6}},
+        {"capacity": 4, "balls": [4, 5, 2, 3], "veil": {"color": 1}},
+        {"capacity": 4, "balls": [2, 3, 2, 4], "veil": {"color": 6}},
+        {"capacity": 4, "balls": [6]},
+        {"capacity": 4, "balls": [5, 3, 0], "hidden": [true, false, false]},
+        {"capacity": 4, "balls": [6, 6]},
+        {"capacity": 4, "balls": [6, 2, 1], "hidden": [true, false, false]},
+        {"capacity": 4, "balls": [1, 1, 1]}
+      ], "meta": {"difficulty": 0.18, "optimalMoves": 18, "notes": "Bot wins 82%."} },
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [4, 4, 3, 1], "veil": {"color": 2}},
+        {"capacity": 4, "balls": [0, 0, 0, 1], "veil": {"color": 6}},
+        {"capacity": 4, "balls": [1, 4, 5, 3], "veil": {"color": 2}},
+        {"capacity": 4, "balls": [5, 3, 5, 1], "veil": {"color": 6}},
+        {"capacity": 4, "balls": [6]},
+        {"capacity": 4, "balls": [4, 3, 0], "hidden": [true, false, false]},
+        {"capacity": 4, "balls": [6, 6]},
+        {"capacity": 4, "balls": [6, 5, 2], "hidden": [true, false, false]},
+        {"capacity": 4, "balls": [2, 2, 2]}
+      ], "meta": {"difficulty": 0.18, "optimalMoves": 18, "notes": "Bot wins 82%."} },
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [4, 4, 1, 5], "veil": {"color": 2}},
+        {"capacity": 4, "balls": [6, 6, 6, 5], "veil": {"color": 3}},
+        {"capacity": 4, "balls": [5, 4, 0, 1], "veil": {"color": 2}},
+        {"capacity": 4, "balls": [0, 1, 0, 5], "veil": {"color": 3}},
+        {"capacity": 4, "balls": [3]},
+        {"capacity": 4, "balls": [4, 1, 6], "hidden": [true, false, false]},
+        {"capacity": 4, "balls": [3, 3]},
+        {"capacity": 4, "balls": [3, 0, 2], "hidden": [true, false, false]},
+        {"capacity": 4, "balls": [2, 2, 2]}
+      ], "meta": {"difficulty": 0.18, "optimalMoves": 18, "notes": "Bot wins 82%."} }
+  ]
+}

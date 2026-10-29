@@ -1,0 +1,83 @@
+{
+  "formatVersion": 2,
+  "id": 100,
+  "tier": "superHard",
+  "layout": { "grid": [[5, 9, 7, 8, 6], [10, 12, 11], [0, 1, 2, 3, 4]] },
+  "variants": [
+    { "colors": 10, "tubes": [
+        {"capacity": 4, "balls": [2, 1, 0, 4], "hidden": [true, true, false, false]},
+        {"capacity": 4, "balls": [2, 3, 9, 1], "hidden": [false, true, true, false]},
+        {"capacity": 4, "balls": [5, 9, 8, 9], "hidden": [true, false, false, false]},
+        {"capacity": 4, "balls": [0, 8, 3, 7], "hidden": [true, true, false, false]},
+        {"capacity": 4, "balls": [5, 0, 7, 8], "hidden": [false, true, true, false]},
+        {"capacity": 4, "balls": [9, 7, 2, 6], "hidden": [true, false, false, false], "veil": {"color": 0}},
+        {"capacity": 4, "balls": [5, 4, 7, 6], "hidden": [false, false, true, false], "veil": {"color": 0}},
+        {"capacity": 4, "balls": [4, 3, 5, 6], "hidden": [false, true, true, false], "veil": {"color": 0}},
+        {"capacity": 4, "balls": [0, 4, 6, 2], "hidden": [false, false, true, false], "keys": [{"slot": 1, "lock": 0}]},
+        {"capacity": 4, "balls": [3, 8]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": [1, 1], "clay": true}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3, 4]}], "meta": {"difficulty": 0.66, "optimalMoves": 34, "notes": "Bot wins 34%."} },
+    { "colors": 10, "tubes": [
+        {"capacity": 4, "balls": [7, 9, 7, 8], "hidden": [false, true, true, false]},
+        {"capacity": 4, "balls": [6, 5, 3, 4], "hidden": [true, true, false, false]},
+        {"capacity": 4, "balls": [1, 0, 8, 1]},
+        {"capacity": 4, "balls": [9, 0, 5, 2], "hidden": [true, false, true, false]},
+        {"capacity": 4, "balls": [6, 4, 8, 4]},
+        {"capacity": 4, "balls": [2, 1, 4, 7], "hidden": [true, false, false, false], "veil": {"color": 5}},
+        {"capacity": 4, "balls": [9, 8, 3, 6], "hidden": [true, true, false, false], "veil": {"color": 5}},
+        {"capacity": 4, "balls": [6, 7, 2, 9], "hidden": [true, true, false, false], "veil": {"color": 5}},
+        {"capacity": 4, "balls": [0, 5, 5, 1], "hidden": [false, true, false, false], "keys": [{"slot": 0, "lock": 0}]},
+        {"capacity": 4, "balls": [0, 2]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": [3, 3], "clay": true}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3, 4]}], "meta": {"difficulty": 0.64, "optimalMoves": 33, "notes": "Bot wins 36%."} },
+    { "colors": 10, "tubes": [
+        {"capacity": 4, "balls": [5, 9, 6, 4], "hidden": [true, true, false, false]},
+        {"capacity": 4, "balls": [0, 0, 9, 1], "hidden": [false, true, true, false]},
+        {"capacity": 4, "balls": [5, 9, 8, 2], "hidden": [true, true, false, false]},
+        {"capacity": 4, "balls": [7, 1, 2, 8], "hidden": [true, true, false, false]},
+        {"capacity": 4, "balls": [7, 4, 3, 3], "hidden": [false, false, true, false]},
+        {"capacity": 4, "balls": [3, 2, 6, 0], "hidden": [false, true, true, false], "veil": {"color": 9}},
+        {"capacity": 4, "balls": [3, 7, 1, 5], "hidden": [true, true, true, false], "veil": {"color": 9}},
+        {"capacity": 4, "balls": [7, 2, 6, 4], "veil": {"color": 9}},
+        {"capacity": 4, "balls": [0, 1, 9, 6], "hidden": [false, false, true, false]},
+        {"capacity": 4, "balls": [4, 5], "keys": [{"slot": 0, "lock": 0}]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": [8, 8], "clay": true}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3, 4]}], "meta": {"difficulty": 0.57, "optimalMoves": 33, "notes": "Bot wins 43%."} },
+    { "colors": 10, "tubes": [
+        {"capacity": 4, "balls": [4, 6, 4, 2], "hidden": [true, false, false, false]},
+        {"capacity": 4, "balls": [3, 9, 5, 3], "hidden": [false, false, true, false]},
+        {"capacity": 4, "balls": [1, 0, 8, 0], "hidden": [false, true, true, false]},
+        {"capacity": 4, "balls": [5, 5, 6, 8], "hidden": [true, true, true, false]},
+        {"capacity": 4, "balls": [8, 6, 1, 2], "hidden": [true, false, false, false]},
+        {"capacity": 4, "balls": [1, 0, 1, 0], "hidden": [true, false, false, false], "veil": {"color": 3}},
+        {"capacity": 4, "balls": [4, 8, 4, 7], "hidden": [false, true, true, false], "veil": {"color": 3}},
+        {"capacity": 4, "balls": [6, 5, 7, 7], "hidden": [true, true, false, false], "veil": {"color": 3}},
+        {"capacity": 4, "balls": [7, 9, 3, 9], "hidden": [true, true, false, false], "keys": [{"slot": 2, "lock": 0}]},
+        {"capacity": 4, "balls": [9, 3]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": [2, 2], "clay": true}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3, 4]}], "meta": {"difficulty": 0.59, "optimalMoves": 31, "notes": "Bot wins 41%."} },
+    { "colors": 10, "tubes": [
+        {"capacity": 4, "balls": [6, 3, 5, 6], "hidden": [false, false, true, false]},
+        {"capacity": 4, "balls": [8, 2, 0, 7], "hidden": [false, true, false, false]},
+        {"capacity": 4, "balls": [3, 8, 7, 6], "hidden": [true, true, false, false]},
+        {"capacity": 4, "balls": [1, 4, 5, 4], "hidden": [true, false, true, false]},
+        {"capacity": 4, "balls": [7, 4, 4, 5], "hidden": [true, true, false, false]},
+        {"capacity": 4, "balls": [9, 2, 1, 9], "hidden": [false, true, true, false], "veil": {"color": 4}},
+        {"capacity": 4, "balls": [1, 9, 2, 9], "hidden": [true, false, false, false], "veil": {"color": 4}},
+        {"capacity": 4, "balls": [0, 5, 0, 0], "hidden": [true, true, true, false], "veil": {"color": 4}},
+        {"capacity": 4, "balls": [2, 8, 7, 8], "hidden": [true, true, false, false]},
+        {"capacity": 4, "balls": [6, 1], "keys": [{"slot": 0, "lock": 0}]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": [3, 3], "clay": true}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3, 4]}], "meta": {"difficulty": 0.54, "optimalMoves": 34, "notes": "Bot wins 46%."} }
+  ]
+}

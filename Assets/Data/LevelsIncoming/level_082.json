@@ -1,0 +1,63 @@
+{
+  "formatVersion": 2,
+  "id": 82,
+  "tier": "regular",
+  "layout": { "grid": [[0, 1, 2, 3], [4, 7, 5, 8, 6]] },
+  "variants": [
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [0, 5, 1, 0]},
+        {"capacity": 4, "balls": [5, 4, 2, 6]},
+        {"capacity": 4, "balls": [1, 4, 3, 4]},
+        {"capacity": 4, "balls": [6, 5, 6, 5]},
+        {"capacity": 4, "balls": [0, 2, 1, 0]},
+        {"capacity": 4, "balls": [3, 3, 2, 6], "keys": [{"slot": 2, "lock": 0}]},
+        {"capacity": 4, "balls": [1, 4, 3, 2]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3]}], "meta": {"difficulty": 0.35, "optimalMoves": 24, "notes": "Bot wins 65%."} },
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [0, 5, 1, 3]},
+        {"capacity": 4, "balls": [2, 3, 2, 4]},
+        {"capacity": 4, "balls": [5, 2, 1, 6]},
+        {"capacity": 4, "balls": [3, 3, 1, 4]},
+        {"capacity": 4, "balls": [0, 5, 6, 4]},
+        {"capacity": 4, "balls": [6, 2, 1, 0], "keys": [{"slot": 2, "lock": 0}]},
+        {"capacity": 4, "balls": [0, 6, 5, 4]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3]}], "meta": {"difficulty": 0.34, "optimalMoves": 23, "notes": "Bot wins 66%."} },
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [6, 1, 0, 3]},
+        {"capacity": 4, "balls": [2, 1, 2, 0]},
+        {"capacity": 4, "balls": [2, 5, 4, 5]},
+        {"capacity": 4, "balls": [4, 1, 4, 0]},
+        {"capacity": 4, "balls": [4, 1, 6, 3]},
+        {"capacity": 4, "balls": [6, 6, 0, 5]},
+        {"capacity": 4, "balls": [3, 2, 5, 3], "keys": [{"slot": 2, "lock": 0}]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3]}], "meta": {"difficulty": 0.24, "optimalMoves": 24, "notes": "Bot wins 76%."} },
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [0, 1, 3, 0]},
+        {"capacity": 4, "balls": [6, 4, 2, 2]},
+        {"capacity": 4, "balls": [6, 0, 6, 4]},
+        {"capacity": 4, "balls": [1, 5, 6, 1]},
+        {"capacity": 4, "balls": [3, 5, 4, 3]},
+        {"capacity": 4, "balls": [0, 5, 5, 2], "keys": [{"slot": 1, "lock": 0}]},
+        {"capacity": 4, "balls": [1, 2, 3, 4]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3]}], "meta": {"difficulty": 0.3, "optimalMoves": 22, "notes": "Bot wins 70%."} },
+    { "colors": 7, "tubes": [
+        {"capacity": 4, "balls": [4, 3, 1, 3]},
+        {"capacity": 4, "balls": [5, 5, 2, 0]},
+        {"capacity": 4, "balls": [2, 3, 5, 6]},
+        {"capacity": 4, "balls": [0, 2, 6, 4]},
+        {"capacity": 4, "balls": [4, 6, 4, 1], "keys": [{"slot": 2, "lock": 0}]},
+        {"capacity": 4, "balls": [5, 2, 1, 6]},
+        {"capacity": 4, "balls": [0, 1, 3, 0]},
+        {"capacity": 4, "balls": []},
+        {"capacity": 4, "balls": []}
+      ], "locks": [{"id": 0, "tubes": [0, 1, 2, 3]}], "meta": {"difficulty": 0.32, "optimalMoves": 23, "notes": "Bot wins 68%."} }
+  ]
+}
