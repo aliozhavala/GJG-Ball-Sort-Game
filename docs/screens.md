@@ -28,14 +28,15 @@ Read this when working on UI, scene flow, lives, tutorials, boosters, or player 
 
 All numbers live in an `EconomyConfig` ScriptableObject, not in code, including the win reward of each tier, the lives maximum and the refill interval. Progress and rewards are saved **at the moment of the win**, before any celebration or panel.
 
-**Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveData.CurrentVersion` and add a migration to `SaveJsonCodec` when the shape changes (version 2 added the try fields; a version 1 save migrates with try 0 and no last variant. Version 3 adds the life timer, the level-in-progress mark, the player name and the tutorials seen, and turns the try count into the retry count: a version 2 save keeps its count as retries, starts the life timer at load if lives are below the maximum, and gets no mark, the name `Player` and no tutorials seen). Editor tools: **Ball Sort ▸ Reset Save** (disabled in Play mode) and **Ball Sort ▸ Player Data…** (set coins, lives, booster counts and the time to the next life, and clear the tutorials seen; edits the save in Edit mode, the live player in Play mode).
+**Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveData.CurrentVersion` and add a migration to `SaveJsonCodec` when the shape changes (version 2 added the try fields; a version 1 save migrates with try 0 and no last variant. Version 3 adds the life timer, the level-in-progress mark, the player name and the tutorials seen, and turns the try count into the retry count: a version 2 save keeps its count as retries, starts the life timer at load if lives are below the maximum, and gets no mark, the name `Player` and no tutorials seen). Editor tools: **Ball Sort ▸ Reset Save** (disabled in Play mode) and **Ball Sort ▸ Player Data…** (set coins, lives, the time to the next life, booster counts and the player name, jump to any level (retries cleared), and clear the tutorials seen; it also shows the level, retries, last variant, level in progress and tutorials seen; edits the save in Edit mode, the live player in Play mode).
 
 ## Home screen
 - **Top bar:** avatar (top-left), lives `♥ 5` with the time to the next life and coins `● 1000` between the corners, settings icon (top-right).
 - **Center:** big **Level button** showing `Level N`. If `AllLevelsComplete`: shows `All levels complete` and replays level 100.
   Its look depends on the level's tier: regular, hard or super hard (placeholder: a tint per tier, plus a "Hard" or
   "Super hard" label). At 0 lives it opens the More Lives popup instead of loading the level.
-- **Bottom nav:** Leaderboard · Home · Shop tabs. The selected tab is highlighted; Home is selected on arriving.
+- **Bottom nav:** Leaderboard · Home · Shop tabs. The selected tab is highlighted; Home is selected on arriving. Selection
+  shows only through the highlight: every tab stays interactable (`HomeTabs` enforces it).
   Leaderboard and Shop swap the center for their page, a placeholder (a title and placeholder content, nothing in it
   does anything); Home brings the Level button back. The top bar stays on every tab.
 - **Avatar** → **Edit Profile** popup: the player name in an input field, prefilled with the saved name. **Save** stores
@@ -65,9 +66,10 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - **Shuffle:** rearranges the balls of the open tubes, keeping the board solvable (rules in docs/mechanics.md). Spent only when it succeeds; clears the undo history, so Undo then shows "Nothing to undo". Not undoable. The search runs off the main thread; until it is applied or refused, taps, boosters and settings are locked (flow state `Shuffling`). If it takes longer than 0.3 s (`LevelFlow._shufflingIndicatorDelay`), a "Shuffling…" label appears where the stuck banner would be, and goes when the search ends. The board is rebuilt in place (no animation until step 6).
 - **Restart** (settings, behind Are You Sure; it costs a life) reloads the level from data in its next variant: hidden balls hidden again, added tubes gone, undo history cleared. Boosters already spent stay spent.
 
-### Stuck (no legal moves and not won)
-- Checked after every move, undo, added tube and shuffle.
-- Show **"No available moves"** text above the board (does not cover or block the tubes).
+### Stuck (not won, and nothing useful left to do)
+- Checked after every move, undo, added tube, Play on, shuffle and restart.
+- Stuck = nothing meaningful left to do: no legal move, or only moves that go round in a loop (rule in docs/mechanics.md, Win and stuck).
+- Show **"No more useful moves"** above the board (`StuckPanel._bannerText`, the one place to change it; does not cover or block the tubes).
 - Booster bar hidden (boosters cannot be used while stuck); tubes can still be selected.
 - Two buttons side by side in the booster bar's place: **Give up** (behind Are You Sure; it costs a life) and **Play on — 900 ●**.
   - Play on: spend 900 coins, add one empty capacity-4 tube, leave the stuck state. It continues the same attempt and costs no life.
@@ -112,7 +114,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   stored. Home shows the episode of `PlayerData.CurrentLevel`; the Level scene shows the episode of the level being
   played: its background, and its mascot frame at the top right (for now).
 - **Episode Unlocked:** Continue on the Win panel of a win that moved `CurrentLevel` into a new episode (to level 21,
-  41, 61 or 81) brings up Home on the previous episode's background. About 0.7 s later (a field on the Home flow) the
+  41, 61 or 81) brings up Home on the previous episode's background. About 0.7 s later (`HomeFlow._episodeUnlockedDelay`) the
   Episode Unlocked overlay appears ("Episode N unlocked" and the new episode's mascot frame) and the Home background
   switches to the new episode behind it. A tap anywhere closes the overlay; Home input is blocked from arriving until
   then. The Level scene shows the new episode from then on, as it always shows the played level's episode. The

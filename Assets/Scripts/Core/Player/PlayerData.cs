@@ -198,6 +198,16 @@ namespace BallSort.Core.Player
             return advanced;
         }
 
+        /// <summary>
+        /// Moves progress to <paramref name="level"/>, for testing tools (see <see cref="LevelProgress.JumpTo"/>),
+        /// e.g. to win level 20 and see Episode Unlocked without playing the levels before it.
+        /// </summary>
+        public void SetCurrentLevel(int level)
+        {
+            _progress.JumpTo(level);
+            RaiseChanged();
+        }
+
         // --- Lives ---------------------------------------------------------------------------------
 
         /// <summary>Adds the lives that have come back since the last refresh (and saves them).</summary>

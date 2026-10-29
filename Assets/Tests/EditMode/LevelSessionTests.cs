@@ -31,6 +31,13 @@ namespace BallSort.Tests.EditMode
         private static TestLevel OneMoveFromStuck() =>
             Level(4, T(4, 0, 1, 1, 2), T(4, 3, 3, 3, 2), T(4, 1, 0, 0, 3), T(4, 1, 2, 2), T(4, 0));
 
+        /// <summary>
+        /// Tube 0's three reds (colour 1) go to tube 1 and back in pairs: a loop red can never finish in.
+        /// Tube 2 → tube 3 lifts a colour-0 ball off colour 2, a one-way move; after it only the loop is left.
+        /// </summary>
+        private static TestLevel OneMoveFromALoop() =>
+            Level(3, T(4, 0, 1, 1, 1), T(4, 2, 1), T(4, 2, 2, 0), T(4, 2, 0, 0));
+
         /// <summary>One colour, one move from winning: tube 0 → tube 1 completes tube 1.</summary>
         private static TestLevel OneMoveFromWin() =>
             Level(1, T(4, 0, 0), T(4, 0, 0));
@@ -451,6 +458,50 @@ namespace BallSort.Tests.EditMode
             session.TryMove(0, 1, out _);
 
             Assert.That(session.IsStuck, Is.True);
+        }
+
+        [Test]
+        public void OnlyALoopLeft_IsStuck_EvenWithLegalMoves()
+        {
+            LevelSession session = Start(OneMoveFromALoop());
+            var log = new List<string>();
+            session.StuckChanged += stuck => log.Add($"StuckChanged({stuck})");
+            Assert.That(session.IsStuck, Is.False, "a one-way move is still there");
+
+            session.TryMove(2, 3, out _);
+
+            Assert.That(MoveRules.HasAnyLegalMove(session.Board), Is.True, "the reds can still go round");
+            Assert.That(session.IsStuck, Is.True);
+            Assert.That(log, Is.EqualTo(new[] { "StuckChanged(True)" }));
+        }
+
+        [Test]
+        public void PlayOn_EvaluatesTheStuckRuleAgain()
+        {
+            LevelSession session = Start(OneMoveFromALoop());
+            session.TryMove(2, 3, out _);
+            var log = new List<string>();
+            session.StuckChanged += stuck => log.Add($"StuckChanged({stuck})");
+
+            Assert.That(session.TryPlayOn(new Wallet(PlayOnPrice), PlayOnPrice, out _), Is.True);
+
+            Assert.That(session.IsStuck, Is.False, "the reds can leave the loop through the new tube");
+            Assert.That(log, Is.EqualTo(new[] { "StuckChanged(False)" }));
+        }
+
+        [Test]
+        public void AddTube_EvaluatesTheStuckRuleAgain()
+        {
+            // Add tube is refused while stuck, so it can only be used before the loop: the tube it adds
+            // then keeps the same move from ending in the loop.
+            LevelSession session = Start(OneMoveFromALoop());
+
+            Assert.That(session.TryAddTube(out _), Is.True);
+            Assert.That(session.IsStuck, Is.EqualTo(StuckDetector.IsStuck(session.Board)));
+            session.TryMove(2, 3, out _);
+
+            Assert.That(session.IsStuck, Is.False);
+            Assert.That(session.IsStuck, Is.EqualTo(StuckDetector.IsStuck(session.Board)));
         }
 
         [Test]

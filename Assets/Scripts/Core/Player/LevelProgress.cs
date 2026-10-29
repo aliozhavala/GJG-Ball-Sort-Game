@@ -140,6 +140,25 @@ namespace BallSort.Core.Player
         }
 
         /// <summary>
+        /// Moves progress to <paramref name="level"/>, for testing tools, as if the levels before it had
+        /// just been won: no retries, no variant played, no attempt in progress, the run not complete.
+        /// </summary>
+        /// <param name="level">The level to play next, in 1..<see cref="LevelCount"/>.</param>
+        public void JumpTo(int level)
+        {
+            if (level < 1 || level > LevelCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(level), level, $"The level must be in 1..{LevelCount}.");
+            }
+
+            CurrentLevel = level;
+            AllLevelsComplete = false;
+            RetryCount = 0;
+            LastVariant = 0;
+            LevelInProgress = 0;
+        }
+
+        /// <summary>
         /// Records that <paramref name="wonLevel"/> has been won: ends the attempt, and advances to the
         /// next level or marks the run complete after the last one. Winning the current level, a replay
         /// of the last one included, also resets the retries, so the next level starts at V1.

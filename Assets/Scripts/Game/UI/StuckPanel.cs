@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace BallSort.Game.UI
 {
     /// <summary>
-    /// What the Level screen shows while stuck: a "No available moves" banner above the board and
+    /// What the Level screen shows while stuck: a banner above the board ("No more useful moves") and
     /// Give up / Play on buttons in the booster bar's place. Never covers the tubes.
     /// </summary>
     /// <remarks>
@@ -15,6 +15,11 @@ namespace BallSort.Game.UI
     /// </remarks>
     public sealed class StuckPanel : MonoBehaviour
     {
+        [SerializeField] private TMP_Text _bannerLabel;
+
+        [Tooltip("The banner's text: the one place to change it.")]
+        [SerializeField] private string _bannerText = "No more useful moves";
+
         [SerializeField] private Button _giveUpButton;
         [SerializeField] private Button _playOnButton;
         [SerializeField] private TMP_Text _playOnLabel;
@@ -48,11 +53,13 @@ namespace BallSort.Game.UI
 
         private void Awake()
         {
-            if (_giveUpButton == null || _playOnButton == null || _playOnLabel == null)
+            if (_bannerLabel == null || _giveUpButton == null || _playOnButton == null || _playOnLabel == null)
             {
-                Debug.LogError($"{name}: both buttons and the Play on label must be assigned.", this);
+                Debug.LogError($"{name}: the banner label, both buttons and the Play on label must be assigned.", this);
                 return;
             }
+
+            _bannerLabel.text = _bannerText;
 
             _giveUpButton.onClick.AddListener(OnGiveUpClicked);
             _playOnButton.onClick.AddListener(OnPlayOnClicked);

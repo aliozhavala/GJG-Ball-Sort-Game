@@ -41,7 +41,7 @@ Optimize for clarity, clean architecture, and robustness over cleverness.
 - **Tube capacity**: 4 for normal tubes; large tubes (5–16) span 2–3 grid rows. Large tubes need not be clay.
 - **Tube completed** = full, every ball revealed, and holds **every ball of its color in the level** (details in docs/mechanics.md). Completed tubes cannot be a move source.
 - **Level won** = every tube is either empty or completed.
-- **Stuck** = not won and no legal move. Checked after every move, undo, added tube and shuffle. While stuck, boosters are disabled.
+- **Stuck** = not won, and no legal move or only moves that loop back (every reachable position can return here and none is a win); any one-way move means not stuck. `StuckDetector`, rule in docs/mechanics.md. Checked after every move, undo, added tube, Play on and shuffle. While stuck, boosters are disabled.
 - **Input UX**: tap a tube to select (its run lifts); tap it again to deselect; tap another tube to move. If the move is illegal, play invalid-move feedback and clear the selection (never auto-select the tapped tube; the player selects again).
 
 Mechanics, completion and board layout rules: read docs/mechanics.md when working on Core rules, levels or board views.
@@ -64,7 +64,7 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - **State machine**: level flow (`LevelFlow`: `Loading → Playing ⇄ Stuck → Won`, plus `Playing → Shuffling → Playing` while a shuffle is searched) and input selection state.
 - **Object pooling**: balls and VFX via `UnityEngine.Pool.ObjectPool<T>`. No `Instantiate`/`Destroy` per move.
 - **ScriptableObjects** for config: `ColorPalette` (color id → sprite/tint), `AnimationConfig` (timings, eases), `LevelDatabase` (ordered list of level `TextAsset`s), `EconomyConfig` (prices, rewards per tier, lives), `EpisodeConfig` (episodes, their backgrounds and mascot frames), `TutorialConfig` (tutorial popup text per level id).
-- **Composition**: a persistent **`AppRoot`** (prefab in `Resources/`, auto-created via `RuntimeInitializeOnLoadMethod`, `DontDestroyOnLoad`) owns player data, saving and scene loading. It is the **one agreed singleton-style exception**. Each scene has its own bootstrap that takes services from `AppRoot` and wires its views. **No other singletons** — no static `Instance`.
+- **Composition**: a persistent **`AppRoot`** (prefab in `Resources/`, auto-created via `RuntimeInitializeOnLoadMethod`, `DontDestroyOnLoad`) owns player data, saving and scene loading. It is the **one agreed singleton-style exception**. Each scene has its own bootstrap that takes services from `AppRoot` and hands them to the scene's flow (`LevelFlow`, `HomeFlow`), which wires the views; what Level leaves for Home (a notice, an unlocked episode) travels in memory as a `HomeArrival` through `SceneLoader`. **No other singletons** — no static `Instance`.
 - **Scenes**: `Home` (build index 0) and `Level` (build index 1). Pressing Play in either scene must work.
 
 ### Timing and async
@@ -143,9 +143,11 @@ Assets/
 - Keep changes small and commit-sized. Don't rewrite working code for style alone.
 
 ## Roadmap
-1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b ✅ Solver, solvability checks, Validate Levels, Shuffle · 4c ✅ Mechanic views (placeholders) and editor level jump · 5 ✅ Level format v2: variants, tier, episodes; level import and validation · 6 Art/audio/VFX polish · 7a ✅ Level import: the delivered levels 1–100 checked and shipped (docs/reports/level-import.md) · 7b Level curation, playtests, README, packaging
+1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b ✅ Solver, solvability checks, Validate Levels, Shuffle · 4c ✅ Mechanic views (placeholders) and editor level jump · 5 ✅ Level format v2: variants, tier, episodes; level import and validation · 6 Art/audio/VFX polish (handoff: docs/step6-handoff.md) · 7a ✅ Level import: the delivered levels 1–100 checked and shipped (docs/reports/level-import.md) · 7c ✅ Player save in Core + SaveJson; lives, retry-based variants, Are You Sure / More Lives, tutorials, episode mascots and Episode Unlocked, Home tabs and Edit Profile; stuck = no useful moves (`StuckDetector`) · 7b Level curation, playtests, README, packaging
 
 ## Open decisions (update as they're settled)
 - Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size (12 colours today; a level may not use more; the delivered levels use at most 10, art has 10 sprites so far, and more than 10 is not an error), lock palette (4 colours today, so lock ids 0–3; the delivered levels use 0–2), colorblind patterns.
 - Shuffle limits (20 attempts × 2k nodes): re-measured on the delivered levels and kept (docs/mechanics.md); revisit only if device tests make the 1–3 s worst case matter.
+- Tutorial texts (product): `TutorialConfig` holds placeholder text for levels 1, 7, 20, 30, 55 and 80, no images yet.
+- Stuck search limit (32 positions, measured in the Editor, docs/mechanics.md): re-measure on a device; the level validator still only requires a legal move at the start, while `ShippedLevelTests` checks every start is not stuck.
 - Difficulty curve shape and mechanic introduction levels (product): first delivery imported; its warnings (V2 vs V1, V3–V5 not easier, level 100's tier) are in docs/reports/level-import.md.

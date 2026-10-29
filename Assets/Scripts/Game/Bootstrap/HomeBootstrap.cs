@@ -1,38 +1,28 @@
 using BallSort.Core.Levels;
-using BallSort.Core.Player;
+using BallSort.Game.Flow;
 using BallSort.Game.Services;
-using BallSort.Game.UI;
 using UnityEngine;
 
 namespace BallSort.Game.Bootstrap
 {
     /// <summary>
-    /// Home scene composition root: shows the current episode's background and hands the persistent
-    /// services, and the current level's tier, to the Home screen.
+    /// Home scene composition root: hands the persistent services, the current level's tier and what the
+    /// Level scene left for Home (<see cref="HomeArrival"/>) to the <see cref="HomeFlow"/>.
     /// </summary>
     public sealed class HomeBootstrap : MonoBehaviour
     {
-        [SerializeField] private HomeScreen _homeScreen;
-        [SerializeField] private BackgroundImage _background;
+        [SerializeField] private HomeFlow _flow;
 
         private void Start()
         {
             AppRoot app = AppRoot.Instance;
-            if (app == null || _homeScreen == null || _background == null)
+            if (app == null || _flow == null)
             {
-                Debug.LogError($"{name}: needs a running AppRoot, an assigned home screen and a background.", this);
+                Debug.LogError($"{name}: needs a running AppRoot and an assigned Home flow.", this);
                 return;
             }
 
-            PlayerData player = app.PlayerData;
-            _background.Show(app.Episodes.GetEpisodeForLevel(player.CurrentLevel).HomeBackground);
-            _homeScreen.Initialize(player, app.SceneLoader, ReadCurrentTier(app));
-
-            HomeArrival arrival = app.SceneLoader.TakePendingArrival();
-            if (!string.IsNullOrEmpty(arrival.Notice))
-            {
-                _homeScreen.ShowToast(arrival.Notice);
-            }
+            _flow.Begin(app.PlayerData, app.SceneLoader, app.Episodes, ReadCurrentTier(app), app.SceneLoader.TakePendingArrival());
         }
 
         private static LevelTier ReadCurrentTier(AppRoot app)

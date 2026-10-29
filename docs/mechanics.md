@@ -52,7 +52,9 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 
 ## Win and stuck
 - Won = every tube is empty or completed (a covered empty tube counts as empty).
-- Stuck = not won and no legal move (covers and clay already restrict moves). Soft-locks with legal moves remaining are not detected (by design).
+- Stuck = not won, and either no legal move exists, or both: (a) no position reachable from the current one is a win, and (b) every reachable position can get back to the current one (the reachable set is one strongly connected loop). Any one-way move still available (a reveal, a completion, a key found, a cover opened, a run lifted off a different colour, or simply a position with no way back) means not stuck, even if it leads to a dead end: the player may foresee it and use a booster first.
+- `StuckDetector` (Core) decides it with the real rules and `BoardStateKey`. Hidden balls, covered tubes, unfound keys, completed tubes and balls sitting on a different colour (or on a hidden ball) only change one way, so a move that changes any of them ends the search as one-way. The other moves are explored up to `StuckDetector.DefaultPositionLimit` positions (hitting the limit means not stuck); then a backward search from the current position must reach every recorded one. Evaluated after every move, undo, added tube (booster or Play on), shuffle and restart.
+- Cost, measured in the Editor: random play on every delivered level and variant (15,307 checks) averaged 0.02 ms per check, and no check recorded more than 9 positions. The search costs about 0.1 ms per position at 13 tubes (the largest delivered levels), so the limit is 32 positions: about 3.5–4.5 ms when it is reached (measured on synthetic one-colour 13-tube boards built to keep every move reversible). A few hundred positions would cost 30 ms or more.
 
 ## Shuffle (booster)
 - **Which tubes:** only tubes that are **not covered** (veil or lock), **not clay** and **not completed**. Balls move only between these tubes, and each of them keeps its ball count. Every other tube is untouched.

@@ -423,3 +423,63 @@ All changes made through Unity MCP Editor commands; Unity generated every new `.
   charged the interrupted attempt (4 lives, 1 retry, V2).
 - Setting `Time.timeScale` during that run made Unity rewrite `ProjectSettings/TimeManager.asset` in its newer format
   (same values); the file was restored from git.
+
+## 2026-10-29 — Lives, tutorials and Home tabs, stage 4: Home
+
+All changes made through Unity MCP Editor commands; Unity generated every new `.meta` file.
+
+### Prefabs (new, in `Assets/Prefabs/UI/`, built from copies of `WinPopup.prefab`; root inactive)
+- `EditProfilePopup.prefab`: `Popup` + `EditProfilePopup`; Panel: Title "Edit profile", NameLabel "Name", NameField
+  (`TMP_InputField` from `TMP_DefaultControls`, single line, 16 characters, placeholder "Your name", text area padded
+  32 px), SaveButton (green, "Save"), CloseButton (copied from `SettingsPopup.prefab`, wired as the popup's close).
+- `EpisodeUnlockedOverlay.prefab`: `Popup` + `EpisodeUnlockedOverlay` + a `Button` on the root (no transition) as the
+  tap-anywhere area, root dim at 75 %; Panel: Title "Episode 2 unlocked" (gold), Mascot (400 high, preserve aspect),
+  Hint "Tap anywhere to continue".
+
+### Scene `Assets/Scenes/Home.unity`
+- New root `HomeFlow` (`HomeFlow`: `_homeScreen` = HomeCanvas, `_background` = HomeCanvas/Background,
+  `_episodeUnlockedDelay` 0.7). `HomeBootstrap._flow` = it (its old `_homeScreen` and `_background` fields are gone).
+- `SafeArea/TopBar/Lives`: `LivesDisplay` added; new `Heart` (`Heart.png` tinted #E53935, 88×88, left) with a `Count`
+  label on it; the old `Label` renamed `Timer` (stretched right of the heart, 44 pt, "Full").
+- `SafeArea`: new `HomePage` (holds the `LevelButton`, moved from `SafeArea`), `LeaderboardPage` and `ShopPage`
+  (inactive placeholders: a panel with a title, "Coming soon" and rows that do nothing), each between the top bar (180)
+  and the bottom navigation (200).
+- `SafeArea/BottomNav`: `HomeTabs` added (Leaderboard → LeaderboardPage, Home → HomePage, Shop → ShopPage; starts on
+  Home). Each tab button: base colour #3A4360 (Home was #5C6BC0), a new `Icon` (built-in Knob sprite, tinted
+  gold/blue/green), the label moved to the lower half at 34 pt, and a new `Highlight` bar (#FFC107, 10 px, bottom).
+- `HomeCanvas`: new `InputBlocker` (transparent, raycast target, inactive) after `SafeArea`; instances of
+  `EditProfilePopup`, `MoreLivesPopup` and `EpisodeUnlockedOverlay` (inactive) between `SettingsPopup` and `Toast`.
+- `HomeScreen`: `_lives`, `_tabs`, `_editProfilePopup`, `_moreLivesPopup`, `_episodeUnlockedOverlay`, `_inputBlocker`
+  assigned (its old `_livesLabel`, `_leaderboardButton`, `_shopButton`, `_livesFormat`, `_comingSoonText` are gone).
+
+### Verification runs
+- EditMode tests via `TestRunnerApi` (`runSynchronously`, scenes clean): 1192 passed, 0 failed (3 new for the level
+  jump). Console clean.
+- Play mode on the Editor save (backed up first and restored afterwards): Home showed "5" and "Full"; tabs swapped
+  pages and highlights; Edit Profile opened with "Player", disabled Save for a blank name, saved "  Ada  " as "Ada",
+  and Close discarded an edit; at 0 lives the Level button opened More Lives ("0", "Next life in 01:00") and loaded
+  nothing; Home reloaded with "episode 2 unlocked" opened on the episode 1 background with input blocked, and 0.70 s
+  later showed the overlay (episode 2 mascot) over the episode 2 background; a tap closed it. The Home and Level
+  screens were rendered to 1080×1920 images (temporary camera, Play mode only) to check the layouts.
+- `Ball Sort ▸ Player Data…` opened and loaded the save without errors. (After this run it also gained a Current
+  level field with a Jump button, backed by `PlayerData.SetCurrentLevel`, so Episode Unlocked can be tested by hand.)
+
+## 2026-10-30 — Home tab fix and the new stuck rule
+
+All changes made through Unity MCP Editor commands.
+
+### Scenes
+- `Assets/Scenes/Home.unity`: `SafeArea/BottomNav/HomeButton` set interactable (it was saved as not interactable, the old
+  "always selected" look, so real taps on it did nothing once another tab was open) and given the same colour block as
+  the other tabs. `HomeTabs` now also makes every tab interactable when it starts.
+- `Assets/Scenes/Level.unity`: `StuckPanel._bannerLabel` = `StuckPanel/Banner/Label`; the label's text set to
+  "No more useful moves" (`StuckPanel._bannerText` sets it at runtime, the one place to change it).
+
+### Verification runs (no persistent changes)
+- Play mode on Home (the Editor save backed up first and restored afterwards): all 9 tab-to-tab combinations tapped
+  through the event system (raycast at the tab's centre, then the click sent to whatever handles it there): 9/9 showed
+  the right page and highlight, each tap handled by the tab under it.
+- `StuckDetector` timing in the Editor: random play on every level and variant (15,307 checks) averaged 0.02 ms, at most
+  9 positions explored; on synthetic one-colour 13-tube boards built to keep every move reversible, about 0.1 ms per
+  position (limit 8: 0.7–0.8 ms, 16: 1.4–1.6 ms, 24: 2.7–3.0 ms, 32: 3.4–4.4 ms, 48: 6.0–7.4 ms, 64: 9.9–11.2 ms).
+  `DefaultPositionLimit` set to 32.

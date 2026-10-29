@@ -21,7 +21,8 @@ namespace BallSort.Core.Session
     /// rebuild their view of the board on <see cref="Restarted"/>.
     /// </para>
     /// <para>
-    /// The stuck state is re-evaluated after every move, undo, added tube, shuffle and restart.
+    /// The stuck state (<see cref="StuckDetector"/>) is re-evaluated after every move, undo, added tube
+    /// (booster or Play on), shuffle and restart.
     /// Event order within one operation:
     /// <list type="bullet">
     /// <item>Move or undo: <see cref="MoveApplied"/> or <see cref="MoveUndone"/>, <see cref="BallRevealed"/>,
@@ -72,7 +73,10 @@ namespace BallSort.Core.Session
         /// <summary>True when every tube is either empty or completed.</summary>
         public bool IsWon => _board.IsWon;
 
-        /// <summary>True when the level is not won and no legal move exists.</summary>
+        /// <summary>
+        /// True when the level is not won and nothing meaningful is left to do: no legal move, or only
+        /// moves that go round in a loop (see <see cref="StuckDetector"/>).
+        /// </summary>
         public bool IsStuck { get; private set; }
 
         /// <summary>Why undo is unavailable, or <see cref="Commands.UndoBlockReason.None"/>.</summary>
@@ -336,7 +340,7 @@ namespace BallSort.Core.Session
 
         /// <summary>
         /// The paid way out of a dead end: spends <paramref name="price"/> coins and appends an empty
-        /// tube, which always gives a stuck board a legal move again.
+        /// tube, which gives a stuck board new moves; the stuck state is then evaluated again.
         /// </summary>
         /// <remarks>
         /// Only allowed while <see cref="IsStuck"/>. Unlike Add tube it ignores the booster
@@ -477,7 +481,7 @@ namespace BallSort.Core.Session
             Changed?.Invoke();
         }
 
-        private bool ComputeStuck() => !_board.IsWon && !MoveRules.HasAnyLegalMove(_board);
+        private bool ComputeStuck() => StuckDetector.IsStuck(_board);
 
         private void RefreshStuck()
         {

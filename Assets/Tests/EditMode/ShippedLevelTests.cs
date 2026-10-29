@@ -41,6 +41,19 @@ namespace BallSort.Tests.EditMode
             }
         }
 
+        private static IEnumerable<TestCaseData> StartPositions()
+        {
+            foreach (string path in LevelFiles())
+            {
+                string fileName = Path.GetFileName(path);
+                for (int variant = 1; variant <= VariantSelector.VariantCount; variant++)
+                {
+                    yield return new TestCaseData(fileName, variant)
+                        .SetName($"Variant_StartIsNotStuck({Path.GetFileNameWithoutExtension(fileName)} V{variant})");
+                }
+            }
+        }
+
         private static LoadedLevel LoadFile(string fileName)
         {
             string path = Path.Combine(LevelsFolder, fileName);
@@ -79,6 +92,14 @@ namespace BallSort.Tests.EditMode
             }
 
             Assert.That(PlayVariant(fileName, variant, moves).IsWon, Is.True, $"{fileName} V{variant}: the solver's moves must win");
+        }
+
+        [TestCaseSource(nameof(StartPositions))]
+        public void Variant_StartIsNotStuck(string fileName, int variant)
+        {
+            StuckAnalysis analysis = StuckDetector.Analyze(LoadFile(fileName).CreateBoard(variant), StuckDetector.DefaultPositionLimit);
+
+            Assert.That(analysis.IsStuck, Is.False, $"{fileName} V{variant}: {analysis}");
         }
 
         [Test]

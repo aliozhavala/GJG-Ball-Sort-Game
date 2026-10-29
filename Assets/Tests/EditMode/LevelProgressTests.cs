@@ -195,6 +195,27 @@ namespace BallSort.Tests.EditMode
             Assert.That((progress.RetryCount, progress.LastVariant), Is.EqualTo((2, 2)));
         }
 
+        [Test]
+        public void JumpTo_MovesProgress_AndStartsTheLevelAfresh()
+        {
+            var progress = new LevelProgress(100, true, 100, retryCount: 3, lastVariant: 4, levelInProgress: 100);
+
+            progress.JumpTo(20);
+
+            Assert.That((progress.CurrentLevel, progress.AllLevelsComplete), Is.EqualTo((20, false)));
+            Assert.That((progress.RetryCount, progress.LastVariant, progress.LevelInProgress), Is.EqualTo((0, 0, 0)));
+            Assert.That(progress.StartAttempt(new Random(1)), Is.EqualTo(1));
+        }
+
+        [TestCase(0)]
+        [TestCase(101)]
+        public void JumpTo_RejectsALevelOutsideTheRun(int level)
+        {
+            var progress = new LevelProgress(1, false, 100);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => progress.JumpTo(level));
+        }
+
         [TestCase(-1, 0, 0)]
         [TestCase(0, -1, 0)]
         [TestCase(0, 6, 0)]
