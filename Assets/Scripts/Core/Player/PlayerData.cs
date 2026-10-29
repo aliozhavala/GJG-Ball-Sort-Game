@@ -1,7 +1,6 @@
 using System;
-using BallSort.Core.Player;
 
-namespace BallSort.Game.Services
+namespace BallSort.Core.Player
 {
     /// <summary>
     /// Everything that persists about the player: progress, coins, lives, boosters and settings.
@@ -46,7 +45,7 @@ namespace BallSort.Game.Services
         /// <summary>Raised after a setting changes, with the setting and its new value.</summary>
         public event Action<SettingType, bool> SettingChanged;
 
-        /// <param name="save">A parsed, sanitised save; see <see cref="SaveService"/>.</param>
+        /// <param name="save">A parsed, sanitised save (the game reads it with <c>BallSort.SaveJson</c>).</param>
         /// <param name="levelCount">Levels in the game; the saved level must be within it.</param>
         public PlayerData(SaveData save, int levelCount)
         {
@@ -144,7 +143,7 @@ namespace BallSort.Game.Services
         public SaveData ToSaveData() =>
             new SaveData
             {
-                Version = SaveService.CurrentVersion,
+                Version = SaveData.CurrentVersion,
                 CurrentLevel = CurrentLevel,
                 AllLevelsComplete = AllLevelsComplete,
                 Coins = Wallet.Coins,

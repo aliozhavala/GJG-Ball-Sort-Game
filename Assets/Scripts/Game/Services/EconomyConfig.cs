@@ -1,5 +1,6 @@
 using System;
 using BallSort.Core.Levels;
+using BallSort.Core.Player;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -41,6 +42,10 @@ namespace BallSort.Game.Services
         public int StartAddTube => _startAddTube;
         public int PlayOnCost => _playOnCost;
         public int AddedTubeCapacity => _addedTubeCapacity;
+
+        /// <summary>A new player's starting values, for the save.</summary>
+        public PlayerRules CreatePlayerRules() =>
+            new PlayerRules(_startCoins, _startLives, _startUndo, _startShuffle, _startAddTube);
 
         /// <summary>Coins granted for winning a level of <paramref name="tier"/>.</summary>
         public int GetWinReward(LevelTier tier) =>

@@ -4,6 +4,7 @@
     "references": [
         "BallSort.Core",
         "BallSort.LevelJson",
+        "BallSort.SaveJson",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

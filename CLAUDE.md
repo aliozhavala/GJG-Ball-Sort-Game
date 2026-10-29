@@ -49,13 +49,14 @@ Mechanics, completion and board layout rules: read docs/mechanics.md when workin
 ## Architecture
 Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (tools)**.
 
-- **Core** (`BallSort.Core`, asmdef with `noEngineReferences: true`): plain C#, no `UnityEngine`. Board state, rules, commands, solver, level DTOs, `LevelSession`, `BoosterInventory`, `Wallet`. Must be usable from tests, editor tools, and background threads.
+- **Core** (`BallSort.Core`, asmdef with `noEngineReferences: true`): plain C#, no `UnityEngine`. Board state, rules, commands, solver, level DTOs, `LevelSession`, `BoosterInventory`, `Wallet`, `PlayerData` and its save shape `SaveData`. Must be usable from tests, editor tools, and background threads.
   - **`LevelSession`** is the single gameplay entry point: `TryMove`, `TryUndo`, `TryAddTube`, `TryShuffle` (or `TryBeginShuffle`/`TryApplyShuffle` around an off-thread search), `Restart`, `IsStuck`, booster spending, and events. It wraps `BoardState` + `CommandHistory` + `BoosterInventory`. **UI and input talk only to `LevelSession`**, never to the board or history directly.
   - Completion is a board query (`BoardState.IsCompleted`): it needs the level's colour totals, counted once per board and shared by its clones. The grid (`BoardGrid`) lives on the session, not the board; it never affects move legality.
 - **Game** (`BallSort.Game`): MonoBehaviours — views, input, layout, game flow, UI, audio, haptics, services (save, level loading). Depends on Core.
 - **Editor** (`BallSort.Editor`, editor-only): level validation and play-testing windows. Depends on Core.
 - **LevelJson** (`BallSort.LevelJson`, no engine refs): the Newtonsoft level parser, shared by Game, Editor and Tests.
-- **Tests** (`BallSort.Tests.EditMode`): tests Core and LevelJson; must not reference Game.
+- **SaveJson** (`BallSort.SaveJson`, no engine refs): the save's JSON codec (`SaveJsonCodec`: version check, migrations, required fields, clamping), shared by Game and Tests; `SaveService` (Game) only keeps its text in PlayerPrefs.
+- **Tests** (`BallSort.Tests.EditMode`): tests Core, LevelJson and SaveJson; must not reference Game.
 
 ### Patterns
 - **Command**: every move is a `MoveCommand` (`Execute`/`Undo`) kept in a `CommandHistory`, which owns only the completion seal (booster counts live in `BoosterInventory`). Restart does **not** build on it — restart reloads the level.
@@ -105,6 +106,7 @@ Assets/
   Scripts/
     Core/            BallSort.Core.asmdef  (Model/, Rules/, Commands/, Session/, Player/, Solver/, Levels/)
     LevelJson/       BallSort.LevelJson.asmdef — level JSON parser (Core + Newtonsoft, no engine refs)
+    SaveJson/        BallSort.SaveJson.asmdef — save JSON codec (Core + Newtonsoft, no engine refs)
     Game/            BallSort.Game.asmdef  (Bootstrap/, Flow/, Views/, Input/, Layout/, UI/, Audio/, Services/)
     Editor/          BallSort.Editor.asmdef (Validation/, Tools/)
   Tests/EditMode/    BallSort.Tests.EditMode.asmdef

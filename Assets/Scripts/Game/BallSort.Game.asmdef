@@ -4,6 +4,7 @@
     "references": [
         "BallSort.Core",
         "BallSort.LevelJson",
+        "BallSort.SaveJson",
         "DOTween.Modules",
         "Unity.InputSystem",
         "Unity.TextMeshPro",

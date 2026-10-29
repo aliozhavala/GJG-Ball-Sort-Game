@@ -1,4 +1,4 @@
-namespace BallSort.Game.Services
+namespace BallSort.Core.Player
 {
     /// <summary>The player's on/off settings.</summary>
     public enum SettingType

@@ -1,4 +1,4 @@
-using BallSort.Game.Services;
+using BallSort.Core.Player;
 using UnityEngine;
 using UnityEngine.UI;
 

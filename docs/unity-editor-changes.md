@@ -351,3 +351,21 @@ Asset moves made through Unity MCP Editor commands (`AssetDatabase.MoveAsset`, `
   level × variant solves, every fixture variant, the mechanic tests moved to `TestLevelFileTests`).
 - Shuffle timing through `LevelSession.TryBeginShuffle` / `PendingShuffle.Search` on the main thread: results in
   `docs/mechanics.md` (Shuffle, Limits).
+
+## 2026-10-29 — Lives, tutorials and Home tabs, stage 1: player save moved into testable assemblies
+
+Asset moves made through a Unity MCP Editor command (`AssetDatabase.MoveAsset`); Unity moved every `.meta` file itself,
+so the GUIDs are kept. No scene, prefab or config asset changed.
+
+### Scripts
+- `Assets/Scripts/Game/Services/PlayerData.cs`, `SaveData.cs` and `SettingType.cs` moved to `Assets/Scripts/Core/Player/`
+  (namespace now `BallSort.Core.Player`).
+- New: `Assets/Scripts/Core/Player/PlayerRules.cs`, the folder `Assets/Scripts/SaveJson/` with
+  `BallSort.SaveJson.asmdef` and `SaveJsonCodec.cs`, and `Assets/Tests/EditMode/SaveJsonCodecTests.cs` (Unity generated
+  their `.meta` files).
+
+### Verification runs (no persistent changes)
+- EditMode tests via `TestRunnerApi` (`runSynchronously`, scene clean): 1100 passed before the change; 1114 passed after
+  (the same 1100 unchanged, plus 14 codec tests), 0 failed. Console clean.
+- The Editor's stored save, read through the new `SaveService` and written back in memory (not saved), gave the same
+  JSON string.

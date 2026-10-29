@@ -1,5 +1,5 @@
 using System;
-using BallSort.Game.Services;
+using BallSort.Core.Player;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
