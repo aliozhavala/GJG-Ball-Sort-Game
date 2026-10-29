@@ -37,7 +37,7 @@ Optimize for clarity, clean architecture, and robustness over cleverness.
 - **Add tube** appends an empty tube (capacity from config, currently 4) at the end of the board, so tube indices and history stay valid. Not undoable, doesn't seal. It goes to the end of the grid row with the fewest cells (ties → bottom-most); rows grow to 8 cells during play, rows are never added; refused once every row has 8 cells.
 - **Play on** (only while stuck): costs coins (`EconomyConfig`), appends a tube exactly like Add tube (same layout limit), ignores the booster inventory, not undoable, doesn't seal.
 - **Shuffle** rearranges the balls of the open tubes (not covered, clay or completed), each keeping its ball count; the result must differ from the current board, complete nothing, expose no key and stay solvable. Spent only on success; clears the undo history. Full rules in docs/mechanics.md.
-- **Restart** starts a new try: it reloads the level from its source data, in the variant the try rules pick (docs/levels.md): hidden balls hidden again, added tubes gone, history cleared; boosters already spent stay spent. It is *not* "undo everything".
+- **Restart** ends the attempt like any exit before a win (it costs a life and counts a retry; at 0 lives it opens More Lives instead, docs/screens.md) and reloads the level from its source data, in the next variant (docs/levels.md): hidden balls hidden again, added tubes gone, history cleared; boosters already spent stay spent. It is *not* "undo everything".
 - **Tube capacity**: 4 for normal tubes; large tubes (5–16) span 2–3 grid rows. Large tubes need not be clay.
 - **Tube completed** = full, every ball revealed, and holds **every ball of its color in the level** (details in docs/mechanics.md). Completed tubes cannot be a move source.
 - **Level won** = every tube is either empty or completed.
@@ -62,7 +62,7 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - **Observer**: Core raises plain C# events (`MoveApplied`, `BallRevealed`, `TubeCompleted`, `TubeUnveiled`, `KeyFound`, `LockOpened`, `LevelCompleted`, `MoveUndone`, `TubeAdded` with its grid row and cell, `Shuffled`, `StuckChanged`, plus change events on `Wallet` and `BoosterInventory`), in the order documented on `LevelSession`. The board finishes every mutation, including the cover cascade, before its first event fires, but board events still arrive before the session has recorded the move in its history; anything showing derived state (booster availability) refreshes on `LevelSession.Changed`, which fires once the operation is complete. Views, audio, haptics and UI subscribe. Always unsubscribe in `OnDisable`/`OnDestroy`. Avoid Inspector-wired UnityEvent chains for game logic.
 - **State machine**: level flow (`LevelFlow`: `Loading → Playing ⇄ Stuck → Won`, plus `Playing → Shuffling → Playing` while a shuffle is searched) and input selection state.
 - **Object pooling**: balls and VFX via `UnityEngine.Pool.ObjectPool<T>`. No `Instantiate`/`Destroy` per move.
-- **ScriptableObjects** for config: `ColorPalette` (color id → sprite/tint), `AnimationConfig` (timings, eases), `LevelDatabase` (ordered list of level `TextAsset`s), `EconomyConfig` (prices, rewards per tier), `EpisodeConfig` (episodes and their backgrounds).
+- **ScriptableObjects** for config: `ColorPalette` (color id → sprite/tint), `AnimationConfig` (timings, eases), `LevelDatabase` (ordered list of level `TextAsset`s), `EconomyConfig` (prices, rewards per tier, lives), `EpisodeConfig` (episodes, their backgrounds and mascot frames), `TutorialConfig` (tutorial popup text per level id).
 - **Composition**: a persistent **`AppRoot`** (prefab in `Resources/`, auto-created via `RuntimeInitializeOnLoadMethod`, `DontDestroyOnLoad`) owns player data, saving and scene loading. It is the **one agreed singleton-style exception**. Each scene has its own bootstrap that takes services from `AppRoot` and wires its views. **No other singletons** — no static `Instance`.
 - **Scenes**: `Home` (build index 0) and `Level` (build index 1). Pressing Play in either scene must work.
 
@@ -81,13 +81,13 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - Every ball position change goes through `BallView.MoveTo`, every cover change through `CoverView.SetOpen` (it also hides/shows the covered balls, so cover art may be translucent), every key-mark change through `BallView.UpdateKeyMark` (all snap now; step 6 swaps in tweens there). Feedback hooks for step 6 live in `LevelFeedback` (invalid move — placeholder tube flash, tube completed, celebration); the flow code does not change.
 - UI: uGUI + TextMeshPro, Canvas Scaler 1080×1920, match 0.5, `SafeArea` on root panel.
 
-Screens, flow, boosters and economy: read docs/screens.md when working on UI or flow.
+Screens, flow, lives, tutorials, boosters and economy: read docs/screens.md when working on UI or flow.
 
 ## Levels
 
 ### Progression
 - **Linear only in the game:** no level select screen. The player always continues from their highest unlocked level (saved via a `SaveService`, PlayerPrefs-backed).
-- **Editor-only level jump:** **Ball Sort ▸ Play Level…** (or Play on a Validate Levels row) picks and plays any level and variant from the Editor, for testing and tuning, for one visit (SessionState, read by `LevelBootstrap`). It can also play a level file outside the run: test and draft levels live in `Assets/Data/TestLevels/`, never in `LevelDatabase`. Every jump is a test visit: winning pays no reward, moves no progress and counts no try, and Restart replays the picked variant. It must not ship in player builds (`#if UNITY_EDITOR` or the Editor assembly).
+- **Editor-only level jump:** **Ball Sort ▸ Play Level…** (or Play on a Validate Levels row) picks and plays any level and variant from the Editor, for testing and tuning, for one visit (SessionState, read by `LevelBootstrap`). It can also play a level file outside the run: test and draft levels live in `Assets/Data/TestLevels/`, never in `LevelDatabase`. Every jump is a test visit: winning pays no reward and moves no progress, lives are neither checked nor spent (no retry, no level-in-progress mark), the tutorial shows on every visit without being saved as seen, and Restart replays the picked variant. It must not ship in player builds (`#if UNITY_EDITOR` or the Editor assembly).
 
 Level JSON schema, variants, validation and solver details: read docs/levels.md when working on levels.
 

@@ -7,8 +7,10 @@ and how to check your work in the Editor. The developer reference is `docs/level
 ## What a level file is
 
 One level = one JSON file. It describes **one board** (where the tubes stand) and **five variants**: five puzzles on
-that board. A player's first try at a level plays V1, the second V2, and so on up to V5. From the sixth try on, the game
-picks V3, V4 or V5 at random, never the same one twice in a row. Winning resets the count, so every level starts at V1.
+that board. A player's first attempt at a level plays V1. Every attempt that ends without a win (leaving, restarting or
+closing the app mid-level, each of which costs a life) moves them on to the next: V2, and so on up to V5. From the sixth
+attempt on, the game picks V3, V4 or V5 at random, never the same one twice in a row. Winning resets the count, so every
+level starts at V1.
 So V1 is what everyone sees first, and V3–V5 are what players who keep retrying see again and again.
 
 - Shipped levels: `Assets/Data/Levels/level_001.json` … `level_100.json`. The number in the file name must equal the
@@ -27,7 +29,7 @@ Balls are listed **bottom to top**. Tubes are numbered from 0, in the order they
 | `formatVersion` | yes | Always `2`. |
 | `id` | yes | The level number, 1–100 (matches the file name). |
 | `tier` | yes | `"regular"`, `"hard"` or `"superHard"`. Sets the win reward (20 / 40 / 60 coins) and the Level button's look on Home. |
-| `tutorial` | no | `true` for a level that introduces a mechanic. |
+| `tutorial` | no | `true` for a level that introduces a mechanic. The first time a player enters it, a popup shows its tutorial text, written in `Assets/Data/Config/TutorialConfig.asset` under the level's id. |
 | `layout` | yes | `{ "grid": [...] }`: where each tube stands. Shared by all five variants. |
 | `variants` | yes | Exactly 5 variants, V1 first. |
 
@@ -179,7 +181,7 @@ Plays any level in the Editor.
 2. Either pick a level of the database and press **Play level N, Vk**, or drop a file (for example a draft from
    `Assets/Data/TestLevels/`) into **Level file** and press **Play**.
 3. The game opens on that level and variant. Restart replays the same variant. These visits are tests: winning pays
-   no coins, moves no progress and counts no try. Every row in Validate Levels also has a **Play** button for its variant.
+   no coins and moves no progress, and leaving costs no life. Every row in Validate Levels also has a **Play** button for its variant.
 
 Drafts in `TestLevels/` are not in the database, so Validate Levels does not list them. Play them with **Level file**:
 a file with problems sends the game back to Home with "Level … could not be loaded", and the Console lists every problem.

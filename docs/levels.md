@@ -6,14 +6,14 @@ slot n holds `level_n`, and a level held back (e.g. one that fails validation) l
 shifting the rest.
 Ball arrays run **bottom → top**. This file is the schema; the rules and validation behind each field are in docs/mechanics.md.
 
-A level is one board (`layout.grid`) and **five variants**: five puzzles on that board. Each try at the level plays one
-variant (Variants and tries, below), so a player who retries does not face the same puzzle every time.
+A level is one board (`layout.grid`) and **five variants**: five puzzles on that board. Each attempt at the level plays
+one variant (Variants and retries, below), so a player who retries does not face the same puzzle every time.
 
 - Top level, all required: `formatVersion` (int, currently **2**), `id`, `tier`, `layout` and `variants`.
   - `tier`: `"regular"`, `"hard"` or `"superHard"`, as a string (a number is rejected). It sets the win reward and the Home Level button's look (docs/screens.md).
   - `layout.grid`: rows of cells, top row first; each cell is a tube index or `null`. At most 3 rows and 6 cells per row. A large tube is listed in every row it spans, in the same cell. Shared by all variants.
   - `variants`: exactly 5, played as V1–V5 in array order.
-- Top level, optional: `tutorial` (`true` for a level that introduces a mechanic; per level, not per variant). Nothing reads it yet; tutorial levels will get their own UI later.
+- Top level, optional: `tutorial` (`true` for a level that introduces a mechanic; per level, not per variant). The first time the player enters such a level, it shows its tutorial popup, whose text comes from `TutorialConfig` under the level's id (docs/screens.md, Tutorials).
 - Per variant: `colors` and `tubes` (required), `locks` and `meta` (optional).
   - Per tube: `capacity` and `balls` (required); optional `hidden` (parallel to `balls`), `veil: { "color": c }` (a ball colour id), `clay: true`, `keys: [{ "slot": s, "lock": id }]` (`slot` indexes `balls`).
   - `locks: [{ "id": id, "tubes": [i, j, …] }]` (`id` an integer ≥ 0; it also picks the lock's colour from `LockPalette`, which has 4 colours today, so use ids 0–3: a larger id draws black and logs an error, the validator does not catch it).
@@ -88,7 +88,7 @@ Loader validates the format (below), then each variant against every completion,
 - All problems are reported at once, each as `<level>: <location>: <problem>`; inside a variant the location starts with it, 1-based like V1–V5, e.g. `level_003: variant 2: tubes[2]: top ball is hidden`.
 - Split: Core owns the DTOs (`LevelDto` for the file, `LevelVariantDto` per variant, `LevelTier`), `LevelValidator`
   (`Validate` for a file; `ValidateVariant` checks one variant on a layout), `VariantSelector`, `LevelLayout` and
-  `LevelFactory` (no serializer dependency); `LoadedLevel` holds a validated file and builds each try's board with
+  `LevelFactory` (no serializer dependency); `LoadedLevel` holds a validated file and builds each attempt's board with
   `CreateBoard(variant)`; `LevelJsonParser` lives in its own engine-free assembly, `BallSort.LevelJson` (Core + Newtonsoft), so Game, Editor and Tests share it without depending on each other.
 
 The shipped files are the 100 levels delivered by product; the import check (validation, solvability, optimal moves
@@ -98,20 +98,26 @@ solves every variant of every file with the solver and plays the solution to a w
 use the fixtures in `Assets/Data/TestLevels/` (below), never a shipped level, so the levels can be retuned freely. The
 former stuck trap is the test fixture `TestLevels.StuckTrap()`.
 
-### Variants and tries
-- Tries 1–5 at a level play V1–V5 in order. From try 6 on, the variant is picked at random among V3–V5, never the
-  same one as the previous try.
-- A new try starts on **entering the level** and on **Restart**. **Play on** continues the same try. A **win** resets
-  the count, so the next level starts at try 1 (V1).
-- The try count and the last variant played are saved in player data (docs/screens.md) the moment a try starts, so
-  leaving the level or closing the app mid-try still counts it, and the next entry is the next try.
-- Replays (the last level again, after all levels are complete) use the same rules.
+### Variants and retries
+- An **attempt** is one play of a level, from loading it to a win or to an exit that costs a life (docs/screens.md,
+  Lives). Every attempt that costs a life adds one to the level's **retry count**: settings → Home, settings → Restart,
+  stuck → Give up, and an attempt found still in progress at the next launch (the app was closed or killed mid-level).
+  At 0 lives such an exit costs no life (lives never go below 0) but still counts its retry. Entering a level counts
+  nothing by itself, **Play on** continues the same attempt, and a level that fails to load counts nothing.
+- Each load picks its variant from the retry count: with 0–4 retries it plays V1–V5 in order; from 5 retries on, a
+  random variant among V3–V5, never the one the previous attempt played. So the first attempt plays V1, and
+  **Restart** loads the next variant.
+- A **win** resets the count, so the next level starts at V1.
+- The retry count is saved together with the life it costs (one save), and the variant with the load that picks it
+  (docs/screens.md, Persistent player data).
+- Replays (the last level again, after all levels are complete) use the same rules. Editor test visits play the picked
+  variant and count nothing.
 
 ### Test and draft levels
 Level files outside the run live in `Assets/Data/TestLevels/` (ids from 901, file names free). The `LevelDatabase` must
 never list them (its `OnValidate` logs an error if it does), and `ShippedLevelTests` does not read that folder. Play one
 with **Ball Sort ▸ Play Level… ▸ Level file**, in the variant picked there: like every editor jump it is a test
-visit (no reward, no progress, no try counted). Test levels use the same format as shipped levels, five variants included.
+visit (no reward, no progress, no life spent, no retry counted). Test levels use the same format as shipped levels, five variants included.
 `TestLevelFileTests` lists the fixtures below and keeps each one valid and every variant solvable; any other file in the
 folder is a draft and is not checked. Except `stuck_lock`, the fixtures are the former placeholder levels 4–8: V1 is the
 original puzzle and V2–V5 permute its colours and swap equivalent open tubes.
@@ -140,4 +146,4 @@ original puzzle and V2–V5 permute its colours and swap equivalent open tubes.
 **Ball Sort ▸ Validate Levels…** runs, for every level in the `LevelDatabase`: the loader's validation, then for each variant the solver in Fast mode, then in Optimal mode if Fast found a solution (each with an editable node limit). The table has **one row per variant**: level, variant, colours / tubes, the mechanics found in the data, solvable, optimal moves (or `≥ n`), nodes and time, with that variant's errors under it; a level with problems outside its variants (unreadable file, header, grid) gets an extra `file` row. A variant with no problems of its own is still solved when another part of the file is broken. Solving runs on a worker thread behind a cancelable progress bar. **Write meta.optimalMoves** writes each proven optimum into its variant's `meta` by editing the text (formatting and key order are kept; the edit is re-parsed and refused if anything other than that variant's `meta.optimalMoves` would change). Each row's **Play** button opens that level in that variant through the editor level jump (**Ball Sort ▸ Play Level…**); it is enabled only when the whole file is valid, since only a valid file loads.
 
 ### Play Level (Editor)
-**Ball Sort ▸ Play Level…** opens the Level scene in Play mode on a level of the database or on a level file, in the variant picked with its **Variant** slider (V1–V5). Every such visit is a test: each try (Restart included) plays the picked variant, and winning pays no reward, moves no progress and counts no try. The HUD and the Win panel name the variant, e.g. "Level 6 · V5".
+**Ball Sort ▸ Play Level…** opens the Level scene in Play mode on a level of the database or on a level file, in the variant picked with its **Variant** slider (V1–V5). Every such visit is a test: each attempt (Restart included) plays the picked variant, winning pays no reward and moves no progress, and leaving spends no life and counts no retry (docs/screens.md, Scenes & flow). The HUD and the Win panel name the variant, e.g. "Level 6 · V5".
