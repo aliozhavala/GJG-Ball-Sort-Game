@@ -23,8 +23,9 @@ namespace BallSort.Core.Session
 
         /// <summary>
         /// Solver node limit per attempt; hitting it counts as unsolvable. Solvable shuffled boards
-        /// have needed at most ~130 nodes, so this leaves wide headroom while keeping the worst case
-        /// (every attempt failing at the limit) near one second in the Editor on the largest grid.
+        /// have needed at most ~130 nodes, so this leaves wide headroom. The worst case (every attempt
+        /// failing at the limit) is 1–3 s in the Editor on the largest delivered levels but has not
+        /// been seen there; real shuffles take milliseconds (docs/mechanics.md).
         /// </summary>
         public const int NodeLimit = 2000;
 

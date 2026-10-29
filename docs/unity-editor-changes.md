@@ -323,3 +323,31 @@ All changes made through Unity MCP Editor commands; Unity generated every new `.
   once. Winning paid 40 coins (Win panel "+40"), moved to level 5 and reset the tries. Editor jump to level 6 V5: HUD
   "Level 6 · V5", Restart kept V5, no try counted, the win paid nothing (reward line hidden) and kept level 5.
 - The original Editor save string (version 1, level 4, 1220 coins) was written back afterwards.
+
+## 2026-10-29 — Import of the delivered levels 1–100
+
+Asset moves made through Unity MCP Editor commands (`AssetDatabase.MoveAsset`, `AssetDatabase.MoveAssetToTrash`;
+`DeleteAsset` is refused for MCP commands); Unity moved or removed every `.meta` file itself.
+
+### Level files
+- `Assets/Data/Levels/level_001.json`–`level_003.json` (placeholders, no test used them): moved to the trash.
+- `Assets/Data/Levels/level_004.json`–`level_008.json` (placeholders) moved to `Assets/Data/TestLevels/` as
+  `uneven_rows.json`, `full_rows.json`, `veil.json`, `lock_and_key.json` and `clay_large_tube.json` (GUIDs kept), then
+  their `id` set to 902–906 (text edit).
+- `Assets/Data/LevelsIncoming/level_001.json` … `level_100.json` moved to `Assets/Data/Levels/` (their GUIDs kept, so
+  `level_001`–`level_008` now have new GUIDs); the empty `Assets/Data/LevelsIncoming/` folder moved to the trash.
+- `meta.optimalMoves` written into 64 variants of the delivered files with `OptimalMovesWriter` (text edit, one line
+  each; `difficulty` and `notes` untouched), then `AssetDatabase.Refresh`. `level_051` V3 has none (not settled).
+
+### Assets
+- `Assets/Data/LevelDatabase.asset` (`LevelDatabase`): `_levels` = `level_001.json` … `level_100.json`, in order
+  (slot n = level n; was the 8 placeholders). While the list was replaced, `OnValidate` logged the old list once
+  (slots 1–3 empty, slots 4–8 pointing at the moved test levels); nothing after a forced reimport.
+- No scene, prefab or config asset changed: `EpisodeConfig` already covers levels 1–100, `ColorPalette` has 12
+  colours (the levels use at most 10) and `LockPalette` 4 (the levels use lock ids 0–2).
+
+### Verification runs (no persistent changes)
+- EditMode tests via `TestRunnerApi` (`runSynchronously`, scene clean): 1100 passed, 0 failed (all 500 shipped
+  level × variant solves, every fixture variant, the mechanic tests moved to `TestLevelFileTests`).
+- Shuffle timing through `LevelSession.TryBeginShuffle` / `PendingShuffle.Search` on the main thread: results in
+  `docs/mechanics.md` (Shuffle, Limits).

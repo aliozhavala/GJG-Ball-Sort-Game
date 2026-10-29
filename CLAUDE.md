@@ -69,7 +69,7 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 ### Timing and async
 - **Game logic never waits on animation.** The model applies moves instantly and fires events; views animate asynchronously and may be interrupted (a re-selected ball kills/completes its tween first).
 - **DOTween** for motion. **Coroutines or `Awaitable`/async** only for orchestration (delays, win sequence, level transitions) — pick one style per feature, don't mix in the same flow.
-- **Solver at runtime** (shuffle now, hints later) runs on a background thread (`Task.Run`) against a board copy, results applied on the main thread. Shuffle: `LevelSession.TryBeginShuffle` → `PendingShuffle.Search` on a worker → `TryApplyShuffle`, with input locked meanwhile (and "Shuffling…" after 0.3 s); its worst case (20 attempts × 2k nodes) is ~1 s in the Editor, far too long for one frame.
+- **Solver at runtime** (shuffle now, hints later) runs on a background thread (`Task.Run`) against a board copy, results applied on the main thread. Shuffle: `LevelSession.TryBeginShuffle` → `PendingShuffle.Search` on a worker → `TryApplyShuffle`, with input locked meanwhile (and "Shuffling…" after 0.3 s); real shuffles take milliseconds, but its worst case (20 attempts × 2k nodes, never seen in practice) is 1–3 s in the Editor on the delivered levels, far too long for one frame.
 
 ## Presentation
 - Art is swappable: sprites only via ScriptableObjects (`ColorPalette`, `TubeVisualConfig`) or prefab fields. Placeholders: built-in Circle and 9-slice sprites, tinted, copied to `Art/Sprites/Placeholder/` (the originals sit in a package `Editor/` folder, which builds exclude).
@@ -93,6 +93,8 @@ Level JSON schema, variants, validation and solver details: read docs/levels.md 
 
 ### Solvability
 - Every variant of every shipped level must be solvable: `ShippedLevelTests` solves each variant (Fast mode) and plays the solution to a win. After editing levels, run **Ball Sort ▸ Validate Levels…** and write `meta.optimalMoves` back.
+- `LevelDatabase` slot n holds `level_n`; a level held back (e.g. invalid) leaves its slot empty rather than shifting the rest.
+- Tests never depend on a shipped level's content: they use fixtures in `Assets/Data/TestLevels/`, so product can retune levels freely.
 
 ## Folder structure
 Project folders live **directly under `Assets/`**, alongside `Plugins/`. (There is no `_Project/`
@@ -139,9 +141,9 @@ Assets/
 - Keep changes small and commit-sized. Don't rewrite working code for style alone.
 
 ## Roadmap
-1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b ✅ Solver, solvability checks, Validate Levels, Shuffle · 4c ✅ Mechanic views (placeholders) and editor level jump · 5 ✅ Level format v2: variants, tier, episodes; level import and validation · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
+1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b ✅ Solver, solvability checks, Validate Levels, Shuffle · 4c ✅ Mechanic views (placeholders) and editor level jump · 5 ✅ Level format v2: variants, tier, episodes; level import and validation · 6 Art/audio/VFX polish · 7a ✅ Level import: the delivered levels 1–100 checked and shipped (docs/reports/level-import.md) · 7b Level curation, playtests, README, packaging
 
 ## Open decisions (update as they're settled)
-- Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size (12 colours today; a level may not use more), lock palette (4 colours today, so lock ids 0–3), colorblind patterns.
-- Shuffle limits (20 attempts × 2k nodes): re-measure with the delivered levels.
-- Difficulty curve shape and mechanic introduction levels (product).
+- Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size (12 colours today; a level may not use more; the delivered levels use at most 10, art has 10 sprites so far, and more than 10 is not an error), lock palette (4 colours today, so lock ids 0–3; the delivered levels use 0–2), colorblind patterns.
+- Shuffle limits (20 attempts × 2k nodes): re-measured on the delivered levels and kept (docs/mechanics.md); revisit only if device tests make the 1–3 s worst case matter.
+- Difficulty curve shape and mechanic introduction levels (product): first delivery imported; its warnings (V2 vs V1, V3–V5 not easier, level 100's tier) are in docs/reports/level-import.md.

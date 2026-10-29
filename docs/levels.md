@@ -1,7 +1,9 @@
 # Levels — format, variants, validation and solver
 
 ### File format (version 2)
-One JSON file per level: `Assets/Data/Levels/level_001.json` … `level_100.json`, referenced in order by `LevelDatabase`.
+One JSON file per level: `Assets/Data/Levels/level_001.json` … `level_100.json`, referenced in order by `LevelDatabase`:
+slot n holds `level_n`, and a level held back (e.g. one that fails validation) leaves its slot empty rather than
+shifting the rest.
 Ball arrays run **bottom → top**. This file is the schema; the rules and validation behind each field are in docs/mechanics.md.
 
 A level is one board (`layout.grid`) and **five variants**: five puzzles on that board. Each try at the level plays one
@@ -26,7 +28,7 @@ or lock), and the same lock tube sets (each lock covers the same tubes). Everyth
 `colors`, hidden flags, key positions, veil colours, lock ids (door colours) and `meta`. Each variant is checked against
 V1, e.g. `level_006: variant 3: tubes[2]: capacity is 5, but variant 1 has 4`.
 
-Compact example, `level_006.json`: 5 tubes in two rows with a veil. V2–V4 swap colours and move the full tubes
+Compact example, a veil level with id 6 (not the shipped `level_006`): 5 tubes in two rows with a veil. V2–V4 swap colours and move the full tubes
 around; V5 also hides a ball. (`LevelJsonParserTests` checks that every complete JSON example in the docs is valid and
 every variant solvable.)
 
@@ -89,14 +91,12 @@ Loader validates the format (below), then each variant against every completion,
   `LevelFactory` (no serializer dependency); `LoadedLevel` holds a validated file and builds each try's board with
   `CreateBoard(variant)`; `LevelJsonParser` lives in its own engine-free assembly, `BallSort.LevelJson` (Core + Newtonsoft), so Game, Editor and Tests share it without depending on each other.
 
-Current files are placeholders until the delivered levels arrive: `level_001`–`level_005` are plain, `level_006`
-(veil), `level_007` (lock and key) and `level_008` (clay and a capacity-10 tube spanning 2 rows) are hand-made mechanic
-tests. In each, V1 is the original puzzle and V2–V5 permute its colours and swap equivalent open tubes (same capacity,
-no cover, not clay), so every variant is as solvable as V1; V5 of `level_006` also hides a ball. Placeholder tiers:
-`level_004` hard and `level_005` super hard, so Home shows every look; the rest regular. `level_003` and
-`level_006`–`level_008` are marked `tutorial`. `ShippedLevelTests` solves every variant of every file with the solver
-and plays the solution to a win; the mechanic levels also keep a scripted solution on V1 that checks their mechanic
-fires. The former stuck trap is the test fixture `TestLevels.StuckTrap()`.
+The shipped files are the 100 levels delivered by product; the import check (validation, solvability, optimal moves
+per variant, difficulty warnings) is `docs/reports/level-import.md`. `meta.optimalMoves` is written for every variant
+except `level_051` V3, whose optimum (36–38) the solver does not settle even at 4 million nodes. `ShippedLevelTests`
+solves every variant of every file with the solver and plays the solution to a win. Tests that need particular content
+use the fixtures in `Assets/Data/TestLevels/` (below), never a shipped level, so the levels can be retuned freely. The
+former stuck trap is the test fixture `TestLevels.StuckTrap()`.
 
 ### Variants and tries
 - Tries 1–5 at a level play V1–V5 in order. From try 6 on, the variant is picked at random among V3–V5, never the
@@ -112,6 +112,15 @@ Level files outside the run live in `Assets/Data/TestLevels/` (ids from 901, fil
 never list them (its `OnValidate` logs an error if it does), and `ShippedLevelTests` does not read that folder. Play one
 with **Ball Sort ▸ Play Level… ▸ Level file**, in the variant picked there: like every editor jump it is a test
 visit (no reward, no progress, no try counted). Test levels use the same format as shipped levels, five variants included.
+`TestLevelFileTests` lists the fixtures below and keeps each one valid and every variant solvable; any other file in the
+folder is a draft and is not checked. Except `stuck_lock`, the fixtures are the former placeholder levels 4–8: V1 is the
+original puzzle and V2–V5 permute its colours and swap equivalent open tubes.
+- `uneven_rows.json` (902) and `full_rows.json` (903): plain boards in two rows of 4 + 3 and 6 + 6 tubes (the widest
+  row a level file may have); their tests check the grid.
+- `veil.json` (904), `lock_and_key.json` (905) and `clay_large_tube.json` (906): one mechanic each, with a scripted V1
+  solution that checks it fires: finishing red lifts the veil; the first move finds the key and opens the door; the
+  capacity-10 clay tube spans two rows, is never a move source and finishes holding all ten. V5 of `veil` also hides a
+  ball.
 - `stuck_lock.json`: the former stuck trap plus a locked empty tube 5 whose key sits on a hidden ball at the bottom of
   tube 2. In V1, red from tube 1 into the empty tube 4, then yellow from tube 0 onto tube 1, gets stuck with the door
   closed; Play on adds a tube to the same row, so the row re-centres and the door must follow its tube. Its variants
@@ -125,7 +134,7 @@ visit (no reward, no progress, no try counted). Test levels use the same format 
 - **Result:** `Solved` / `Unsolvable` / `Unknown` (node limit hit), the moves (replayed and checked before returning), whether optimal, a proven lower bound (`≥ n` when Optimal stops at its limit), nodes expanded, largest frontier, elapsed time.
 - **Position key** (`BoardStateKey`): a packed byte encoding of every tube (capacity, clay flag, cover, balls with colour, hidden flag and key) plus the tube count. Interchangeable tubes (same capacity, clay flag, cover kind and id) are sorted first. Compared byte for byte, so a hash collision can never hide an unvisited position.
 - **Skipped moves** (each only reaches a position already seen): moves out of a completed tube; pouring a tube that is one revealed run into an equivalent empty tube (same capacity, not clay, not covered); moving the previous move's balls straight back, unless that move revealed a ball, found a key or opened a cover.
-- **Speed (Editor):** about 15–25 µs per expanded node. The current levels need under 100 nodes in Fast mode; `level_005` (10 colours, 12 tubes) takes 695 nodes / ~11 ms in Optimal mode.
+- **Speed (Editor):** about 15–25 µs per expanded node on small boards, 30–75 µs on the largest delivered levels (13 tubes). The delivered levels need at most ~560 nodes in Fast mode. In Optimal mode almost every variant settles within the Validate Levels default of 500,000 nodes; 10 need 0.6–1.5 million and `level_051` V3 more than 4 million. The default stays at 500,000 to bound the window's time and memory, so those rows show `≥ n`; raise the limit in the window to settle them (Write only writes settled optima, so it never removes theirs).
 
 ### Validate Levels (Editor)
 **Ball Sort ▸ Validate Levels…** runs, for every level in the `LevelDatabase`: the loader's validation, then for each variant the solver in Fast mode, then in Optimal mode if Fast found a solution (each with an editable node limit). The table has **one row per variant**: level, variant, colours / tubes, the mechanics found in the data, solvable, optimal moves (or `≥ n`), nodes and time, with that variant's errors under it; a level with problems outside its variants (unreadable file, header, grid) gets an extra `file` row. A variant with no problems of its own is still solved when another part of the file is broken. Solving runs on a worker thread behind a cancelable progress bar. **Write meta.optimalMoves** writes each proven optimum into its variant's `meta` by editing the text (formatting and key order are kept; the edit is re-parsed and refused if anything other than that variant's `meta.optimalMoves` would change). Each row's **Play** button opens that level in that variant through the editor level jump (**Ball Sort ▸ Play Level…**); it is enabled only when the whole file is valid, since only a valid file loads.

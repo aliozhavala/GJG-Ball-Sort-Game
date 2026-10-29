@@ -1,0 +1,44 @@
+{
+  "formatVersion": 2,
+  "id": 905,
+  "tier": "regular",
+  "tutorial": true,
+  "layout": { "grid": [[0, 1, 2], [3, 4]] },
+  "variants": [
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [1, 2, 0, 0], "keys": [{ "slot": 1, "lock": 0 }] },
+        { "capacity": 4, "balls": [2, 1, 0, 0] },
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [2, 1, 2, 1] },
+        { "capacity": 4, "balls": [] }
+      ], "locks": [{ "id": 0, "tubes": [3, 4] }], "meta": { "optimalMoves": 8 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [2, 0, 1, 1], "keys": [{ "slot": 1, "lock": 0 }] },
+        { "capacity": 4, "balls": [0, 2, 1, 1] },
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [0, 2, 0, 2] },
+        { "capacity": 4, "balls": [] }
+      ], "locks": [{ "id": 0, "tubes": [3, 4] }], "meta": { "optimalMoves": 8 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [1, 0, 2, 2] },
+        { "capacity": 4, "balls": [0, 1, 2, 2], "keys": [{ "slot": 1, "lock": 0 }] },
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [1, 0, 1, 0] },
+        { "capacity": 4, "balls": [] }
+      ], "locks": [{ "id": 0, "tubes": [3, 4] }], "meta": { "optimalMoves": 8 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [1, 2, 0, 0] },
+        { "capacity": 4, "balls": [2, 1, 0, 0], "keys": [{ "slot": 1, "lock": 0 }] },
+        { "capacity": 4, "balls": [1, 2, 1, 2] },
+        { "capacity": 4, "balls": [] }
+      ], "locks": [{ "id": 0, "tubes": [3, 4] }], "meta": { "optimalMoves": 8 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [1, 0, 2, 2], "keys": [{ "slot": 1, "lock": 0 }] },
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [0, 1, 2, 2] },
+        { "capacity": 4, "balls": [0, 1, 0, 1] },
+        { "capacity": 4, "balls": [] }
+      ], "locks": [{ "id": 0, "tubes": [3, 4] }], "meta": { "optimalMoves": 8 } }
+  ]
+}
