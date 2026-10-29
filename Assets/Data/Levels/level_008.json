@@ -1,15 +1,49 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "id": 8,
-  "colors": 3,
+  "tier": "regular",
+  "tutorial": true,
   "layout": { "grid": [[0, 1, 2], [0, 3, 4, 5]] },
-  "tubes": [
-    { "capacity": 10, "balls": [0], "clay": true },
-    { "capacity": 4, "balls": [1, 0, 0, 0] },
-    { "capacity": 4, "balls": [2, 0, 0, 0] },
-    { "capacity": 4, "balls": [1, 2, 0, 0] },
-    { "capacity": 4, "balls": [2, 1, 2, 0] },
-    { "capacity": 4, "balls": [1] }
-  ],
-  "meta": { "optimalMoves": 10, "mechanics": ["clay", "large"], "tutorial": true }
+  "variants": [
+    { "colors": 3, "tubes": [
+        { "capacity": 10, "balls": [0], "clay": true },
+        { "capacity": 4, "balls": [1, 0, 0, 0] },
+        { "capacity": 4, "balls": [2, 0, 0, 0] },
+        { "capacity": 4, "balls": [1, 2, 0, 0] },
+        { "capacity": 4, "balls": [2, 1, 2, 0] },
+        { "capacity": 4, "balls": [1] }
+      ], "meta": { "optimalMoves": 10 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 10, "balls": [1], "clay": true },
+        { "capacity": 4, "balls": [2, 1, 1, 1] },
+        { "capacity": 4, "balls": [0, 1, 1, 1] },
+        { "capacity": 4, "balls": [2, 0, 1, 1] },
+        { "capacity": 4, "balls": [0, 2, 0, 1] },
+        { "capacity": 4, "balls": [2] }
+      ], "meta": { "optimalMoves": 10 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 10, "balls": [2], "clay": true },
+        { "capacity": 4, "balls": [0] },
+        { "capacity": 4, "balls": [1, 2, 2, 2] },
+        { "capacity": 4, "balls": [0, 1, 2, 2] },
+        { "capacity": 4, "balls": [1, 0, 1, 2] },
+        { "capacity": 4, "balls": [0, 2, 2, 2] }
+      ], "meta": { "optimalMoves": 10 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 10, "balls": [0], "clay": true },
+        { "capacity": 4, "balls": [2, 0, 0, 0] },
+        { "capacity": 4, "balls": [2, 1, 0, 0] },
+        { "capacity": 4, "balls": [1, 0, 0, 0] },
+        { "capacity": 4, "balls": [1, 2, 1, 0] },
+        { "capacity": 4, "balls": [2] }
+      ], "meta": { "optimalMoves": 10 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 10, "balls": [1], "clay": true },
+        { "capacity": 4, "balls": [0, 1, 1, 1] },
+        { "capacity": 4, "balls": [2, 1, 1, 1] },
+        { "capacity": 4, "balls": [0, 2, 1, 1] },
+        { "capacity": 4, "balls": [0] },
+        { "capacity": 4, "balls": [2, 0, 2, 1] }
+      ], "meta": { "optimalMoves": 10 } }
+  ]
 }

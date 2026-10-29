@@ -1,3 +1,4 @@
+using BallSort.Core.Levels;
 using BallSort.Game.Services;
 using TMPro;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace BallSort.Game.UI
         [Header("Centre")]
         [SerializeField] private Button _levelButton;
         [SerializeField] private TMP_Text _levelLabel;
+        [SerializeField] private LevelTierLook _levelTierLook;
 
         [Header("Bottom navigation")]
         [SerializeField] private Button _leaderboardButton;
@@ -39,7 +41,8 @@ namespace BallSort.Game.UI
         private PlayerData _player;
         private SceneLoader _sceneLoader;
 
-        public void Initialize(PlayerData player, SceneLoader sceneLoader)
+        /// <param name="levelTier">Tier of the level the Level button plays; sets the button's look.</param>
+        public void Initialize(PlayerData player, SceneLoader sceneLoader, LevelTier levelTier)
         {
             _player = player;
             _sceneLoader = sceneLoader;
@@ -55,6 +58,7 @@ namespace BallSort.Game.UI
             _levelLabel.text = _player.AllLevelsComplete
                 ? _allCompleteText
                 : string.Format(_levelFormat, _player.CurrentLevel);
+            _levelTierLook.Show(levelTier);
 
             _levelButton.onClick.AddListener(_sceneLoader.LoadLevel);
             _settingsButton.onClick.AddListener(_settingsPopup.Popup.Open);
@@ -75,7 +79,7 @@ namespace BallSort.Game.UI
         private void Awake()
         {
             if (_avatarButton == null || _livesLabel == null || _coinsLabel == null || _settingsButton == null ||
-                _levelButton == null || _levelLabel == null || _leaderboardButton == null ||
+                _levelButton == null || _levelLabel == null || _levelTierLook == null || _leaderboardButton == null ||
                 _shopButton == null || _settingsPopup == null || _toast == null)
             {
                 Debug.LogError($"{name}: every reference must be assigned.", this);

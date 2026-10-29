@@ -37,7 +37,7 @@ Optimize for clarity, clean architecture, and robustness over cleverness.
 - **Add tube** appends an empty tube (capacity from config, currently 4) at the end of the board, so tube indices and history stay valid. Not undoable, doesn't seal. It goes to the end of the grid row with the fewest cells (ties → bottom-most); rows grow to 8 cells during play, rows are never added; refused once every row has 8 cells.
 - **Play on** (only while stuck): costs coins (`EconomyConfig`), appends a tube exactly like Add tube (same layout limit), ignores the booster inventory, not undoable, doesn't seal.
 - **Shuffle** rearranges the balls of the open tubes (not covered, clay or completed), each keeping its ball count; the result must differ from the current board, complete nothing, expose no key and stay solvable. Spent only on success; clears the undo history. Full rules in docs/mechanics.md.
-- **Restart** reloads the level from its source data: hidden balls hidden again, added tubes gone, history cleared; boosters already spent stay spent. It is *not* "undo everything".
+- **Restart** starts a new try: it reloads the level from its source data, in the variant the try rules pick (docs/levels.md): hidden balls hidden again, added tubes gone, history cleared; boosters already spent stay spent. It is *not* "undo everything".
 - **Tube capacity**: 4 for normal tubes; large tubes (5–16) span 2–3 grid rows. Large tubes need not be clay.
 - **Tube completed** = full, every ball revealed, and holds **every ball of its color in the level** (details in docs/mechanics.md). Completed tubes cannot be a move source.
 - **Level won** = every tube is either empty or completed.
@@ -53,7 +53,7 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
   - **`LevelSession`** is the single gameplay entry point: `TryMove`, `TryUndo`, `TryAddTube`, `TryShuffle` (or `TryBeginShuffle`/`TryApplyShuffle` around an off-thread search), `Restart`, `IsStuck`, booster spending, and events. It wraps `BoardState` + `CommandHistory` + `BoosterInventory`. **UI and input talk only to `LevelSession`**, never to the board or history directly.
   - Completion is a board query (`BoardState.IsCompleted`): it needs the level's colour totals, counted once per board and shared by its clones. The grid (`BoardGrid`) lives on the session, not the board; it never affects move legality.
 - **Game** (`BallSort.Game`): MonoBehaviours — views, input, layout, game flow, UI, audio, haptics, services (save, level loading). Depends on Core.
-- **Editor** (`BallSort.Editor`, editor-only): level generator/validator windows. Depends on Core.
+- **Editor** (`BallSort.Editor`, editor-only): level validation and play-testing windows. Depends on Core.
 - **LevelJson** (`BallSort.LevelJson`, no engine refs): the Newtonsoft level parser, shared by Game, Editor and Tests.
 - **Tests** (`BallSort.Tests.EditMode`): tests Core and LevelJson; must not reference Game.
 
@@ -62,7 +62,7 @@ Strict separation: **Core (pure logic) → Game (Unity views/flow) → Editor (t
 - **Observer**: Core raises plain C# events (`MoveApplied`, `BallRevealed`, `TubeCompleted`, `TubeUnveiled`, `KeyFound`, `LockOpened`, `LevelCompleted`, `MoveUndone`, `TubeAdded` with its grid row and cell, `Shuffled`, `StuckChanged`, plus change events on `Wallet` and `BoosterInventory`), in the order documented on `LevelSession`. The board finishes every mutation, including the cover cascade, before its first event fires, but board events still arrive before the session has recorded the move in its history; anything showing derived state (booster availability) refreshes on `LevelSession.Changed`, which fires once the operation is complete. Views, audio, haptics and UI subscribe. Always unsubscribe in `OnDisable`/`OnDestroy`. Avoid Inspector-wired UnityEvent chains for game logic.
 - **State machine**: level flow (`LevelFlow`: `Loading → Playing ⇄ Stuck → Won`, plus `Playing → Shuffling → Playing` while a shuffle is searched) and input selection state.
 - **Object pooling**: balls and VFX via `UnityEngine.Pool.ObjectPool<T>`. No `Instantiate`/`Destroy` per move.
-- **ScriptableObjects** for config: `ColorPalette` (color id → sprite/tint), `AnimationConfig` (timings, eases), `LevelDatabase` (ordered list of level `TextAsset`s).
+- **ScriptableObjects** for config: `ColorPalette` (color id → sprite/tint), `AnimationConfig` (timings, eases), `LevelDatabase` (ordered list of level `TextAsset`s), `EconomyConfig` (prices, rewards per tier), `EpisodeConfig` (episodes and their backgrounds).
 - **Composition**: a persistent **`AppRoot`** (prefab in `Resources/`, auto-created via `RuntimeInitializeOnLoadMethod`, `DontDestroyOnLoad`) owns player data, saving and scene loading. It is the **one agreed singleton-style exception**. Each scene has its own bootstrap that takes services from `AppRoot` and wires its views. **No other singletons** — no static `Instance`.
 - **Scenes**: `Home` (build index 0) and `Level` (build index 1). Pressing Play in either scene must work.
 
@@ -87,12 +87,12 @@ Screens, flow, boosters and economy: read docs/screens.md when working on UI or 
 
 ### Progression
 - **Linear only in the game:** no level select screen. The player always continues from their highest unlocked level (saved via a `SaveService`, PlayerPrefs-backed).
-- **Editor-only level jump:** **Ball Sort ▸ Play Level…** (or Play on a Validate Levels row) picks and plays any level from the Editor, for testing and tuning, for one visit (SessionState, read by `LevelBootstrap`). It can also play a level file outside the run: test and draft levels live in `Assets/Data/TestLevels/`, never in `LevelDatabase`, and winning one never pays a reward or moves progress. It must not ship in player builds (`#if UNITY_EDITOR` or the Editor assembly).
+- **Editor-only level jump:** **Ball Sort ▸ Play Level…** (or Play on a Validate Levels row) picks and plays any level and variant from the Editor, for testing and tuning, for one visit (SessionState, read by `LevelBootstrap`). It can also play a level file outside the run: test and draft levels live in `Assets/Data/TestLevels/`, never in `LevelDatabase`. Every jump is a test visit: winning pays no reward, moves no progress and counts no try, and Restart replays the picked variant. It must not ship in player builds (`#if UNITY_EDITOR` or the Editor assembly).
 
-Level JSON schema, validation, solver and generator details: read docs/levels.md when working on levels.
+Level JSON schema, variants, validation and solver details: read docs/levels.md when working on levels.
 
 ### Solvability
-- Every shipped level must be solvable: `ShippedLevelTests` solves each file (Fast mode) and plays the solution to a win. After editing levels, run **Ball Sort ▸ Validate Levels…** and write `meta.optimalMoves` back.
+- Every variant of every shipped level must be solvable: `ShippedLevelTests` solves each variant (Fast mode) and plays the solution to a win. After editing levels, run **Ball Sort ▸ Validate Levels…** and write `meta.optimalMoves` back.
 
 ## Folder structure
 Project folders live **directly under `Assets/`**, alongside `Plugins/`. (There is no `_Project/`
@@ -104,7 +104,7 @@ Assets/
     Core/            BallSort.Core.asmdef  (Model/, Rules/, Commands/, Session/, Player/, Solver/, Levels/)
     LevelJson/       BallSort.LevelJson.asmdef — level JSON parser (Core + Newtonsoft, no engine refs)
     Game/            BallSort.Game.asmdef  (Bootstrap/, Flow/, Views/, Input/, Layout/, UI/, Audio/, Services/)
-    Editor/          BallSort.Editor.asmdef (LevelGenerator/, Validation/, Tools/)
+    Editor/          BallSort.Editor.asmdef (Validation/, Tools/)
   Tests/EditMode/    BallSort.Tests.EditMode.asmdef
   Art/               Sprites/, Atlases/, Materials/, VFX/
   Audio/
@@ -131,6 +131,7 @@ Assets/
 - Scene, prefab and asset changes only through Unity MCP Editor tools, never by editing `.unity`/`.prefab`/`.asset` YAML. Afterwards, list everything created or modified, and append it to `docs/unity-editor-changes.md`.
 - After code changes, check the Unity console via MCP; run EditMode tests via MCP after Core changes.
 - Keep CLAUDE.md lean: rules and decisions only. Put detailed specs in `docs/` and reference them. No session notes or changelogs here.
+- `docs/design/` holds product design documents; read them only when explicitly asked.
 - Do not touch `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Plugins/`, `ProjectSettings/`, or `Packages/manifest.json` without asking.
 - Keep Core free of `UnityEngine` references (the asmdef enforces it — don't work around it).
 - Before large refactors or new dependencies, propose the plan first.
@@ -138,9 +139,9 @@ Assets/
 - Keep changes small and commit-sized. Don't rewrite working code for style alone.
 
 ## Roadmap
-1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b ✅ Solver, solvability checks, Validate Levels, Shuffle · 4c ✅ Mechanic views (placeholders) and editor level jump · 5 Generator and level-design tools · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
+1 ✅ Core · 2 ✅ Level loading + greybox board/layout · 3a ✅ Core rules, player data, scenes, Home UI · 3b ✅ Level gameplay UI: input, HUD, boosters, win/stuck flows · 4a ✅ Core mechanics, grid layout and validation · 4b ✅ Solver, solvability checks, Validate Levels, Shuffle · 4c ✅ Mechanic views (placeholders) and editor level jump · 5 ✅ Level format v2: variants, tier, episodes; level import and validation · 6 Art/audio/VFX polish · 7 Level curation, playtests, README, packaging
 
 ## Open decisions (update as they're settled)
 - Sprite specs from art: pixels-per-unit, ball size, tube slicing (9-slice vs. modular), palette size (12 colours today; a level may not use more), lock palette (4 colours today, so lock ids 0–3), colorblind patterns.
-- Shuffle limits (20 attempts × 2k nodes): re-measure with generated levels in step 5.
+- Shuffle limits (20 attempts × 2k nodes): re-measure with the delivered levels.
 - Difficulty curve shape and mechanic introduction levels (product).

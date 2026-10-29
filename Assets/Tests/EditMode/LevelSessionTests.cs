@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using BallSort.Core.Commands;
 using BallSort.Core.Levels;
@@ -16,30 +17,30 @@ namespace BallSort.Tests.EditMode
         private const int AddedCapacity = 4;
         private const int PlayOnPrice = 900;
 
-        private static LevelSession Start(LevelDto level, int undo = 99, int shuffle = 99, int addTube = 99) =>
+        private static LevelSession Start(TestLevel level, int undo = 99, int shuffle = 99, int addTube = 99) =>
             Start(level, new BoosterInventory(undo, shuffle, addTube));
 
-        private static LevelSession Start(LevelDto level, BoosterInventory boosters) =>
-            new LevelSession(LevelFactory.Load(level, Name), boosters, AddedCapacity);
+        private static LevelSession Start(TestLevel level, BoosterInventory boosters) =>
+            new LevelSession(Load(level), 1, boosters, AddedCapacity);
 
         /// <summary>
         /// Five tubes in one row. Moving tube 0's top (colour 2) onto tube 3 fills tube 3 and leaves
         /// no legal move: only tube 0 (now topped by 1s) and tube 4 (a lone 0) have free slots, and no
         /// other tube shows either colour on top.
         /// </summary>
-        private static LevelDto OneMoveFromStuck() =>
+        private static TestLevel OneMoveFromStuck() =>
             Level(4, T(4, 0, 1, 1, 2), T(4, 3, 3, 3, 2), T(4, 1, 0, 0, 3), T(4, 1, 2, 2), T(4, 0));
 
         /// <summary>One colour, one move from winning: tube 0 → tube 1 completes tube 1.</summary>
-        private static LevelDto OneMoveFromWin() =>
+        private static TestLevel OneMoveFromWin() =>
             Level(1, T(4, 0, 0), T(4, 0, 0));
 
         /// <summary>Tube 0 → tube 1 completes colour 1 in tube 1 (and seals the history).</summary>
-        private static LevelDto OneMoveFromACompletion() =>
+        private static TestLevel OneMoveFromACompletion() =>
             Level(2, T(4, 0, 1), T(4, 1, 1, 1), T(4, 0, 0, 0));
 
         /// <summary>Tube 0 → tube 1 exposes the key for lock 0, which covers tubes 2 and 3.</summary>
-        private static LevelDto OneMoveFromALock() =>
+        private static TestLevel OneMoveFromALock() =>
             Level(3, T(4, 1, 2, 0, 0).WithKey(1, 0), T(4), T(4, 2, 1, 2, 1), T(4, 0, 0, 1, 2), T(4))
                 .WithLock(0, 2, 3);
 
@@ -162,7 +163,7 @@ namespace BallSort.Tests.EditMode
             session.TryMove(0, 3, out _);                         // move, now stuck
             session.TryPlayOn(new Wallet(PlayOnPrice), PlayOnPrice, out _);
             session.TryAddTube(out _);
-            session.Restart();
+            session.Restart(1);
             session.TryMove(0, 2, out _);                         // refused: tube 2 is full
             session.TryAddTube(out _);
             session.TryMove(0, 5, out _);                         // into the added tube
@@ -518,7 +519,7 @@ namespace BallSort.Tests.EditMode
             session.Restarted += () => log.Add("Restarted");
             session.StuckChanged += stuck => log.Add($"StuckChanged({stuck})");
 
-            session.Restart();
+            session.Restart(1);
 
             Assert.That(session.IsStuck, Is.False);
             Assert.That(log, Is.EqualTo(new[] { "Restarted", "StuckChanged(False)" }));
@@ -647,7 +648,7 @@ namespace BallSort.Tests.EditMode
             session.TryAddTube(out _);
             Assert.That(session.Board[0][0].IsRevealed, Is.True, "test setup: the ball was revealed");
 
-            session.Restart();
+            session.Restart(1);
 
             Assert.That(session.Board, Is.Not.SameAs(before), "restart rebuilds from source data");
             Assert.That(session.Grid, Is.Not.SameAs(gridBefore));
@@ -666,7 +667,7 @@ namespace BallSort.Tests.EditMode
             session.TryMove(0, 1, out _);
             Assert.That(session.Board[2].IsCovered, Is.False, "test setup: the lock opened");
 
-            session.Restart();
+            session.Restart(1);
 
             Assert.That(session.Board[2].Cover, Is.EqualTo(TubeCover.Lock(0)));
             Assert.That(session.Board[3].Cover, Is.EqualTo(TubeCover.Lock(0)));
@@ -680,10 +681,71 @@ namespace BallSort.Tests.EditMode
             var moves = 0;
             session.MoveApplied += _ => moves++;
 
-            session.Restart();
+            session.Restart(1);
             session.TryMove(0, 2, out _);
 
             Assert.That(moves, Is.EqualTo(1));
+        }
+
+        // --- Variants --------------------------------------------------------------------------
+
+        /// <summary><see cref="TestLevels.Valid"/> with V3's two full tubes swapped, so V1 and V3 differ.</summary>
+        private static LoadedLevel TwoDifferentVariants()
+        {
+            LevelDto file = Valid().ToFile();
+            List<int> first = file.Variants[2].Tubes[0].Balls;
+            file.Variants[2].Tubes[0].Balls = file.Variants[2].Tubes[1].Balls;
+            file.Variants[2].Tubes[1].Balls = first;
+            return LevelFactory.Load(file, Name);
+        }
+
+        [Test]
+        public void Constructor_PlaysTheGivenVariant()
+        {
+            var session = new LevelSession(TwoDifferentVariants(), 3, new BoosterInventory(0, 0, 0), AddedCapacity);
+
+            Assert.That(session.Variant, Is.EqualTo(3));
+            Assert.That(session.Board[0][0].ColorId, Is.EqualTo(1), "V3 starts with tube 1's balls in tube 0");
+        }
+
+        [TestCase(0)]
+        [TestCase(6)]
+        public void Constructor_RejectsAVariantTheLevelDoesNotHave(int variant)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => new LevelSession(TwoDifferentVariants(), variant, new BoosterInventory(0, 0, 0), AddedCapacity));
+        }
+
+        [Test]
+        public void Restart_IntoAnotherVariant_SwapsInItsBoard_OnTheSameGrid()
+        {
+            var session = new LevelSession(TwoDifferentVariants(), 1, new BoosterInventory(0, 0, 0), AddedCapacity);
+            var restarted = 0;
+            session.Restarted += () => restarted++;
+            session.TryMove(0, 2, out _);
+            session.TryAddTube(out _);
+
+            session.Restart(3);
+
+            Assert.That(session.Variant, Is.EqualTo(3));
+            Assert.That(restarted, Is.EqualTo(1));
+            Assert.That(session.Board[0][0].ColorId, Is.EqualTo(1));
+            Assert.That(session.Board.TubeCount, Is.EqualTo(3), "added tubes are gone");
+            Assert.That(session.Grid.GetCellCount(0), Is.EqualTo(3));
+            Assert.That(session.MoveCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Restart_IntoAVariantTheLevelDoesNotHave_Throws_AndKeepsPlaying()
+        {
+            LevelSession session = Start(Valid());
+            BoardState before = session.Board;
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => session.Restart(9));
+
+            Assert.That(session.Board, Is.SameAs(before));
+            Assert.That(session.Variant, Is.EqualTo(1));
+            Assert.That(session.TryMove(0, 2, out _), Is.True, "the session still plays its board");
         }
     }
 }

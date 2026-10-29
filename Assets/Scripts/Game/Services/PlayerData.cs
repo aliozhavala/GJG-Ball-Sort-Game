@@ -24,6 +24,12 @@ namespace BallSort.Game.Services
         /// <summary>True once the last level has been won.</summary>
         public bool AllLevelsComplete => _progress.AllLevelsComplete;
 
+        /// <summary>Tries started at the current level since it was last won; 0 before the first.</summary>
+        public int LevelTry => _progress.TryCount;
+
+        /// <summary>The variant the latest try at the current level played, 1-based; 0 before the first try.</summary>
+        public int LastVariant => _progress.LastVariant;
+
         public Wallet Wallet { get; }
 
         public BoosterInventory Boosters { get; }
@@ -49,7 +55,8 @@ namespace BallSort.Game.Services
                 throw new ArgumentNullException(nameof(save));
             }
 
-            _progress = new LevelProgress(save.CurrentLevel, save.AllLevelsComplete, levelCount);
+            _progress = new LevelProgress(
+                save.CurrentLevel, save.AllLevelsComplete, levelCount, save.LevelTry, save.LastVariant);
             Lives = save.Lives;
             Wallet = new Wallet(save.Coins);
             Boosters = new BoosterInventory(save.UndoBoosters, save.ShuffleBoosters, save.AddTubeBoosters);
@@ -62,9 +69,22 @@ namespace BallSort.Game.Services
         }
 
         /// <summary>
-        /// Records a won level: advances progress (see <see cref="LevelProgress.RecordWin"/>) and
-        /// grants <paramref name="reward"/> coins, then raises <see cref="Changed"/> once so both
-        /// are saved together, immediately.
+        /// Starts a try at the current level (on entering it and on restart) and saves it at once, so
+        /// leaving the app mid-level still counts the try.
+        /// </summary>
+        /// <param name="random">Picks the variant from the sixth try on.</param>
+        /// <returns>The variant this try plays, 1-based (see <see cref="BallSort.Core.Levels.VariantSelector"/>).</returns>
+        public int StartTry(Random random)
+        {
+            int variant = _progress.StartTry(random);
+            RaiseChanged();
+            return variant;
+        }
+
+        /// <summary>
+        /// Records a won level: advances progress and resets the tries (see
+        /// <see cref="LevelProgress.RecordWin"/>) and grants <paramref name="reward"/> coins, then raises
+        /// <see cref="Changed"/> once so all of it is saved together, immediately.
         /// </summary>
         /// <param name="wonLevel">The level that was just won, 1-based.</param>
         /// <param name="reward">Coins to grant; replays are rewarded too.</param>
@@ -132,6 +152,8 @@ namespace BallSort.Game.Services
                 UndoBoosters = Boosters.GetCount(BoosterType.Undo),
                 ShuffleBoosters = Boosters.GetCount(BoosterType.Shuffle),
                 AddTubeBoosters = Boosters.GetCount(BoosterType.AddTube),
+                LevelTry = LevelTry,
+                LastVariant = LastVariant,
                 SoundOn = GetSetting(SettingType.Sound),
                 MusicOn = GetSetting(SettingType.Music),
                 HapticsOn = GetSetting(SettingType.Haptics),

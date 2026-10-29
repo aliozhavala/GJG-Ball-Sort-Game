@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using BallSort.Core.Model;
 using BallSort.Core.Rules;
@@ -5,21 +6,42 @@ using BallSort.Core.Rules;
 namespace BallSort.Core.Levels
 {
     /// <summary>
-    /// Checks for a parsed level: structure first (format, tubes, colour counts, grid, mechanics), then
-    /// the opening position (nothing already completed or won, at least one legal move). Solvability
-    /// needs the solver and runs at editor time. The rules are listed in <c>docs/mechanics.md</c>.
+    /// Checks for a parsed level file: the file itself (format, id, tier, layout, five variants), then
+    /// each variant (tubes, colour counts, grid, mechanics, opening position: nothing already completed
+    /// or won, at least one legal move), then that the variants share one board structure. Solvability
+    /// needs the solver and runs at editor time. The rules are listed in <c>docs/mechanics.md</c> and
+    /// <c>docs/levels.md</c>.
     /// </summary>
     public static class LevelValidator
     {
         /// <summary>The only <see cref="LevelDto.FormatVersion"/> this build can read.</summary>
-        public const int SupportedFormatVersion = 1;
+        public const int SupportedFormatVersion = 2;
+
+        private const string MissingLayout = "layout is missing; every level lists its tubes in layout.grid.";
+
+        /// <summary>
+        /// Why a file of <paramref name="formatVersion"/> cannot be read, or null when it can. The parser
+        /// checks this before reading anything else, since the rest of the schema depends on the version.
+        /// </summary>
+        public static string DescribeUnsupportedFormatVersion(int formatVersion)
+        {
+            if (formatVersion == SupportedFormatVersion)
+            {
+                return null;
+            }
+
+            return formatVersion == 0 ? $"formatVersion is missing (expected {SupportedFormatVersion})."
+                : formatVersion == 1 ? $"formatVersion 1 is no longer supported: convert the file to version {SupportedFormatVersion} (one grid, {VariantSelector.VariantCount} variants; see docs/level-format-guide.md)."
+                : $"formatVersion {formatVersion} is not supported (expected {SupportedFormatVersion}).";
+        }
 
         /// <summary>
         /// Validates <paramref name="level"/> and returns every problem found.
         /// </summary>
         /// <param name="level">The parsed level; may be null (reported as an error).</param>
         /// <param name="levelName">Display name used to prefix every message, e.g. <c>level_003</c>.</param>
-        /// <returns>An empty list when the level is valid.</returns>
+        /// <returns>An empty list when the level is valid. Problems inside a variant read
+        /// <c>level_003: variant 2: tubes[4]: …</c>, variants numbered from 1.</returns>
         public static IReadOnlyList<string> Validate(LevelDto level, string levelName)
         {
             var errors = new List<string>();
@@ -29,11 +51,12 @@ namespace BallSort.Core.Levels
                 return Prefix(errors, levelName);
             }
 
-            if (level.FormatVersion != SupportedFormatVersion)
+            // Nothing else means anything in a file of another version.
+            string versionError = DescribeUnsupportedFormatVersion(level.FormatVersion);
+            if (versionError != null)
             {
-                errors.Add(level.FormatVersion == 0
-                    ? $"formatVersion is missing (expected {SupportedFormatVersion})."
-                    : $"formatVersion {level.FormatVersion} is not supported (expected {SupportedFormatVersion}).");
+                errors.Add(versionError);
+                return Prefix(errors, levelName);
             }
 
             if (level.Id < 1)
@@ -41,46 +64,123 @@ namespace BallSort.Core.Levels
                 errors.Add($"id must be 1 or greater (was {level.Id}).");
             }
 
-            if (level.Colors < 1)
+            if (level.Tier == null)
             {
-                errors.Add($"colors must be 1 or greater (was {level.Colors}).");
+                errors.Add("tier is missing (expected regular, hard or superHard).");
+            }
+            else if (!Enum.IsDefined(typeof(LevelTier), level.Tier.Value))
+            {
+                errors.Add($"tier {(int)level.Tier.Value} is not a tier (expected regular, hard or superHard).");
             }
 
-            if (level.Tubes == null || level.Tubes.Count == 0)
+            if (level.Variants == null || level.Variants.Count == 0)
             {
-                errors.Add("tubes is missing or empty.");
+                errors.Add($"variants is missing or empty; a level has exactly {VariantSelector.VariantCount}.");
+                if (level.Layout == null)
+                {
+                    errors.Add(MissingLayout);
+                }
+
                 return Prefix(errors, levelName);
             }
 
-            var ballsPerColor = new int[level.Colors > 0 ? level.Colors : 0];
-            for (int i = 0; i < level.Tubes.Count; i++)
+            if (level.Variants.Count != VariantSelector.VariantCount)
             {
-                ValidateTube(level.Tubes[i], i, level.Colors, ballsPerColor, errors);
+                errors.Add($"variants has {level.Variants.Count} entries; a level has exactly {VariantSelector.VariantCount}.");
             }
 
-            if (level.Colors > 0)
+            // The grid is checked once, against V1's tubes; the consistency check holds every other
+            // variant to V1's tube count and capacities, so the grid fits them all.
+            BoardGrid grid = ValidateLayout(level.Layout, level.Variants[0]?.Tubes, errors);
+
+            for (int v = 0; v < level.Variants.Count; v++)
             {
-                ValidateBallCounts(level.Tubes, ballsPerColor, errors);
+                string where = $"variant {v + 1}";
+                LevelVariantDto variant = level.Variants[v];
+                if (variant == null)
+                {
+                    errors.Add($"{where} is null.");
+                    continue;
+                }
+
+                var variantErrors = new List<string>();
+                ValidateVariantContent(variant, grid, variantErrors);
+                foreach (string error in variantErrors)
+                {
+                    errors.Add($"{where}: {error}");
+                }
             }
 
-            BoardGrid grid = ValidateLayout(level, errors);
-            MechanicsValidator.Validate(level, grid, errors);
-
-            // The playability checks build a board, which is only safe on structurally valid data.
-            if (errors.Count == 0)
-            {
-                ValidateStartState(level, errors);
-            }
-
+            VariantConsistencyValidator.Validate(level.Variants, errors);
             return Prefix(errors, levelName);
+        }
+
+        /// <summary>
+        /// Checks one variant on a layout against every rule <see cref="Validate"/> applies to each
+        /// variant, the grid included: one puzzle on its own. The file-level rules (version, id, tier,
+        /// variant count) and the consistency between variants are not part of it.
+        /// </summary>
+        /// <param name="layout">The grid the variant is laid out on.</param>
+        /// <param name="variant">The variant; may be null (reported as an error).</param>
+        /// <param name="levelName">Display name used to prefix every message.</param>
+        /// <returns>An empty list when the variant is valid on <paramref name="layout"/>.</returns>
+        public static IReadOnlyList<string> ValidateVariant(LayoutDto layout, LevelVariantDto variant, string levelName)
+        {
+            var errors = new List<string>();
+            if (variant == null)
+            {
+                errors.Add("variant is null.");
+                return Prefix(errors, levelName);
+            }
+
+            BoardGrid grid = ValidateLayout(layout, variant.Tubes, errors);
+            ValidateVariantContent(variant, grid, errors);
+            return Prefix(errors, levelName);
+        }
+
+        /// <param name="grid">The resolved grid, or null when it is invalid (lock adjacency is then not checked).</param>
+        /// <param name="errors">Receives this variant's problems, unprefixed.</param>
+        private static void ValidateVariantContent(LevelVariantDto variant, BoardGrid grid, List<string> errors)
+        {
+            int errorsBefore = errors.Count;
+            if (variant.Colors < 1)
+            {
+                errors.Add($"colors must be 1 or greater (was {variant.Colors}).");
+            }
+
+            if (variant.Tubes == null || variant.Tubes.Count == 0)
+            {
+                errors.Add("tubes is missing or empty.");
+                return;
+            }
+
+            var ballsPerColor = new int[variant.Colors > 0 ? variant.Colors : 0];
+            for (int i = 0; i < variant.Tubes.Count; i++)
+            {
+                ValidateTube(variant.Tubes[i], i, variant.Colors, ballsPerColor, errors);
+            }
+
+            if (variant.Colors > 0)
+            {
+                ValidateBallCounts(variant.Tubes, ballsPerColor, errors);
+            }
+
+            MechanicsValidator.Validate(variant, grid, errors);
+
+            // The playability checks build a board, which is only safe on structurally valid data. The
+            // board does not depend on the grid, so only this variant's own problems hold them back.
+            if (errors.Count == errorsBefore)
+            {
+                ValidateStartState(variant, errors);
+            }
         }
 
         /// <summary>
         /// The opening position must be a real puzzle: nothing already finished, and something to do.
         /// </summary>
-        private static void ValidateStartState(LevelDto level, List<string> errors)
+        private static void ValidateStartState(LevelVariantDto variant, List<string> errors)
         {
-            BoardState board = LevelFactory.CreateBoard(level);
+            BoardState board = LevelFactory.CreateBoard(variant);
             if (board.IsWon)
             {
                 errors.Add("is already won at start.");
@@ -208,23 +308,29 @@ namespace BallSort.Core.Levels
             }
         }
 
-        /// <returns>The resolved grid, or null when the grid is invalid.</returns>
-        private static BoardGrid ValidateLayout(LevelDto level, List<string> errors)
+        /// <param name="tubes">The tubes the grid lays out; when null or empty the grid is not checked (the tubes are reported instead).</param>
+        /// <returns>The resolved grid, or null when the grid is invalid or could not be checked.</returns>
+        private static BoardGrid ValidateLayout(LayoutDto layout, List<TubeDto> tubes, List<string> errors)
         {
-            if (level.Layout == null)
+            if (layout == null)
             {
-                errors.Add("layout is missing; every level lists its tubes in layout.grid.");
+                errors.Add(MissingLayout);
                 return null;
             }
 
-            var capacities = new int[level.Tubes.Count];
-            for (int i = 0; i < capacities.Length; i++)
+            if (tubes == null || tubes.Count == 0)
             {
-                capacities[i] = level.Tubes[i]?.Capacity ?? 0;
+                return null;
             }
 
-            return LevelLayout.ValidateGrid(level.Layout.Grid, capacities, errors)
-                ? new BoardGrid(level.Layout.Grid, level.Tubes.Count)
+            var capacities = new int[tubes.Count];
+            for (int i = 0; i < capacities.Length; i++)
+            {
+                capacities[i] = tubes[i]?.Capacity ?? 0;
+            }
+
+            return LevelLayout.ValidateGrid(layout.Grid, capacities, errors)
+                ? new BoardGrid(layout.Grid, tubes.Count)
                 : null;
         }
 

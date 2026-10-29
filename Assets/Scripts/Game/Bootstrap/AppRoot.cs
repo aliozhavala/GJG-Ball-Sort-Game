@@ -20,6 +20,7 @@ namespace BallSort.Game.Bootstrap
 
         [SerializeField] private EconomyConfig _economy;
         [SerializeField] private LevelDatabase _levelDatabase;
+        [SerializeField] private EpisodeConfig _episodes;
 
         private SaveService _saveService;
 
@@ -33,6 +34,9 @@ namespace BallSort.Game.Bootstrap
         public EconomyConfig Economy => _economy;
 
         public LevelDatabase Levels => _levelDatabase;
+
+        /// <summary>The run's episodes; both scenes show the current one's background.</summary>
+        public EpisodeConfig Episodes => _episodes;
 
         // With domain reload disabled, statics survive between Play sessions; clear them explicitly.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -65,9 +69,9 @@ namespace BallSort.Game.Bootstrap
                 return;
             }
 
-            if (_economy == null || _levelDatabase == null)
+            if (_economy == null || _levelDatabase == null || _episodes == null)
             {
-                Debug.LogError($"{name}: economy config and level database must be assigned.", this);
+                Debug.LogError($"{name}: economy config, level database and episode config must be assigned.", this);
                 enabled = false;
                 return;
             }

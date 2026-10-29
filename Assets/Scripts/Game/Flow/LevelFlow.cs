@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using BallSort.Core.Levels;
 using BallSort.Core.Player;
 using BallSort.Core.Session;
 using BallSort.Game.Input;
@@ -19,8 +20,12 @@ namespace BallSort.Game.Flow
     /// <remarks>
     /// The session owns the rules; this class only reacts to its events and to the HUD's buttons.
     /// On a win, progress and reward are saved first, then the celebration plays and the Win panel
-    /// opens — so leaving the app mid-celebration loses nothing. A level file (editor testing) is
-    /// outside the run: its win saves nothing.
+    /// opens — so leaving the app mid-celebration loses nothing.
+    /// <para>
+    /// Entering the level and Restart each start a try, which picks the variant to play (docs/levels.md,
+    /// Variants and tries); Play on continues the try. An editor test visit plays its chosen variant on
+    /// every try and saves nothing: no try, no reward, no progress.
+    /// </para>
     /// </remarks>
     public sealed class LevelFlow : MonoBehaviour
     {
@@ -35,6 +40,9 @@ namespace BallSort.Game.Flow
         // Used only by the shuffle search, one search at a time.
         private readonly System.Random _shuffleRandom = new System.Random();
 
+        // Picks the variant of each try from the sixth on; main thread only.
+        private readonly System.Random _variantRandom = new System.Random();
+
         private LevelSession _session;
         private PlayerData _player;
         private EconomyConfig _economy;
@@ -46,21 +54,32 @@ namespace BallSort.Game.Flow
         /// <summary>The session being played, for editor tools and debugging; null until <see cref="Begin"/>.</summary>
         public LevelSession Session => _session;
 
-        /// <summary>Starts play on <paramref name="session"/>. Call once, from the scene's bootstrap.</summary>
+        /// <summary>
+        /// Starts the first try at <paramref name="level"/> and plays it. Call once, from the scene's bootstrap.
+        /// </summary>
+        /// <param name="level">The loaded level; each try plays one of its variants.</param>
         /// <param name="visit">Which level this is, and whether its win is recorded.</param>
         public void Begin(
-            LevelSession session, LevelVisit visit, PlayerData player, EconomyConfig economy, SceneLoader sceneLoader)
+            LoadedLevel level, LevelVisit visit, PlayerData player, EconomyConfig economy, SceneLoader sceneLoader)
         {
             if (_session != null)
             {
                 throw new InvalidOperationException("The level flow has already begun.");
             }
 
-            _session = session ?? throw new ArgumentNullException(nameof(session));
+            if (level == null)
+            {
+                throw new ArgumentNullException(nameof(level));
+            }
+
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _economy = economy != null ? economy : throw new ArgumentNullException(nameof(economy));
             _sceneLoader = sceneLoader ?? throw new ArgumentNullException(nameof(sceneLoader));
             _visit = visit;
+
+            // Entering the level starts a try, like Restart does.
+            LevelSession session = new LevelSession(level, StartTry(), player.Boosters, economy.AddedTubeCapacity);
+            _session = session;
 
             _boardView.Initialize(session);
             _feedback.Initialize(session, _boardView);
@@ -138,9 +157,9 @@ namespace BallSort.Game.Flow
             }
 
             Enter(LevelState.Won);
-            if (!_visit.IsFromFile)
+            if (!_visit.IsEditorTest)
             {
-                _player.RecordWin(_visit.LevelNumber, _economy.WinReward);
+                _player.RecordWin(_visit.LevelNumber, _economy.GetWinReward(_session.Level.Tier));
             }
 
             PlayWinSequence();
@@ -152,7 +171,7 @@ namespace BallSort.Game.Flow
             try
             {
                 await _feedback.PlayCelebrationAsync(destroyCancellationToken);
-                _hud.Win.Show(_visit.Label, _visit.IsFromFile ? 0 : _economy.WinReward);
+                _hud.Win.Show(_visit.Label, _visit.IsEditorTest ? 0 : _economy.GetWinReward(_session.Level.Tier));
             }
             catch (OperationCanceledException)
             {
@@ -242,9 +261,12 @@ namespace BallSort.Game.Flow
         {
             if (State == LevelState.Playing || State == LevelState.Stuck)
             {
-                _session.Restart();
+                _session.Restart(StartTry());
             }
         }
+
+        /// <summary>Starts a try and returns its variant: by the try rules, or the test visit's own variant.</summary>
+        private int StartTry() => _visit.IsEditorTest ? _visit.Variant : _player.StartTry(_variantRandom);
 
         /// <summary>Give up, settings → Home, and Continue after a win: all leave without further progress.</summary>
         private void LeaveToHome()

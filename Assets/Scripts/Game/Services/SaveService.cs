@@ -1,5 +1,7 @@
 using System;
+using BallSort.Core.Levels;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace BallSort.Game.Services
@@ -14,7 +16,7 @@ namespace BallSort.Game.Services
     public sealed class SaveService
     {
         /// <summary>The save format this build writes. Older versions are migrated on load.</summary>
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         /// <summary>The PlayerPrefs key holding the save.</summary>
         public const string PrefsKey = "BallSort.Save";
@@ -42,7 +44,24 @@ namespace BallSort.Game.Services
             SaveData save;
             try
             {
-                save = JsonConvert.DeserializeObject<SaveData>(json);
+                // Read loosely first: an older save lacks fields the current shape requires, and gets
+                // them from its migration before the strict read.
+                JObject root = JObject.Parse(json);
+                int version = root.TryGetValue(nameof(SaveData.Version), out JToken token) && token.Type == JTokenType.Integer
+                    ? token.Value<int>()
+                    : 0;
+                if (version > CurrentVersion || version < 1)
+                {
+                    Debug.LogWarning($"Save version {version} is not supported by this build and was reset.");
+                    return new PlayerData(SaveData.CreateDefault(_economy), _levelCount);
+                }
+
+                if (version == 1)
+                {
+                    MigrateFromVersion1(root);
+                }
+
+                save = root.ToObject<SaveData>();
             }
             catch (JsonException e)
             {
@@ -50,13 +69,6 @@ namespace BallSort.Game.Services
                 return new PlayerData(SaveData.CreateDefault(_economy), _levelCount);
             }
 
-            if (save == null || save.Version > CurrentVersion || save.Version < 1)
-            {
-                Debug.LogWarning($"Save version {save?.Version} is not supported by this build and was reset.");
-                return new PlayerData(SaveData.CreateDefault(_economy), _levelCount);
-            }
-
-            // Version 1 is the only format so far; migrations from older versions go here.
             return new PlayerData(Sanitize(save), _levelCount);
         }
 
@@ -79,6 +91,14 @@ namespace BallSort.Game.Services
             PlayerPrefs.Save();
         }
 
+        /// <summary>Version 2 added the tries at the current level (level variants); a version 1 save starts with none.</summary>
+        private static void MigrateFromVersion1(JObject save)
+        {
+            save[nameof(SaveData.LevelTry)] = 0;
+            save[nameof(SaveData.LastVariant)] = 0;
+            save[nameof(SaveData.Version)] = 2;
+        }
+
         /// <summary>Clamps values a hand-edited or stale save could have pushed out of range.</summary>
         private SaveData Sanitize(SaveData save)
         {
@@ -88,6 +108,8 @@ namespace BallSort.Game.Services
             save.UndoBoosters = Math.Max(0, save.UndoBoosters);
             save.ShuffleBoosters = Math.Max(0, save.ShuffleBoosters);
             save.AddTubeBoosters = Math.Max(0, save.AddTubeBoosters);
+            save.LevelTry = Math.Max(0, save.LevelTry);
+            save.LastVariant = Mathf.Clamp(save.LastVariant, 0, VariantSelector.VariantCount);
             return save;
         }
     }

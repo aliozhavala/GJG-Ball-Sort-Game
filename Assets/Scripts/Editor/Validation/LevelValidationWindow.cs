@@ -12,24 +12,25 @@ using UnityEngine;
 namespace BallSort.Editor.Validation
 {
     /// <summary>
-    /// Ball Sort ▸ Validate Levels…: validates and solves every level in a <see cref="LevelDatabase"/>
-    /// and can write the proven optimum back into each file's <c>meta.optimalMoves</c>.
+    /// Ball Sort ▸ Validate Levels…: validates every level in a <see cref="LevelDatabase"/>, solves each
+    /// variant, and can write each proven optimum back into its variant's <c>meta.optimalMoves</c>.
     /// </summary>
     /// <remarks>
     /// The solving runs on a worker thread so the Editor stays responsive; a cancelable progress
-    /// bar polls it from <see cref="EditorApplication.update"/>. Rows appear as levels finish.
+    /// bar polls it from <see cref="EditorApplication.update"/>. Rows (one per variant, plus one for a
+    /// file with problems outside its variants) appear as levels finish.
     /// </remarks>
     public sealed class LevelValidationWindow : EditorWindow
     {
         private static readonly GUILayoutOption[] Columns =
         {
-            GUILayout.Width(80), GUILayout.Width(100), GUILayout.Width(150), GUILayout.Width(70),
+            GUILayout.Width(80), GUILayout.Width(50), GUILayout.Width(100), GUILayout.Width(150), GUILayout.Width(70),
             GUILayout.Width(70), GUILayout.Width(130), GUILayout.Width(110), GUILayout.Width(50),
         };
 
         private static readonly string[] Headers =
         {
-            "Level", "Colours / tubes", "Mechanics", "Solvable", "Optimal", "Nodes (fast / opt)", "Time (fast / opt)", string.Empty,
+            "Level", "Variant", "Colours / tubes", "Mechanics", "Solvable", "Optimal", "Nodes (fast / opt)", "Time (fast / opt)", string.Empty,
         };
 
         [SerializeField] private LevelDatabase _database;
@@ -122,19 +123,23 @@ namespace BallSort.Editor.Validation
             {
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Label(report.Source.Name, Columns[0]);
-                GUILayout.Label(report.IsValid ? $"{report.Colors} / {report.Tubes}" : "–", Columns[1]);
-                GUILayout.Label(report.Mechanics, Columns[2]);
-                GUILayout.Label(report.SolvableText, Columns[3]);
-                GUILayout.Label(report.OptimalText, Columns[4]);
-                GUILayout.Label(report.NodesText, Columns[5]);
-                GUILayout.Label(report.TimeText, Columns[6]);
+                GUILayout.Label(report.VariantText, Columns[1]);
+                GUILayout.Label(report.IsValid && report.Variant > 0 ? $"{report.Colors} / {report.Tubes}" : "–", Columns[2]);
+                GUILayout.Label(report.Mechanics, Columns[3]);
+                GUILayout.Label(report.SolvableText, Columns[4]);
+                GUILayout.Label(report.OptimalText, Columns[5]);
+                GUILayout.Label(report.NodesText, Columns[6]);
+                GUILayout.Label(report.TimeText, Columns[7]);
+
+                // Only a valid file loads in the Level scene, whichever variant is picked.
                 using (new EditorGUI.DisabledScope(
-                           IsRunning || EditorApplication.isPlayingOrWillChangePlaymode || report.Source.AssetPath == null))
+                           IsRunning || EditorApplication.isPlayingOrWillChangePlaymode || !report.FileIsValid || report.Variant == 0))
                 {
-                    if (GUILayout.Button("Play", Columns[7]))
+                    if (GUILayout.Button("Play", Columns[8]))
                     {
                         int levelNumber = report.Source.Number;
-                        EditorApplication.delayCall += () => PlayLevelWindow.Play(levelNumber);
+                        int variant = report.Variant;
+                        EditorApplication.delayCall += () => PlayLevelWindow.Play(levelNumber, variant);
                     }
                 }
 
@@ -174,10 +179,10 @@ namespace BallSort.Editor.Validation
                 {
                     token.ThrowIfCancellationRequested();
                     _currentLevel = source.Name;
-                    LevelReport report = LevelValidationRunner.Check(source, fastLimit, optimalLimit, token);
+                    List<LevelReport> reports = LevelValidationRunner.Check(source, fastLimit, optimalLimit, token);
                     lock (_reports)
                     {
-                        _reports.Add(report);
+                        _reports.AddRange(reports);
                     }
 
                     _finished++;
@@ -227,38 +232,61 @@ namespace BallSort.Editor.Validation
 
         private void WriteOptimalMoves()
         {
+            // Rows arrive grouped by file; each file is read once, edited per variant, written once.
+            var optimaByFile = new Dictionary<string, List<LevelReport>>();
+            var fileOrder = new List<string>();
+            foreach (LevelReport report in SnapshotReports())
+            {
+                if (!report.OptimalMoves.HasValue || report.Variant == 0 || report.Source.AssetPath == null)
+                {
+                    continue;
+                }
+
+                if (!optimaByFile.TryGetValue(report.Source.AssetPath, out List<LevelReport> list))
+                {
+                    list = new List<LevelReport>();
+                    optimaByFile.Add(report.Source.AssetPath, list);
+                    fileOrder.Add(report.Source.AssetPath);
+                }
+
+                list.Add(report);
+            }
+
             int written = 0;
             int upToDate = 0;
             var failures = new List<string>();
-            foreach (LevelReport report in SnapshotReports())
+            foreach (string assetPath in fileOrder)
             {
-                if (!report.OptimalMoves.HasValue || report.Source.AssetPath == null)
+                string path = Path.GetFullPath(assetPath);
+                string original = File.ReadAllText(path);
+                string json = original;
+                foreach (LevelReport report in optimaByFile[assetPath])
                 {
-                    continue;
+                    if (OptimalMovesWriter.TryWrite(
+                            json, report.Source.Name, report.Variant, report.OptimalMoves.Value, out string updated, out string error))
+                    {
+                        json = updated;
+                    }
+                    else
+                    {
+                        failures.Add(error);
+                    }
                 }
 
-                string path = Path.GetFullPath(report.Source.AssetPath);
-                string json = File.ReadAllText(path);
-                if (!OptimalMovesWriter.TryWrite(json, report.Source.Name, report.OptimalMoves.Value, out string updated, out string error))
-                {
-                    failures.Add(error);
-                    continue;
-                }
-
-                if (updated == json)
+                if (json == original)
                 {
                     upToDate++;
                     continue;
                 }
 
                 // Level files are UTF-8 without a byte order mark.
-                File.WriteAllText(path, updated, new UTF8Encoding(false));
-                AssetDatabase.ImportAsset(report.Source.AssetPath);
+                File.WriteAllText(path, json, new UTF8Encoding(false));
+                AssetDatabase.ImportAsset(assetPath);
                 written++;
             }
 
             _status = $"meta.optimalMoves: {written} file(s) written, {upToDate} already up to date" +
-                      (failures.Count > 0 ? $", {failures.Count} refused (see the console)." : ".");
+                      (failures.Count > 0 ? $", {failures.Count} variant(s) refused (see the console)." : ".");
             foreach (string failure in failures)
             {
                 Debug.LogError(failure, this);

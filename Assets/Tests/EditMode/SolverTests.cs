@@ -25,50 +25,49 @@ namespace BallSort.Tests.EditMode
         // --- Fixtures, one per mechanic ---------------------------------------------------------
 
         /// <summary>Colours 0 and 1 under hidden balls; only the tops are revealed at first.</summary>
-        private static LevelDto WithHiddenBalls() =>
+        private static TestLevel WithHiddenBalls() =>
             Level(2,
                 Hidden(4, new[] { 1, 0, 1, 0 }, new[] { true, true, false, false }),
                 Hidden(4, new[] { 0, 1, 0, 1 }, new[] { true, false, false, false }),
                 T(4), T(4));
 
         /// <summary>Tube 1 → 0 completes colour 0 and opens the veil; then tube 1 → 2 wins. Two moves.</summary>
-        private static LevelDto WithAVeil() =>
+        private static TestLevel WithAVeil() =>
             Level(2, T(4, 0, 0, 0), T(4, 1, 0), T(4, 1, 1, 1).WithVeil(0), T(4));
 
         /// <summary>Tube 0 → 1 exposes the key for lock 0, which covers tubes 2 and 3.</summary>
-        private static LevelDto WithALock() =>
+        private static TestLevel WithALock() =>
             Level(3, T(4, 1, 2, 0, 0).WithKey(1, 0), T(4), T(4, 2, 1, 2, 1), T(4, 0, 0, 1, 2), T(4))
                 .WithLock(0, 2, 3);
 
         /// <summary>The 0s must go into clay (tube 0); then tube 1's 1 joins tube 2. Two moves.</summary>
-        private static LevelDto WithClay() =>
+        private static TestLevel WithClay() =>
             Level(2, T(4, 0).AsClay(), T(4, 1, 0, 0, 0), T(4, 1, 1, 1), T(4));
 
         /// <summary>A capacity-6 tube that is not clay: colour 1 has six balls and must finish in it.</summary>
-        private static LevelDto WithALargeTube() =>
+        private static TestLevel WithALargeTube() =>
             Level(2, T(6, 1, 0, 1, 0, 1, 1), T(4, 1, 0, 1, 0), T(4), T(4))
                 .WithGrid(new int?[] { 0, 1, 2 }, new int?[] { 0, 3 });
 
         private static IEnumerable<TestCaseData> MechanicLevels()
         {
-            yield return new TestCaseData((Func<LevelDto>)Valid).SetName("Plain");
-            yield return new TestCaseData((Func<LevelDto>)WithHiddenBalls).SetName("HiddenBalls");
-            yield return new TestCaseData((Func<LevelDto>)WithAVeil).SetName("Veil");
-            yield return new TestCaseData((Func<LevelDto>)WithALock).SetName("LockAndKey");
-            yield return new TestCaseData((Func<LevelDto>)WithClay).SetName("Clay");
-            yield return new TestCaseData((Func<LevelDto>)WithALargeTube).SetName("LargeTube");
-            yield return new TestCaseData((Func<LevelDto>)StuckTrap).SetName("StuckTrapFromTheStart");
+            yield return new TestCaseData((Func<TestLevel>)Valid).SetName("Plain");
+            yield return new TestCaseData((Func<TestLevel>)WithHiddenBalls).SetName("HiddenBalls");
+            yield return new TestCaseData((Func<TestLevel>)WithAVeil).SetName("Veil");
+            yield return new TestCaseData((Func<TestLevel>)WithALock).SetName("LockAndKey");
+            yield return new TestCaseData((Func<TestLevel>)WithClay).SetName("Clay");
+            yield return new TestCaseData((Func<TestLevel>)WithALargeTube).SetName("LargeTube");
+            yield return new TestCaseData((Func<TestLevel>)StuckTrap).SetName("StuckTrapFromTheStart");
         }
 
-        private static BoardState Board(LevelDto level) => LevelFactory.Load(level, Name).Board;
 
-        private static SolverResult Solve(LevelDto level, SolverMode mode) =>
+        private static SolverResult Solve(TestLevel level, SolverMode mode) =>
             BoardSolver.Solve(Board(level), mode, Limit);
 
         /// <summary>Plays <paramref name="moves"/> through a fresh session, failing on any refused move.</summary>
-        private static LevelSession Replay(LevelDto level, IReadOnlyList<MoveInfo> moves)
+        private static LevelSession Replay(TestLevel level, IReadOnlyList<MoveInfo> moves)
         {
-            var session = new LevelSession(LevelFactory.Load(level, Name), new BoosterInventory(0, 0, 0), 4);
+            var session = new LevelSession(Load(level), 1, new BoosterInventory(0, 0, 0), 4);
             foreach (MoveInfo move in moves)
             {
                 Assert.That(session.TryMove(move.FromIndex, move.ToIndex, out MoveRejection rejection), Is.True,
@@ -124,7 +123,7 @@ namespace BallSort.Tests.EditMode
         // --- Solving ---------------------------------------------------------------------------
 
         [TestCaseSource(nameof(MechanicLevels))]
-        public void EachMechanic_IsSolvedInBothModes_AndTheMovesWinWhenReplayed(Func<LevelDto> level)
+        public void EachMechanic_IsSolvedInBothModes_AndTheMovesWinWhenReplayed(Func<TestLevel> level)
         {
             foreach (SolverMode mode in new[] { SolverMode.Fast, SolverMode.Optimal })
             {
@@ -137,7 +136,7 @@ namespace BallSort.Tests.EditMode
         }
 
         [TestCaseSource(nameof(MechanicLevels))]
-        public void Optimal_MatchesABreadthFirstSearch(Func<LevelDto> level)
+        public void Optimal_MatchesABreadthFirstSearch(Func<TestLevel> level)
         {
             int minimum = BreadthFirstMinimum(Board(level()));
             SolverResult optimal = Solve(level(), SolverMode.Optimal);
@@ -187,7 +186,7 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void TheStuckTrap_IsUnsolvableOnceSprung()
         {
-            var session = new LevelSession(LevelFactory.Load(StuckTrap(), Name), new BoosterInventory(0, 0, 0), 4);
+            var session = new LevelSession(Load(StuckTrap()), 1, new BoosterInventory(0, 0, 0), 4);
             session.TryMove(1, 4, out _);
             session.TryMove(0, 1, out _);
             Assert.That(session.IsStuck, Is.True, "test setup: the trap is sprung");
@@ -202,7 +201,7 @@ namespace BallSort.Tests.EditMode
         public void AVeilWhoseColourCanNeverComplete_IsUnsolvable()
         {
             // As WithAVeil, but the veil is colour 1 and hides 1s: completing colour 0 leaves it closed.
-            LevelDto level = Level(2, T(4, 0, 0, 0), T(4, 1, 0), T(4, 1, 1, 1).WithVeil(1), T(4));
+            TestLevel level = Level(2, T(4, 0, 0, 0), T(4, 1, 0), T(4, 1, 1, 1).WithVeil(1), T(4));
 
             Assert.That(Solve(level, SolverMode.Fast).Outcome, Is.EqualTo(SolverOutcome.Unsolvable));
         }
@@ -211,10 +210,10 @@ namespace BallSort.Tests.EditMode
         public void LocksWhoseKeysAreInsideEachOther_AreUnsolvable_ThoughTheLevelIsValid()
         {
             // Lock 0's key is in tube 3 (lock 1), lock 1's key in tube 2 (lock 0): neither opens.
-            LevelDto level = Level(3,
+            TestLevel level = Level(3,
                     T(4, 0, 0, 0), T(4, 0), T(4, 1, 2).WithKey(0, 1), T(4, 2, 1).WithKey(0, 0), T(4, 1, 1, 2, 2), T(4))
                 .WithLock(0, 2).WithLock(1, 3);
-            Assert.That(LevelValidator.Validate(level, Name), Is.Empty, "test setup: the validator cannot see this");
+            Assert.That(Validate(level), Is.Empty, "test setup: the validator cannot see this");
 
             Assert.That(Solve(level, SolverMode.Fast).Outcome, Is.EqualTo(SolverOutcome.Unsolvable));
         }

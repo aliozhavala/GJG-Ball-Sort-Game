@@ -9,7 +9,7 @@ namespace BallSort.Core.Levels
     public static class LevelFactory
     {
         /// <summary>
-        /// Validates <paramref name="level"/> and builds its board and grid.
+        /// Validates <paramref name="level"/>, every variant included, and wraps it for play.
         /// </summary>
         /// <param name="level">Parsed level data.</param>
         /// <param name="levelName">Display name used in error messages, e.g. <c>level_003</c>.</param>
@@ -22,20 +22,20 @@ namespace BallSort.Core.Levels
                 throw new LevelFormatException(levelName, errors);
             }
 
-            return new LoadedLevel(levelName, level, CreateBoard(level), CreateGrid(level));
+            return new LoadedLevel(levelName, level);
         }
 
         /// <summary>
-        /// Builds a fresh board from level data, with every hidden ball hidden again and every cover
-        /// and key back in place. Used by <see cref="Load"/> and by restart.
+        /// Builds a fresh board from one variant, with every hidden ball hidden again and every cover
+        /// and key back in place. Used for each new try and by the validator.
         /// </summary>
-        /// <remarks>Assumes <paramref name="level"/> has passed <see cref="LevelValidator"/>.</remarks>
-        public static BoardState CreateBoard(LevelDto level)
+        /// <remarks>Assumes <paramref name="variant"/> has passed <see cref="LevelValidator"/>.</remarks>
+        public static BoardState CreateBoard(LevelVariantDto variant)
         {
             var lockOfTube = new Dictionary<int, int>();
-            if (level.Locks != null)
+            if (variant.Locks != null)
             {
-                foreach (LockDto lockDto in level.Locks)
+                foreach (LockDto lockDto in variant.Locks)
                 {
                     foreach (int tube in lockDto.Tubes)
                     {
@@ -44,10 +44,10 @@ namespace BallSort.Core.Levels
                 }
             }
 
-            var tubes = new Tube[level.Tubes.Count];
+            var tubes = new Tube[variant.Tubes.Count];
             for (int i = 0; i < tubes.Length; i++)
             {
-                TubeDto dto = level.Tubes[i];
+                TubeDto dto = variant.Tubes[i];
                 var balls = new Ball[dto.Balls.Count];
                 for (int slot = 0; slot < balls.Length; slot++)
                 {
@@ -75,9 +75,10 @@ namespace BallSort.Core.Levels
         }
 
         /// <summary>
-        /// Builds a fresh grid from level data, without added tubes. Used by <see cref="Load"/> and by restart.
+        /// Builds a fresh grid from level data, without added tubes. Every variant has the same tubes, so
+        /// one grid fits them all. Used for each new try.
         /// </summary>
         /// <remarks>Assumes <paramref name="level"/> has passed <see cref="LevelValidator"/>.</remarks>
-        public static BoardGrid CreateGrid(LevelDto level) => new BoardGrid(level.Layout.Grid, level.Tubes.Count);
+        public static BoardGrid CreateGrid(LevelDto level) => new BoardGrid(level.Layout.Grid, level.Variants[0].Tubes.Count);
     }
 }

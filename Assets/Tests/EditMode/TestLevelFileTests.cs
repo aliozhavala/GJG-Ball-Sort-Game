@@ -26,9 +26,9 @@ namespace BallSort.Tests.EditMode
             return LevelFactory.Load(LevelJsonParser.Parse(File.ReadAllText(path), name), name);
         }
 
-        private static LevelSession Play(string name, params (int From, int To)[] moves)
+        private static LevelSession Play(string name, int variant, params (int From, int To)[] moves)
         {
-            var session = new LevelSession(LoadFile(name), new BoosterInventory(0, 0, 0), addedTubeCapacity: 4);
+            var session = new LevelSession(LoadFile(name), variant, new BoosterInventory(0, 0, 0), addedTubeCapacity: 4);
             foreach (var (from, to) in moves)
             {
                 Assert.That(session.TryMove(from, to, out MoveRejection rejection), Is.True,
@@ -38,10 +38,13 @@ namespace BallSort.Tests.EditMode
             return session;
         }
 
+        // Its variants only permute the colours, so the same moves set the same trap in each one.
+        private static readonly int[] Variants = { 1, 2, 3, 4, 5 };
+
         [Test]
-        public void StuckLock_IsValidAndSolvable()
+        public void StuckLock_IsValidAndEveryVariantSolvable([ValueSource(nameof(Variants))] int variant)
         {
-            SolverResult result = BoardSolver.Solve(LoadFile(StuckLock).Board, SolverMode.Fast, 200000);
+            SolverResult result = BoardSolver.Solve(LoadFile(StuckLock).CreateBoard(variant), SolverMode.Fast, 200000);
             Assert.That(result.Outcome, Is.EqualTo(SolverOutcome.Solved), result.ToString());
 
             var moves = new (int From, int To)[result.Moves.Count];
@@ -50,14 +53,15 @@ namespace BallSort.Tests.EditMode
                 moves[i] = (result.Moves[i].FromIndex, result.Moves[i].ToIndex);
             }
 
-            Assert.That(Play(StuckLock, moves).IsWon, Is.True, "the solver's moves must win");
+            Assert.That(Play(StuckLock, variant, moves).IsWon, Is.True, "the solver's moves must win");
         }
 
         [Test]
-        public void StuckLock_TheTrapGetsStuckWithTheDoorClosed_AndPlayOnAddsATubeToItsRow()
+        public void StuckLock_TheTrapGetsStuckWithTheDoorClosed_AndPlayOnAddsATubeToItsRow(
+            [ValueSource(nameof(Variants))] int variant)
         {
-            // Red from tube 1 into the empty tube 4, then yellow from tube 0 onto tube 1.
-            LevelSession session = Play(StuckLock, (1, 4), (0, 1));
+            // In V1: red from tube 1 into the empty tube 4, then yellow from tube 0 onto tube 1.
+            LevelSession session = Play(StuckLock, variant, (1, 4), (0, 1));
 
             Assert.That(session.IsStuck, Is.True);
             Assert.That(session.Board[5].IsCovered, Is.True, "the lock is still closed");

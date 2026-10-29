@@ -1,3 +1,4 @@
+using System;
 using BallSort.Core.Commands;
 using BallSort.Core.Levels;
 using BallSort.Core.Model;
@@ -10,17 +11,30 @@ namespace BallSort.Tests.EditMode
     public sealed class LevelFactoryTests
     {
         [Test]
-        public void Load_BuildsBoardMatchingTheData()
+        public void Load_KeepsTheFileAndItsHeader()
         {
-            LevelDto dto = Level(2,
+            LevelDto file = Valid().ToFile(LevelTier.Hard);
+            file.Tutorial = true;
+
+            LoadedLevel level = LevelFactory.Load(file, Name);
+
+            Assert.That(level.Name, Is.EqualTo(Name));
+            Assert.That(level.Source, Is.SameAs(file));
+            Assert.That(level.Id, Is.EqualTo(1));
+            Assert.That(level.Tier, Is.EqualTo(LevelTier.Hard));
+            Assert.That(level.IsTutorial, Is.True);
+            Assert.That(level.VariantCount, Is.EqualTo(VariantSelector.VariantCount));
+        }
+
+        [Test]
+        public void CreateBoard_BuildsTheBoardMatchingTheVariant()
+        {
+            TestLevel dto = Level(2,
                 Hidden(4, new[] { 0, 1, 0, 1 }, new[] { true, true, false, false }),
                 T(4, 1, 0, 1, 0), T(4));
 
-            LoadedLevel level = LevelFactory.Load(dto, Name);
-            BoardState board = level.Board;
+            BoardState board = Load(dto).CreateBoard(1);
 
-            Assert.That(level.Name, Is.EqualTo(Name));
-            Assert.That(level.Source, Is.SameAs(dto));
             Assert.That(board.TubeCount, Is.EqualTo(3));
             Assert.That(board[0][0], Is.EqualTo(new Ball(0, true)));
             Assert.That(board[0][1], Is.EqualTo(new Ball(1, true)));
@@ -32,20 +46,42 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
-        public void Load_BuildsTheGrid()
+        public void CreateBoard_PlaysTheRequestedVariant()
         {
-            LoadedLevel level = LevelFactory.Load(Valid().WithGrid(new int?[] { 0, 1 }, new int?[] { 2 }), Name);
+            LevelDto file = Valid().ToFile();
+            file.Variants[2].Tubes[0].Balls = new System.Collections.Generic.List<int> { 1, 0, 1, 0 };
+            file.Variants[2].Tubes[1].Balls = new System.Collections.Generic.List<int> { 0, 1, 0, 1 };
+            LoadedLevel level = LevelFactory.Load(file, Name);
 
-            Assert.That(level.Grid.RowCount, Is.EqualTo(2));
-            Assert.That(level.Grid.TubeCount, Is.EqualTo(3));
-            Assert.That(level.Grid.GetPlacement(2).Row, Is.EqualTo(1));
-            Assert.That(level.Grid.IsAligned(0) || level.Grid.IsAligned(1), Is.False);
+            Assert.That(level.CreateBoard(1)[0][0].ColorId, Is.EqualTo(0));
+            Assert.That(level.CreateBoard(3)[0][0].ColorId, Is.EqualTo(1));
+            Assert.That(level.GetVariant(3), Is.SameAs(file.Variants[2]));
+        }
+
+        [TestCase(0)]
+        [TestCase(6)]
+        public void CreateBoard_AVariantTheLevelDoesNotHave_Throws(int variant)
+        {
+            LoadedLevel level = Load(Valid());
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => level.CreateBoard(variant));
         }
 
         [Test]
-        public void Load_BuildsCoversClayAndKeys()
+        public void CreateGrid_BuildsTheSharedGrid()
         {
-            LevelDto dto = Level(3,
+            BoardGrid grid = Load(Valid().WithGrid(new int?[] { 0, 1 }, new int?[] { 2 })).CreateGrid();
+
+            Assert.That(grid.RowCount, Is.EqualTo(2));
+            Assert.That(grid.TubeCount, Is.EqualTo(3));
+            Assert.That(grid.GetPlacement(2).Row, Is.EqualTo(1));
+            Assert.That(grid.IsAligned(0) || grid.IsAligned(1), Is.False);
+        }
+
+        [Test]
+        public void CreateBoard_BuildsCoversClayAndKeys()
+        {
+            TestLevel dto = Level(3,
                     Hidden(4, new[] { 1, 2, 0, 0 }, new[] { false, true, false, false }).WithKey(1, 4),
                     T(4, 0).AsClay(),
                     T(4, 2, 1, 2, 1).WithVeil(0),
@@ -53,7 +89,7 @@ namespace BallSort.Tests.EditMode
                     T(4))
                 .WithLock(4, 3, 4);
 
-            BoardState board = LevelFactory.Load(dto, Name).Board;
+            BoardState board = Board(dto);
 
             Assert.That(board[0][1], Is.EqualTo(new Ball(2, true, 4)), "the key sits on its ball, which stays hidden");
             Assert.That(board[0][2].HasKey, Is.False);
@@ -68,23 +104,24 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void CreateGrid_RebuildsWithoutAddedTubes()
         {
-            LoadedLevel level = LevelFactory.Load(Valid(), Name);
-            level.Grid.TryAddTube(out _, out _);
+            LoadedLevel level = Load(Valid());
+            BoardGrid played = level.CreateGrid();
+            played.TryAddTube(out _, out _);
 
-            BoardGrid fresh = LevelFactory.CreateGrid(level.Source);
+            BoardGrid fresh = level.CreateGrid();
 
-            Assert.That(fresh, Is.Not.SameAs(level.Grid));
+            Assert.That(fresh, Is.Not.SameAs(played));
             Assert.That(fresh.GetCellCount(0), Is.EqualTo(3));
         }
 
         [Test]
         public void Load_InvalidLevel_ThrowsWithAllErrors()
         {
-            LevelDto dto = Valid();
-            dto.FormatVersion = 5;
-            dto.Tubes[2].Capacity = 0;
+            LevelDto file = Valid().ToFile();
+            file.Id = 0;
+            file.Variants[1].Tubes[2].Capacity = 0;
 
-            var e = Assert.Throws<LevelFormatException>(() => LevelFactory.Load(dto, Name));
+            var e = Assert.Throws<LevelFormatException>(() => LevelFactory.Load(file, Name));
 
             Assert.That(e.LevelName, Is.EqualTo(Name));
             Assert.That(e.Errors.Count, Is.GreaterThanOrEqualTo(2));
@@ -94,16 +131,17 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void CreateBoard_RebuildsWithBallsHiddenAgain()
         {
-            LevelDto dto = Level(2,
+            TestLevel dto = Level(2,
                 Hidden(4, new[] { 0, 1, 0, 1 }, new[] { true, true, true, false }),
                 T(4, 1, 0, 1, 0), T(4));
-            LoadedLevel level = LevelFactory.Load(dto, Name);
+            LoadedLevel level = Load(dto);
+            BoardState played = level.CreateBoard(1);
 
             // Moving the top ball reveals the one beneath it in the played board.
-            Assert.That(new CommandHistory().TryExecuteMove(level.Board, 0, 2, out _), Is.True);
-            Assert.That(level.Board[0].Top.IsRevealed, Is.True);
+            Assert.That(new CommandHistory().TryExecuteMove(played, 0, 2, out _), Is.True);
+            Assert.That(played[0].Top.IsRevealed, Is.True);
 
-            BoardState restarted = LevelFactory.CreateBoard(level.Source);
+            BoardState restarted = level.CreateBoard(1);
 
             Assert.That(restarted[0].Count, Is.EqualTo(4));
             Assert.That(restarted[0][2].IsHidden, Is.True);

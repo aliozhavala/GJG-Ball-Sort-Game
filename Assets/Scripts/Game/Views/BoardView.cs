@@ -117,10 +117,11 @@ namespace BallSort.Game.Views
             Clear();
 
             LoadedLevel level = _session.Level;
-            if (level.Colors > _palette.Count)
+            int colors = level.GetVariant(_session.Variant).Colors;
+            if (colors > _palette.Count)
             {
                 Debug.LogError(
-                    $"{level.Name} uses {level.Colors} colours but {_palette.name} defines {_palette.Count}.", this);
+                    $"{level.Name} V{_session.Variant} uses {colors} colours but {_palette.name} defines {_palette.Count}.", this);
             }
 
             BoardState board = _session.Board;

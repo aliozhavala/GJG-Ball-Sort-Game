@@ -13,9 +13,10 @@ using UnityEngine;
 namespace BallSort.Tests.EditMode
 {
     /// <summary>
-    /// Every level file in the project must parse, pass validation and be solvable: the fast solver
-    /// must find a solution, and that solution must win when played through a session. The
-    /// hand-made mechanic levels also keep a scripted solution that checks their mechanic fires.
+    /// Every level file in the project must parse and pass validation, and every variant of it must be
+    /// solvable: the fast solver must find a solution, and that solution must win when played through a
+    /// session. The hand-made mechanic levels also keep a scripted solution (on V1) that checks their
+    /// mechanic fires.
     /// </summary>
     [TestFixture]
     public sealed class ShippedLevelTests
@@ -28,6 +29,19 @@ namespace BallSort.Tests.EditMode
         private static IEnumerable<string> LevelFiles() =>
             Directory.GetFiles(LevelsFolder, "*.json");
 
+        private static IEnumerable<TestCaseData> LevelVariants()
+        {
+            foreach (string path in LevelFiles())
+            {
+                string fileName = Path.GetFileName(path);
+                for (int variant = 1; variant <= VariantSelector.VariantCount; variant++)
+                {
+                    yield return new TestCaseData(fileName, variant)
+                        .SetName($"Variant_IsSolvable_AndTheSolutionWinsWhenPlayed({Path.GetFileNameWithoutExtension(fileName)} V{variant})");
+                }
+            }
+        }
+
         private static LoadedLevel LoadFile(string fileName)
         {
             string path = Path.Combine(LevelsFolder, fileName);
@@ -35,13 +49,16 @@ namespace BallSort.Tests.EditMode
             return LevelFactory.Load(LevelJsonParser.Parse(File.ReadAllText(path), name), name);
         }
 
-        private static LevelSession Play(string fileName, params (int From, int To)[] moves)
+        private static LevelSession Play(string fileName, params (int From, int To)[] moves) =>
+            PlayVariant(fileName, 1, moves);
+
+        private static LevelSession PlayVariant(string fileName, int variant, params (int From, int To)[] moves)
         {
-            var session = new LevelSession(LoadFile(fileName), new BoosterInventory(0, 0, 0), addedTubeCapacity: 4);
+            var session = new LevelSession(LoadFile(fileName), variant, new BoosterInventory(0, 0, 0), addedTubeCapacity: 4);
             foreach (var (from, to) in moves)
             {
                 Assert.That(session.TryMove(from, to, out MoveRejection rejection), Is.True,
-                    $"{fileName}: {from} -> {to} was refused ({rejection}) on {session.Board}");
+                    $"{fileName} V{variant}: {from} -> {to} was refused ({rejection}) on {session.Board}");
             }
 
             return session;
@@ -53,12 +70,11 @@ namespace BallSort.Tests.EditMode
             Assert.DoesNotThrow(() => LoadFile(Path.GetFileName(path)));
         }
 
-        [TestCaseSource(nameof(LevelFiles))]
-        public void LevelFile_IsSolvable_AndTheSolutionWinsWhenPlayed(string path)
+        [TestCaseSource(nameof(LevelVariants))]
+        public void Variant_IsSolvable_AndTheSolutionWinsWhenPlayed(string fileName, int variant)
         {
-            string fileName = Path.GetFileName(path);
-            SolverResult result = BoardSolver.Solve(LoadFile(fileName).Board, SolverMode.Fast, SolverNodeLimit);
-            Assert.That(result.Outcome, Is.EqualTo(SolverOutcome.Solved), $"{fileName}: {result}");
+            SolverResult result = BoardSolver.Solve(LoadFile(fileName).CreateBoard(variant), SolverMode.Fast, SolverNodeLimit);
+            Assert.That(result.Outcome, Is.EqualTo(SolverOutcome.Solved), $"{fileName} V{variant}: {result}");
 
             var moves = new (int From, int To)[result.Moves.Count];
             for (int i = 0; i < moves.Length; i++)
@@ -66,7 +82,7 @@ namespace BallSort.Tests.EditMode
                 moves[i] = (result.Moves[i].FromIndex, result.Moves[i].ToIndex);
             }
 
-            Assert.That(Play(fileName, moves).IsWon, Is.True, $"{fileName}: the solver's moves must win");
+            Assert.That(PlayVariant(fileName, variant, moves).IsWon, Is.True, $"{fileName} V{variant}: the solver's moves must win");
         }
 
         [Test]
@@ -77,14 +93,14 @@ namespace BallSort.Tests.EditMode
                 string name = Path.GetFileNameWithoutExtension(path);
                 LoadedLevel level = LoadFile(Path.GetFileName(path));
 
-                Assert.That(name, Is.EqualTo($"level_{level.Source.Id:000}"), $"{name} has id {level.Source.Id}.");
+                Assert.That(name, Is.EqualTo($"level_{level.Id:000}"), $"{name} has id {level.Id}.");
             }
         }
 
         [Test]
         public void Level004_KeepsItsTwoRows()
         {
-            BoardGrid grid = LoadFile("level_004.json").Grid;
+            BoardGrid grid = LoadFile("level_004.json").CreateGrid();
 
             Assert.That((grid.RowCount, grid.GetCellCount(0), grid.GetCellCount(1)), Is.EqualTo((2, 4, 3)));
         }
@@ -92,7 +108,7 @@ namespace BallSort.Tests.EditMode
         [Test]
         public void Level005_FillsTwoFullRows()
         {
-            BoardGrid grid = LoadFile("level_005.json").Grid;
+            BoardGrid grid = LoadFile("level_005.json").CreateGrid();
 
             Assert.That((grid.RowCount, grid.GetCellCount(0), grid.GetCellCount(1)), Is.EqualTo((2, 6, 6)));
         }
@@ -124,11 +140,13 @@ namespace BallSort.Tests.EditMode
         public void Level008_ClayAndALargeTube_AreLaidOutAndSolvable()
         {
             LoadedLevel level = LoadFile("level_008.json");
-            Assert.That(level.Board[0].Capacity, Is.EqualTo(10));
-            Assert.That(level.Board[0].IsClay, Is.True);
-            GridPlacement large = level.Grid.GetPlacement(0);
+            BoardState board = level.CreateBoard(1);
+            BoardGrid grid = level.CreateGrid();
+            Assert.That(board[0].Capacity, Is.EqualTo(10));
+            Assert.That(board[0].IsClay, Is.True);
+            GridPlacement large = grid.GetPlacement(0);
             Assert.That((large.Row, large.Cell, large.RowSpan), Is.EqualTo((1, 0, 2)));
-            Assert.That(level.Grid.IsAligned(0) && level.Grid.IsAligned(1), Is.True);
+            Assert.That(grid.IsAligned(0) && grid.IsAligned(1), Is.True);
 
             LevelSession session = Play("level_008.json",
                 (1, 0), (2, 0), (3, 0), (4, 0), (3, 2), (4, 2), (4, 1), (4, 2), (3, 1), (5, 1));

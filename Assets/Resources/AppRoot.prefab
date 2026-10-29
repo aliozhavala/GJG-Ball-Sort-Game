@@ -46,3 +46,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Bootstrap.AppRoot
   _economy: {fileID: 11400000, guid: f2129ee07399c914ebf41c997876f0d8, type: 2}
   _levelDatabase: {fileID: 11400000, guid: 60ff1a896de21754e9fe94f62808a7af, type: 2}
+  _episodes: {fileID: 11400000, guid: 621039004b4432d4c92ce5e6e436eaed, type: 2}

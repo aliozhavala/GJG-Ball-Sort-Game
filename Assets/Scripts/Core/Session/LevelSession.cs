@@ -51,6 +51,9 @@ namespace BallSort.Core.Session
         /// <summary>The level being played; its <see cref="LoadedLevel.Source"/> is what restart rebuilds from.</summary>
         public LoadedLevel Level => _level;
 
+        /// <summary>The variant being played, 1 to <see cref="LoadedLevel.VariantCount"/>. Changed only by <see cref="Restart"/>.</summary>
+        public int Variant { get; private set; }
+
         /// <summary>
         /// The live board. Replaced by <see cref="Restart"/>, so do not cache it across a
         /// <see cref="Restarted"/> event. Read-only from outside Core: its mutators are internal.
@@ -237,10 +240,11 @@ namespace BallSort.Core.Session
         /// </summary>
         public event Action Restarted;
 
-        /// <param name="level">A freshly loaded level; the session plays on its board.</param>
+        /// <param name="level">A loaded level.</param>
+        /// <param name="variant">The variant to play, 1 to <see cref="LoadedLevel.VariantCount"/>; the try rules pick it (see <see cref="VariantSelector"/>).</param>
         /// <param name="boosters">The player's global inventory; boosters spent here are spent for good.</param>
         /// <param name="addedTubeCapacity">Slots in each tube the Add-tube booster appends.</param>
-        public LevelSession(LoadedLevel level, BoosterInventory boosters, int addedTubeCapacity)
+        public LevelSession(LoadedLevel level, int variant, BoosterInventory boosters, int addedTubeCapacity)
         {
             _level = level ?? throw new ArgumentNullException(nameof(level));
             _boosters = boosters ?? throw new ArgumentNullException(nameof(boosters));
@@ -252,8 +256,9 @@ namespace BallSort.Core.Session
             }
 
             _addedTubeCapacity = addedTubeCapacity;
-            _board = level.Board;
-            _grid = level.Grid;
+            _board = level.CreateBoard(variant);
+            _grid = level.CreateGrid();
+            Variant = variant;
             Subscribe(_board);
             IsStuck = ComputeStuck();
         }
@@ -438,14 +443,20 @@ namespace BallSort.Core.Session
         }
 
         /// <summary>
-        /// Reloads the level from its source data: hidden balls are hidden again, added tubes are
-        /// gone and the history is cleared. Boosters already spent stay spent.
+        /// Reloads the level from its source data in <paramref name="variant"/>, the new try's
+        /// variant: hidden balls are hidden again, added tubes are gone and the history is cleared.
+        /// Boosters already spent stay spent. Every variant has the same tubes and grid, so only the
+        /// balls and covers can differ from the board being replaced.
         /// </summary>
-        public void Restart()
+        /// <param name="variant">1 to <see cref="LoadedLevel.VariantCount"/>; may be the variant already played.</param>
+        /// <exception cref="ArgumentOutOfRangeException">If the level has no such variant.</exception>
+        public void Restart(int variant)
         {
+            BoardState board = _level.CreateBoard(variant);
             Unsubscribe(_board);
-            _board = LevelFactory.CreateBoard(_level.Source);
-            _grid = LevelFactory.CreateGrid(_level.Source);
+            _board = board;
+            _grid = _level.CreateGrid();
+            Variant = variant;
             _history.Clear();
             _revision++;
             Subscribe(_board);

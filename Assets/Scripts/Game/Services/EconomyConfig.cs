@@ -1,4 +1,7 @@
+using System;
+using BallSort.Core.Levels;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace BallSort.Game.Services
 {
@@ -17,8 +20,13 @@ namespace BallSort.Game.Services
         [SerializeField, Min(0)] private int _startAddTube = 99;
 
         [Header("Rewards and prices")]
-        [Tooltip("Coins granted for winning a level.")]
-        [SerializeField, Min(0)] private int _winReward = 20;
+        [Tooltip("Coins granted for winning a regular level.")]
+        [FormerlySerializedAs("_winReward")]
+        [SerializeField, Min(0)] private int _regularReward = 20;
+        [Tooltip("Coins granted for winning a hard level.")]
+        [SerializeField, Min(0)] private int _hardReward = 40;
+        [Tooltip("Coins granted for winning a super hard level.")]
+        [SerializeField, Min(0)] private int _superHardReward = 60;
         [Tooltip("Coins spent to add one tube when stuck.")]
         [SerializeField, Min(0)] private int _playOnCost = 900;
 
@@ -31,8 +39,17 @@ namespace BallSort.Game.Services
         public int StartUndo => _startUndo;
         public int StartShuffle => _startShuffle;
         public int StartAddTube => _startAddTube;
-        public int WinReward => _winReward;
         public int PlayOnCost => _playOnCost;
         public int AddedTubeCapacity => _addedTubeCapacity;
+
+        /// <summary>Coins granted for winning a level of <paramref name="tier"/>.</summary>
+        public int GetWinReward(LevelTier tier) =>
+            tier switch
+            {
+                LevelTier.Regular => _regularReward,
+                LevelTier.Hard => _hardReward,
+                LevelTier.SuperHard => _superHardReward,
+                _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown level tier."),
+            };
     }
 }

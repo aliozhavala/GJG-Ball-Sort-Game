@@ -1,22 +1,21 @@
 using System;
 using BallSort.Core.Levels;
-using BallSort.Core.Session;
 using BallSort.Game.Flow;
 using BallSort.Game.Services;
+using BallSort.Game.Views;
 using UnityEngine;
 
 namespace BallSort.Game.Bootstrap
 {
     /// <summary>
-    /// Level scene composition root: loads the player's current level, starts a
-    /// <see cref="LevelSession"/> for it, and hands both to the <see cref="LevelFlow"/>. A level that
-    /// fails to load sends the player back to Home with a toast instead of an empty board.
+    /// Level scene composition root: loads the player's current level, shows its episode's
+    /// background and hands the level to the <see cref="LevelFlow"/>, which starts the first try. A
+    /// level that fails to load sends the player back to Home with a toast instead of an empty board.
     /// </summary>
     /// <remarks>
-    /// In the Editor, Ball Sort ▸ Play Level… can choose for one visit either another level of the
-    /// run (winning it is a replay unless it is the current level: the reward is paid, progress
-    /// stays) or a level file outside the run, such as a test level (its win pays nothing and moves
-    /// no progress).
+    /// In the Editor, Ball Sort ▸ Play Level… can choose for one visit any level of the run or a level
+    /// file outside it, such as a test level, in any variant. Such a visit is a test: it plays the
+    /// chosen variant on every try and records no try, reward or progress.
     /// </remarks>
     public sealed class LevelBootstrap : MonoBehaviour
     {
@@ -32,9 +31,16 @@ namespace BallSort.Game.Bootstrap
         /// <see cref="EditorLevelJumpKey"/>, and takes precedence over it.
         /// </summary>
         public const string EditorLevelFileKey = "BallSort.EditorLevelFile";
+
+        /// <summary>
+        /// SessionState key the editor level jump writes the chosen variant (1-based) to. Read once, with
+        /// <see cref="EditorLevelJumpKey"/> or <see cref="EditorLevelFileKey"/>; V1 when absent.
+        /// </summary>
+        public const string EditorLevelVariantKey = "BallSort.EditorLevelVariant";
 #endif
 
         [SerializeField] private LevelFlow _flow;
+        [SerializeField] private BackgroundSprite _background;
 
         [Tooltip("Toast shown on Home when a level file cannot be loaded; {0} is the level number or file name.")]
         [SerializeField] private string _loadFailedFormat = "Level {0} could not be loaded";
@@ -44,21 +50,21 @@ namespace BallSort.Game.Bootstrap
         private void Start()
         {
             _app = AppRoot.Instance;
-            if (_app == null || _flow == null)
+            if (_app == null || _flow == null || _background == null)
             {
-                Debug.LogError($"{name}: needs a running AppRoot and an assigned level flow.", this);
+                Debug.LogError($"{name}: needs a running AppRoot, an assigned level flow and a background.", this);
                 return;
             }
 
             LevelVisit visit = ChooseVisit(out TextAsset editorFile);
+            _background.Show(_app.Episodes.GetEpisodeForLevel(visit.LevelNumber).LevelBackground);
             if (!TryLoad(visit, editorFile, out LoadedLevel level))
             {
                 _app.SceneLoader.LoadHome(string.Format(_loadFailedFormat, visit.Label));
                 return;
             }
 
-            var session = new LevelSession(level, _app.PlayerData.Boosters, _app.Economy.AddedTubeCapacity);
-            _flow.Begin(session, visit, _app.PlayerData, _app.Economy, _app.SceneLoader);
+            _flow.Begin(level, visit, _app.PlayerData, _app.Economy, _app.SceneLoader);
         }
 
         /// <param name="editorFile">The level file to play when the visit is from a file; otherwise null.</param>
@@ -66,7 +72,7 @@ namespace BallSort.Game.Bootstrap
         {
             try
             {
-                TextAsset file = visit.IsFromFile ? editorFile : _app.Levels.GetLevel(visit.LevelNumber);
+                TextAsset file = visit.LevelNumber == 0 ? editorFile : _app.Levels.GetLevel(visit.LevelNumber);
                 level = new LevelLoader().Load(file);
                 return true;
             }
@@ -84,31 +90,32 @@ namespace BallSort.Game.Bootstrap
             return false;
         }
 
-        /// <summary>The player's current level, unless an editor tool chose something else for this visit.</summary>
+        /// <summary>The player's current level, unless an editor tool chose a test visit instead.</summary>
         /// <param name="editorFile">The chosen level file (null if it no longer exists), or null.</param>
         private LevelVisit ChooseVisit(out TextAsset editorFile)
         {
             editorFile = null;
-            int levelNumber = _app.PlayerData.CurrentLevel;
 #if UNITY_EDITOR
             // One visit only: Continue → Home → Level, or the next plain Play, goes back to the save.
             string filePath = UnityEditor.SessionState.GetString(EditorLevelFileKey, string.Empty);
             int jump = UnityEditor.SessionState.GetInt(EditorLevelJumpKey, 0);
+            int variant = Mathf.Clamp(UnityEditor.SessionState.GetInt(EditorLevelVariantKey, 1), 1, VariantSelector.VariantCount);
             UnityEditor.SessionState.EraseString(EditorLevelFileKey);
             UnityEditor.SessionState.EraseInt(EditorLevelJumpKey);
+            UnityEditor.SessionState.EraseInt(EditorLevelVariantKey);
 
             if (filePath.Length > 0)
             {
                 editorFile = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>(filePath);
-                return LevelVisit.ForFile(System.IO.Path.GetFileNameWithoutExtension(filePath));
+                return LevelVisit.ForEditorFile(System.IO.Path.GetFileNameWithoutExtension(filePath), variant);
             }
 
             if (jump > 0)
             {
-                levelNumber = jump;
+                return LevelVisit.ForEditorLevel(Mathf.Clamp(jump, 1, _app.Levels.Count), variant);
             }
 #endif
-            return LevelVisit.ForLevel(Mathf.Clamp(levelNumber, 1, _app.Levels.Count));
+            return LevelVisit.ForLevel(Mathf.Clamp(_app.PlayerData.CurrentLevel, 1, _app.Levels.Count));
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using BallSort.Core.Levels;
 using BallSort.Game.Bootstrap;
 using BallSort.Game.Services;
 using UnityEditor;
@@ -11,38 +12,40 @@ namespace BallSort.Editor.Tools
     /// <summary>
     /// Ball Sort ▸ Play Level…: the editor level jump. Plays any level of a <see cref="LevelDatabase"/>,
     /// or a level file outside the run (test and draft levels in <see cref="LevelDatabase.TestLevelsFolder"/>),
-    /// for testing and tuning. The Validate Levels window uses the same <see cref="Play"/>.
+    /// in a chosen variant, for testing and tuning. The Validate Levels window uses the same <see cref="Play"/>.
     /// </summary>
     /// <remarks>
     /// The choice is stored in <see cref="SessionState"/>, which survives the domain reload of
     /// entering Play mode, and <see cref="LevelBootstrap"/> reads it once. Lives in the Editor
-    /// assembly, so it never ships. Winning a database level other than the current one is a replay:
-    /// the reward is paid, progress does not move. Winning a level file pays nothing and moves nothing.
+    /// assembly, so it never ships. Every jump is a test visit: it plays the chosen variant on every
+    /// try (Restart included), and winning pays no reward, moves no progress and counts no try.
     /// </remarks>
     public sealed class PlayLevelWindow : EditorWindow
     {
         [SerializeField] private LevelDatabase _database;
         [SerializeField] private int _levelNumber = 1;
         [SerializeField] private TextAsset _levelFile;
+        [SerializeField] private int _variant = 1;
 
         [MenuItem("Ball Sort/Play Level…")]
         public static void Open() => GetWindow<PlayLevelWindow>("Play Level");
 
         /// <summary>
         /// Offers to save modified scenes, opens the Level scene and enters Play mode on
-        /// <paramref name="levelNumber"/>. Call it outside OnGUI (e.g. through
-        /// <see cref="EditorApplication.delayCall"/>): it may open a dialog and change scenes.
+        /// <paramref name="levelNumber"/> in <paramref name="variant"/>, as a test visit. Call it outside
+        /// OnGUI (e.g. through <see cref="EditorApplication.delayCall"/>): it may open a dialog and change scenes.
         /// </summary>
+        /// <param name="levelNumber">1-based number in the level database.</param>
+        /// <param name="variant">1 to <see cref="VariantSelector.VariantCount"/>.</param>
         /// <returns>False when already in Play mode, the save prompt was cancelled, or the scene is missing.</returns>
-        public static bool Play(int levelNumber) =>
-            EnterLevelScene(() => SessionState.SetInt(LevelBootstrap.EditorLevelJumpKey, levelNumber));
+        public static bool Play(int levelNumber, int variant) =>
+            EnterLevelScene(variant, () => SessionState.SetInt(LevelBootstrap.EditorLevelJumpKey, levelNumber));
 
         /// <summary>
-        /// Like <see cref="Play"/>, for a level file outside the run. Its win pays no reward and moves
-        /// no progress.
+        /// Like <see cref="Play"/>, for a level file outside the run.
         /// </summary>
         /// <returns>False when <paramref name="levelFile"/> is not a project asset, or as for <see cref="Play"/>.</returns>
-        public static bool PlayFile(TextAsset levelFile)
+        public static bool PlayFile(TextAsset levelFile, int variant)
         {
             string path = AssetDatabase.GetAssetPath(levelFile);
             if (string.IsNullOrEmpty(path))
@@ -51,12 +54,18 @@ namespace BallSort.Editor.Tools
                 return false;
             }
 
-            return EnterLevelScene(() => SessionState.SetString(LevelBootstrap.EditorLevelFileKey, path));
+            return EnterLevelScene(variant, () => SessionState.SetString(LevelBootstrap.EditorLevelFileKey, path));
         }
 
-        /// <param name="storeChoice">Writes this visit's choice to <see cref="SessionState"/>.</param>
-        private static bool EnterLevelScene(Action storeChoice)
+        /// <param name="storeChoice">Writes this visit's level or file to <see cref="SessionState"/>.</param>
+        private static bool EnterLevelScene(int variant, Action storeChoice)
         {
+            if (!VariantSelector.IsVariant(variant))
+            {
+                Debug.LogError($"Play Level: variant {variant} does not exist; levels have variants 1 to {VariantSelector.VariantCount}.");
+                return false;
+            }
+
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 Debug.LogWarning("Play Level: leave Play mode first.");
@@ -81,6 +90,7 @@ namespace BallSort.Editor.Tools
             SessionState.EraseInt(LevelBootstrap.EditorLevelJumpKey);
             SessionState.EraseString(LevelBootstrap.EditorLevelFileKey);
             storeChoice();
+            SessionState.SetInt(LevelBootstrap.EditorLevelVariantKey, variant);
             EditorApplication.EnterPlaymode();
             return true;
         }
@@ -108,6 +118,14 @@ namespace BallSort.Editor.Tools
         {
             bool canPlay = !EditorApplication.isPlayingOrWillChangePlaymode;
 
+            _variant = Mathf.Clamp(_variant, 1, VariantSelector.VariantCount);
+            _variant = EditorGUILayout.IntSlider("Variant", _variant, 1, VariantSelector.VariantCount);
+            EditorGUILayout.HelpBox(
+                "A test visit: it plays this variant on every try, Restart included. Winning pays no reward, " +
+                "moves no progress and counts no try.",
+                MessageType.None);
+
+            EditorGUILayout.Space();
             EditorGUILayout.LabelField("Level of the run", EditorStyles.boldLabel);
             DrawDatabaseLevel(canPlay);
 
@@ -132,16 +150,13 @@ namespace BallSort.Editor.Tools
 
             using (new EditorGUI.DisabledScope(!canPlay || file == null))
             {
-                if (GUILayout.Button($"Play level {_levelNumber}"))
+                if (GUILayout.Button($"Play level {_levelNumber}, V{_variant}"))
                 {
                     int levelNumber = _levelNumber;
-                    EditorApplication.delayCall += () => Play(levelNumber);
+                    int variant = _variant;
+                    EditorApplication.delayCall += () => Play(levelNumber, variant);
                 }
             }
-
-            EditorGUILayout.HelpBox(
-                "Winning a level other than the current one pays the reward but does not move progress.",
-                MessageType.None);
         }
 
         private void DrawLevelFile(bool canPlay)
@@ -150,16 +165,16 @@ namespace BallSort.Editor.Tools
 
             using (new EditorGUI.DisabledScope(!canPlay || _levelFile == null))
             {
-                if (GUILayout.Button(_levelFile != null ? $"Play {_levelFile.name}" : "Play file"))
+                if (GUILayout.Button(_levelFile != null ? $"Play {_levelFile.name}, V{_variant}" : "Play file"))
                 {
                     TextAsset levelFile = _levelFile;
-                    EditorApplication.delayCall += () => PlayFile(levelFile);
+                    int variant = _variant;
+                    EditorApplication.delayCall += () => PlayFile(levelFile, variant);
                 }
             }
 
             EditorGUILayout.HelpBox(
-                $"Winning a level file pays no reward and does not move progress. Keep test and draft levels in " +
-                $"{LevelDatabase.TestLevelsFolder}/; the level database must never list them.",
+                $"Keep test and draft levels in {LevelDatabase.TestLevelsFolder}/; the level database must never list them.",
                 MessageType.None);
         }
 

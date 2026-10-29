@@ -17,6 +17,8 @@ MonoBehaviour:
   _startUndo: 99
   _startShuffle: 99
   _startAddTube: 99
-  _winReward: 20
+  _regularReward: 20
+  _hardReward: 40
+  _superHardReward: 60
   _playOnCost: 900
   _addedTubeCapacity: 4

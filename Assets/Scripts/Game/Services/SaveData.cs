@@ -20,6 +20,8 @@ namespace BallSort.Game.Services
         [JsonProperty(Required = Required.Always)] public int UndoBoosters { get; set; }
         [JsonProperty(Required = Required.Always)] public int ShuffleBoosters { get; set; }
         [JsonProperty(Required = Required.Always)] public int AddTubeBoosters { get; set; }
+        [JsonProperty(Required = Required.Always)] public int LevelTry { get; set; }
+        [JsonProperty(Required = Required.Always)] public int LastVariant { get; set; }
         [JsonProperty(Required = Required.Always)] public bool SoundOn { get; set; }
         [JsonProperty(Required = Required.Always)] public bool MusicOn { get; set; }
         [JsonProperty(Required = Required.Always)] public bool HapticsOn { get; set; }
@@ -36,6 +38,8 @@ namespace BallSort.Game.Services
                 UndoBoosters = economy.StartUndo,
                 ShuffleBoosters = economy.StartShuffle,
                 AddTubeBoosters = economy.StartAddTube,
+                LevelTry = 0,
+                LastVariant = 0,
                 SoundOn = true,
                 MusicOn = true,
                 HapticsOn = true,

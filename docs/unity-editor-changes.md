@@ -275,3 +275,51 @@ Newest entries at the bottom.
   (x 3.88 → 3.10). The level was then won with the solver's moves: coins and current level unchanged, Win panel
   "Level stuck_lock complete" with the reward line hidden. The 900 coins were restored through `SaveService`
   (2120 coins, current level 4 — the save had gained 80 coins outside these checks).
+
+## 2026-10-29 — Roadmap 5: level format v2 (variants, tier, episodes)
+
+All changes made through Unity MCP Editor commands; Unity generated every new `.meta` file.
+
+### Placeholder sprites
+- New folder `Assets/Art/Sprites/Placeholder/Backgrounds/` with 10 generated 90×160 vertical-gradient PNGs,
+  `Episode1_Home.png` … `Episode5_Home.png` and `Episode1_Level.png` … `Episode5_Level.png` (one hue per episode:
+  teal, violet, amber, green, blue; Level versions darker). Imported as Sprite (Single), no mipmaps, clamp, bilinear,
+  uncompressed, 100 PPU.
+
+### Assets
+- New `Assets/Data/Config/EpisodeConfig.asset` (`EpisodeConfig`): 5 episodes, first levels 1, 21, 41, 61, 81, each with
+  its Home and Level background sprite above.
+- `Assets/Data/Config/EconomyConfig.asset`: re-saved after the code change; `_winReward: 20` became `_regularReward: 20`
+  (`FormerlySerializedAs`), plus `_hardReward: 40` and `_superHardReward: 60`.
+- Level files `Assets/Data/Levels/level_001.json` … `level_008.json` and `Assets/Data/TestLevels/stuck_lock.json`
+  rewritten to format 2 (text files, by a script; V1 = the old content). `meta.optimalMoves` then written for all 40
+  shipped variants by the Validate Levels runner and `OptimalMovesWriter`.
+
+### Prefabs
+- `Assets/Resources/AppRoot.prefab`: `AppRoot._episodes` → `EpisodeConfig`.
+
+### Scenes
+- `Level.unity`: new root object **Background** (after Main Camera) with a `SpriteRenderer` (Sprite-Unlit-Default,
+  sorting layer Background, order 0, no sprite until play) and `BackgroundSprite` (`_renderer` → its renderer,
+  `_camera` → Main Camera). `LevelBootstrap._background` → it.
+- `Home.unity`:
+  - `HomeCanvas/Background` (existing full-screen Image): colour dark navy → white, raycast target off; added
+    `AspectRatioFitter` (Envelope Parent, 9:16) and `BackgroundImage` (`_image`, `_fitter` → those).
+    `HomeBootstrap._background` → it.
+  - `SafeArea/LevelButton`: added `LevelTierLook` (`_background` → the button's Image, `_regularTint` = the existing
+    green 0.263/0.627/0.278, hard orange, super hard magenta) and a child **TierBadge** (inactive; UISprite sliced,
+    dark 0.12/0.12/0.16/0.95, 320×72 centred on the button's top edge) with a TMP child **Label** (LiberationSans,
+    44 bold, white, "Hard"). `HomeScreen._levelTierLook` → the `LevelTierLook`.
+
+### Verification runs (no persistent changes)
+- EditMode tests via `TestRunnerApi` (`runSynchronously`, scene clean): 523 passed, 0 failed (includes all 40 shipped
+  level × variant solves, every `stuck_lock` variant, and the JSON examples in `docs/levels.md` and
+  `docs/level-format-guide.md`).
+- Validate Levels runner: every variant of levels 1–8 valid and solvable; optima equal to V1's except `level_006` V5
+  (hidden ball: 7 instead of 6). Writer: a second write is a no-op; an unknown variant is refused.
+- Play mode from Home with the Editor save (version 1, current level 4): the save migrated to version 2 (try 0, no
+  variant); Home showed `Episode1_Home` and the hard look (orange, "Hard" badge). Entering level 4 started try 1 on V1
+  with `Episode1_Level` covering the camera; Restart ×8 played V2, V3, V4, V5, then V3, V4, V3, V4, each try saved at
+  once. Winning paid 40 coins (Win panel "+40"), moved to level 5 and reset the tries. Editor jump to level 6 V5: HUD
+  "Level 6 · V5", Restart kept V5, no try counted, the win paid nothing (reward line hidden) and kept level 5.
+- The original Editor save string (version 1, level 4, 1220 coins) was written back afterwards.

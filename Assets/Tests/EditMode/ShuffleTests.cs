@@ -18,10 +18,10 @@ namespace BallSort.Tests.EditMode
     {
         private const int Seeds = 25;
 
-        private static LevelSession Start(LevelDto level, BoosterInventory boosters) =>
-            new LevelSession(LevelFactory.Load(level, Name), boosters, 4);
+        private static LevelSession Start(TestLevel level, BoosterInventory boosters) =>
+            new LevelSession(Load(level), 1, boosters, 4);
 
-        private static LevelSession Start(LevelDto level, int shuffles = 99) =>
+        private static LevelSession Start(TestLevel level, int shuffles = 99) =>
             Start(level, new BoosterInventory(99, shuffles, 99));
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace BallSort.Tests.EditMode
         /// is not complete), tube 4 is locked, tube 5 is clay, and tube 2's bottom ball holds lock
         /// 0's key. The open tubes are 1, 2, 6 and 7.
         /// </summary>
-        private static LevelDto EveryKindOfTube() =>
+        private static TestLevel EveryKindOfTube() =>
             Level(4,
                     T(4, 0, 0, 0), T(4, 1, 0), T(4, 1, 2, 3).WithKey(0, 0), T(4, 2, 2).WithVeil(3),
                     T(4, 3, 3), T(4, 1).AsClay(), T(4, 1, 3, 2), T(4))
@@ -38,7 +38,7 @@ namespace BallSort.Tests.EditMode
         private static readonly int[] UntouchedTubes = { 0, 3, 4, 5 };
 
         /// <summary>Three open tubes whose lower balls are hidden, and two empty tubes.</summary>
-        private static LevelDto MostlyHidden() =>
+        private static TestLevel MostlyHidden() =>
             Level(3,
                 Hidden(4, new[] { 0, 1, 2, 0 }, new[] { true, true, true, false }),
                 Hidden(4, new[] { 1, 2, 0, 1 }, new[] { true, true, false, false }),
@@ -46,7 +46,7 @@ namespace BallSort.Tests.EditMode
                 T(4), T(4));
 
         /// <summary>The only open balls are four 0s, so no arrangement can differ from this one.</summary>
-        private static LevelDto NothingToRearrange() =>
+        private static TestLevel NothingToRearrange() =>
             Level(2, T(4, 0, 0), T(4, 0, 0), T(4, 1, 1, 1).WithVeil(0), T(4, 1).AsClay());
 
         private static int CountHidden(BoardState board)

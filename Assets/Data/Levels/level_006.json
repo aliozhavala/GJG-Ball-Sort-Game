@@ -1,14 +1,44 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "id": 6,
-  "colors": 3,
+  "tier": "regular",
+  "tutorial": true,
   "layout": { "grid": [[0, 1, 2], [3, 4]] },
-  "tubes": [
-    { "capacity": 4, "balls": [0, 0, 0, 1] },
-    { "capacity": 4, "balls": [1, 1, 2, 0] },
-    { "capacity": 4, "balls": [] },
-    { "capacity": 4, "balls": [2, 2, 1, 2], "veil": { "color": 0 } },
-    { "capacity": 4, "balls": [] }
-  ],
-  "meta": { "optimalMoves": 6, "mechanics": ["veil"], "tutorial": true }
+  "variants": [
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [0, 0, 0, 1] },
+        { "capacity": 4, "balls": [1, 1, 2, 0] },
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [2, 2, 1, 2], "veil": { "color": 0 } },
+        { "capacity": 4, "balls": [] }
+      ], "meta": { "optimalMoves": 6, "notes": "Tutorial order: finish red to lift the veil." } },
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [1, 1, 1, 0] },
+        { "capacity": 4, "balls": [0, 0, 2, 1] },
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [2, 2, 0, 2], "veil": { "color": 1 } },
+        { "capacity": 4, "balls": [] }
+      ], "meta": { "optimalMoves": 6 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [0, 0, 1, 2] },
+        { "capacity": 4, "balls": [2, 2, 2, 0] },
+        { "capacity": 4, "balls": [1, 1, 0, 1], "veil": { "color": 2 } },
+        { "capacity": 4, "balls": [] }
+      ], "meta": { "optimalMoves": 6 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [1, 1, 1, 2] },
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [2, 2, 0, 1] },
+        { "capacity": 4, "balls": [0, 0, 2, 0], "veil": { "color": 1 } },
+        { "capacity": 4, "balls": [] }
+      ], "meta": { "optimalMoves": 6 } },
+    { "colors": 3, "tubes": [
+        { "capacity": 4, "balls": [0, 0, 0, 2] },
+        { "capacity": 4, "balls": [2, 2, 1, 0], "hidden": [true, false, false, false] },
+        { "capacity": 4, "balls": [] },
+        { "capacity": 4, "balls": [1, 1, 2, 1], "veil": { "color": 0 } },
+        { "capacity": 4, "balls": [] }
+      ], "meta": { "optimalMoves": 7, "notes": "Tube 1 fills with yellow but cannot complete until its bottom ball is revealed." } }
+  ]
 }

@@ -1,6 +1,7 @@
 using System;
 using BallSort.Core.Levels;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
 namespace BallSort.LevelJson
@@ -15,16 +16,32 @@ namespace BallSort.LevelJson
     /// </remarks>
     public static class LevelJsonParser
     {
+        private static readonly NamingStrategy CamelCase = new CamelCaseNamingStrategy();
+
         private static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
             MissingMemberHandling = MissingMemberHandling.Error,
-            ContractResolver = new DefaultContractResolver { NamingStrategy = new CamelCaseNamingStrategy() },
+            ContractResolver = new DefaultContractResolver { NamingStrategy = CamelCase },
+            // "regular", "hard", "superHard"; a number is refused, so a tier is always readable in the file.
+            Converters = { new StringEnumConverter(CamelCase, allowIntegerValues: false) },
         };
 
-        /// <summary>Parses one level file. Structural rules are checked later by <see cref="LevelValidator"/>.</summary>
+        // Reads only formatVersion: the rest of a file of another version is a different schema.
+        private static readonly JsonSerializerSettings VersionSettings = new JsonSerializerSettings
+        {
+            MissingMemberHandling = MissingMemberHandling.Ignore,
+            ContractResolver = new DefaultContractResolver { NamingStrategy = CamelCase },
+        };
+
+        /// <summary>
+        /// Parses one level file. A file whose <c>formatVersion</c> is not
+        /// <see cref="LevelValidator.SupportedFormatVersion"/> is refused with that one error, before
+        /// anything else is read. Structural rules are checked later by <see cref="LevelValidator"/>.
+        /// </summary>
         /// <param name="json">The file contents.</param>
         /// <param name="levelName">Display name used in error messages, e.g. <c>level_003</c>.</param>
-        /// <exception cref="LevelFormatException">If the text is not valid JSON or contains unknown fields.</exception>
+        /// <exception cref="LevelFormatException">If the text is not valid JSON, has an unsupported
+        /// <c>formatVersion</c> or contains unknown fields.</exception>
         public static LevelDto Parse(string json, string levelName)
         {
             if (string.IsNullOrWhiteSpace(json))
@@ -34,6 +51,13 @@ namespace BallSort.LevelJson
 
             try
             {
+                VersionProbe probe = JsonConvert.DeserializeObject<VersionProbe>(json, VersionSettings);
+                string versionError = probe == null ? null : LevelValidator.DescribeUnsupportedFormatVersion(probe.FormatVersion);
+                if (versionError != null)
+                {
+                    throw new LevelFormatException(levelName, new[] { $"{levelName}: {versionError}" });
+                }
+
                 return JsonConvert.DeserializeObject<LevelDto>(json, Settings);
             }
             catch (JsonException e)
@@ -45,6 +69,11 @@ namespace BallSort.LevelJson
             {
                 throw new LevelFormatException(levelName, new[] { $"{levelName}: {e.Message}" });
             }
+        }
+
+        private sealed class VersionProbe
+        {
+            public int FormatVersion { get; set; }
         }
     }
 }

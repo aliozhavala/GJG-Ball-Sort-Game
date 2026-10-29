@@ -4,29 +4,29 @@ using System.Collections.Generic;
 namespace BallSort.Core.Levels
 {
     /// <summary>
-    /// The level-file rules for veils, locks, keys and clay (see <c>docs/mechanics.md</c>). Part of
+    /// The level-file rules for veils, locks, keys and clay in one variant (see <c>docs/mechanics.md</c>). Part of
     /// <see cref="LevelValidator"/>; split out so each half stays readable.
     /// </summary>
     internal static class MechanicsValidator
     {
-        /// <param name="level">A level whose tubes are non-empty; individual tubes may still be null or broken.</param>
+        /// <param name="variant">A variant whose tubes are non-empty; individual tubes may still be null or broken.</param>
         /// <param name="grid">The resolved grid, or null when the grid is invalid (lock adjacency is then not checked).</param>
         /// <param name="errors">Receives one unprefixed message per broken rule.</param>
-        public static void Validate(LevelDto level, BoardGrid grid, List<string> errors)
+        public static void Validate(LevelVariantDto variant, BoardGrid grid, List<string> errors)
         {
-            Dictionary<int, int> lockIndexById = ValidateLocks(level, grid, errors, out Dictionary<int, int> lockOfTube);
+            Dictionary<int, int> lockIndexById = ValidateLocks(variant, grid, errors, out Dictionary<int, int> lockOfTube);
 
             var keysPerLock = new Dictionary<int, int>();
-            for (int t = 0; t < level.Tubes.Count; t++)
+            for (int t = 0; t < variant.Tubes.Count; t++)
             {
-                TubeDto tube = level.Tubes[t];
+                TubeDto tube = variant.Tubes[t];
                 if (tube?.Balls == null)
                 {
                     continue;
                 }
 
                 bool hasLock = lockOfTube.TryGetValue(t, out int lockId);
-                ValidateVeil(tube, t, level.Colors, hasLock, lockId, errors);
+                ValidateVeil(tube, t, variant.Colors, hasLock, lockId, errors);
                 ValidateClay(tube, t, errors);
                 ValidateKeys(tube, t, tube.Veil != null || hasLock, hasLock ? lockId : -1, lockIndexById, keysPerLock, errors);
             }
@@ -45,19 +45,19 @@ namespace BallSort.Core.Levels
 
         /// <returns>Lock id → index in <c>locks</c>, for every lock with a usable id.</returns>
         private static Dictionary<int, int> ValidateLocks(
-            LevelDto level, BoardGrid grid, List<string> errors, out Dictionary<int, int> lockOfTube)
+            LevelVariantDto variant, BoardGrid grid, List<string> errors, out Dictionary<int, int> lockOfTube)
         {
             var lockIndexById = new Dictionary<int, int>();
             lockOfTube = new Dictionary<int, int>();
-            if (level.Locks == null)
+            if (variant.Locks == null)
             {
                 return lockIndexById;
             }
 
-            for (int l = 0; l < level.Locks.Count; l++)
+            for (int l = 0; l < variant.Locks.Count; l++)
             {
                 string where = $"locks[{l}]";
-                LockDto lockDto = level.Locks[l];
+                LockDto lockDto = variant.Locks[l];
                 if (lockDto == null)
                 {
                     errors.Add($"{where} is null.");
@@ -92,9 +92,9 @@ namespace BallSort.Core.Levels
                 for (int i = 0; i < lockDto.Tubes.Count; i++)
                 {
                     int tube = lockDto.Tubes[i];
-                    if (tube < 0 || tube >= level.Tubes.Count)
+                    if (tube < 0 || tube >= variant.Tubes.Count)
                     {
-                        errors.Add($"{where}: tubes[{i}] is {tube}; expected a tube index 0 to {level.Tubes.Count - 1}.");
+                        errors.Add($"{where}: tubes[{i}] is {tube}; expected a tube index 0 to {variant.Tubes.Count - 1}.");
                         tubesValid = false;
                     }
                     else if (lockOfTube.TryGetValue(tube, out int otherId))
@@ -116,7 +116,7 @@ namespace BallSort.Core.Levels
                 }
 
                 // One door spans every tube of a lock, so they must share a height.
-                if (tubesValid && !HaveOneCapacity(level, lockDto.Tubes, out int capacity, out int otherCapacity))
+                if (tubesValid && !HaveOneCapacity(variant, lockDto.Tubes, out int capacity, out int otherCapacity))
                 {
                     errors.Add($"{where}: tubes {string.Join(", ", lockDto.Tubes)} mix capacities {capacity} and {otherCapacity}; all tubes under one lock must have the same capacity.");
                 }
@@ -129,13 +129,13 @@ namespace BallSort.Core.Levels
         /// True when every listed tube has the same capacity. Otherwise returns the first capacity and
         /// the first one that differs from it. Null tubes are skipped (reported elsewhere).
         /// </summary>
-        private static bool HaveOneCapacity(LevelDto level, List<int> tubes, out int capacity, out int otherCapacity)
+        private static bool HaveOneCapacity(LevelVariantDto variant, List<int> tubes, out int capacity, out int otherCapacity)
         {
             capacity = -1;
             otherCapacity = -1;
             foreach (int index in tubes)
             {
-                TubeDto tube = level.Tubes[index];
+                TubeDto tube = variant.Tubes[index];
                 if (tube == null)
                 {
                     continue;
