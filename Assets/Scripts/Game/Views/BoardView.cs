@@ -46,6 +46,9 @@ namespace BallSort.Game.Views
         private ObjectPool<CoverView> _coverPool;
         private LevelSession _session;
         private int _liftedTube = -1;
+#if UNITY_EDITOR
+        private bool _tubeConfigChanged;
+#endif
 
         /// <summary>Tube views in board order; index matches the board's tube index.</summary>
         public IReadOnlyList<TubeView> Tubes => _tubes;
@@ -351,6 +354,45 @@ namespace BallSort.Game.Views
                 cover => Destroy(cover.gameObject),
                 collectionCheck: true, defaultCapacity: 4, maxSize: 18);
         }
+
+#if UNITY_EDITOR
+        // Editor tuning only: TubeVisualConfig.Changed is raised from OnValidate, where views may not be
+        // built, so the change is noted and the board rebuilt on the next frame.
+        private void OnEnable()
+        {
+            if (_tubeConfig != null)
+            {
+                _tubeConfig.Changed += OnTubeConfigChanged;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (_tubeConfig != null)
+            {
+                _tubeConfig.Changed -= OnTubeConfigChanged;
+            }
+        }
+
+        private void OnTubeConfigChanged() => _tubeConfigChanged = true;
+
+        // Layout only, like BoardLayout's refit: rebuild with the new geometry, keeping the selection lifted.
+        private void LateUpdate()
+        {
+            if (!_tubeConfigChanged || _session == null)
+            {
+                return;
+            }
+
+            _tubeConfigChanged = false;
+            int lifted = _liftedTube;
+            Rebuild();
+            if (lifted >= 0 && lifted < _tubes.Count)
+            {
+                ShowSelection(lifted);
+            }
+        }
+#endif
 
         private void OnDestroy() => Unsubscribe();
 

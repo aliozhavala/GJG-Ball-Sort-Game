@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace BallSort.Game.Views
@@ -12,6 +13,12 @@ namespace BallSort.Game.Views
     /// to the tube. Each piece is placed by its pivot, which Ball Sort ▸ Art ▸ Prepare Sprites sets on
     /// the walls' centre line: the top part and the veil at the rim's top, the middle part at its
     /// bottom, the bottom part, the outline and the clay at the base.
+    /// <para>
+    /// Ball spacing is <see cref="BottomOffset"/> and <see cref="SlotHeight"/>. Tube heights and the row
+    /// pitch (<c>LevelLayout.RowPitchSlots</c> slots) both follow from them, so capacity-10 and -16 tubes
+    /// still reach the top row of their span whatever the values. Changing them in the Inspector during
+    /// Play mode re-lays the board out (<see cref="Changed"/>).
+    /// </para>
     /// </remarks>
     [CreateAssetMenu(fileName = "TubeVisualConfig", menuName = "Ball Sort/Tube Visual Config")]
     public sealed class TubeVisualConfig : ScriptableObject
@@ -37,10 +44,10 @@ namespace BallSort.Game.Views
         [Header("Geometry")]
         [Tooltip("Width of the tube body.")]
         [SerializeField, Min(0.1f)] private float _tubeWidth = 1.1f;
-        [Tooltip("Vertical distance between ball centres.")]
-        [SerializeField, Min(0.1f)] private float _slotHeight = 1f;
+        [Tooltip("Vertical distance between ball centres. Tube heights and row spacing follow from it.")]
+        [SerializeField, Min(0.1f)] private float _slotHeight = 0.91f;
         [Tooltip("Height of the bottom ball's centre above the tube's base.")]
-        [SerializeField, Min(0f)] private float _bottomOffset = 0.55f;
+        [SerializeField, Min(0f)] private float _bottomOffset = 0.59f;
         [Tooltip("Space between the top slot's ball edge and the tube's rim.")]
         [SerializeField, Min(0f)] private float _topPadding = 0.15f;
         [SerializeField, Min(0.1f)] private float _ballDiameter = 0.9f;
@@ -73,6 +80,14 @@ namespace BallSort.Game.Views
         [Tooltip("Scaled down to the tube's drawn width, keeping its proportions, so it never reaches the next tube.")]
         [SerializeField] private Sprite _claySprite;
         [SerializeField] private Color _clayTint = Color.white;
+
+        /// <summary>
+        /// Editor only: raised from <c>OnValidate</c> when a value changes in the Inspector, so a board on
+        /// screen can lay itself out again. Listeners must not build or destroy objects in the handler
+        /// (Unity forbids it during OnValidate); they note the change and act on their next frame. Never
+        /// raised in a build.
+        /// </summary>
+        public event Action Changed;
 
         public Sprite TopSprite => _topSprite;
         public Sprite MiddleSprite => _middleSprite;
@@ -124,6 +139,8 @@ namespace BallSort.Game.Views
             {
                 Debug.LogWarning($"{name}: veil, door and clay sprites must be assigned.", this);
             }
+
+            Changed?.Invoke();
         }
     }
 }

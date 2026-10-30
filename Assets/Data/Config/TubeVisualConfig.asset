@@ -23,8 +23,8 @@ MonoBehaviour:
   _capSprite: {fileID: 21300000, guid: 7770bd4a35ee54144b430d61cd7331c0, type: 3}
   _capTint: {r: 0.85, g: 0.75, b: 0.55, a: 1}
   _tubeWidth: 1.1
-  _slotHeight: 1
-  _bottomOffset: 0.55
+  _slotHeight: 0.91
+  _bottomOffset: 0.59
   _topPadding: 0.15
   _ballDiameter: 0.9
   _capHeight: 0.5

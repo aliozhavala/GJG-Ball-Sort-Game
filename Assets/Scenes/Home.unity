@@ -1845,6 +1845,7 @@ GameObject:
   - component: {fileID: 389356756}
   - component: {fileID: 389356757}
   - component: {fileID: 389356758}
+  - component: {fileID: 389356759}
   m_Layer: 5
   m_Name: Label
   m_TagString: Untagged
@@ -1942,7 +1943,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
+  m_TextWrappingMode: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
@@ -1970,6 +1971,21 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &389356759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 389356755}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0641fb0caa256a47aa2c471485af765, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.AmountLabel
+  _label: {fileID: 389356758}
+  _maxFontSize: 44
+  _minFontSize: 30
 --- !u!1 &444768025
 GameObject:
   m_ObjectHideFlags: 0
@@ -2221,9 +2237,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.HomeScreen
   _avatarButton: {fileID: 2076419035}
-  _avatarImage: {fileID: 2076419033}
   _lives: {fileID: 894796483}
-  _coinsLabel: {fileID: 389356758}
+  _coins: {fileID: 389356759}
   _settingsButton: {fileID: 622548795}
   _levelButton: {fileID: 1641956549}
   _levelLabel: {fileID: 285500167}
@@ -2235,7 +2250,6 @@ MonoBehaviour:
   _episodeUnlockedOverlay: {fileID: 740803914}
   _inputBlocker: {fileID: 1650130434}
   _toast: {fileID: 1937939261}
-  _coinsFormat: '{0}'
   _levelFormat: Level {0}
   _allCompleteText: All levels complete
 --- !u!114 &559559148
@@ -5522,11 +5536,11 @@ RectTransform:
   - {fileID: 1840763840}
   m_Father: {fileID: 1187881866}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 0, y: 24}
   m_SizeDelta: {x: 680, y: 230}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1641956547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7502,7 +7516,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 9662224b7b0ac0547a42653ccd99fab2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fb16ac666dd9f2641b17987cbc34e7c4, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1

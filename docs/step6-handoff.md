@@ -32,8 +32,8 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 ### Level HUD (`LevelCanvas`)
 | Slot | For | Now |
 |---|---|---|
-| `EpisodeConfig._episodes[n]._mascotFrame` → `TopBar/MascotFrame` | Scientist in a frame, top right | **Art** (`Episodes/MascotFrame_Ep<N>_*`) |
-| `TopBar/SettingsButton` | Settings button | **Art** (`Button_Settings`) |
+| `EpisodeConfig._episodes[n]._mascotFrame` → `TopBar/MascotFrame` | Scientist in a frame, top left (255×255) | **Art** (`Episodes/MascotFrame_Ep<N>_*`) |
+| `TopBar/SettingsButton` | Settings button, top right | **Art** (`Button_Settings`) |
 | `BoosterBar/{Undo,Shuffle,AddTube}Button` + `/Badge` | Booster buttons and count badges | `UISprite` + text labels, `Knob` badge (missing art) |
 | `StuckPanel/Buttons/GiveUpButton` / `PlayOnButton` | Stuck bar buttons | **Art** (`Button_Red` / `Button_Yellow`) |
 | `Celebration` | Win celebration | text only |
@@ -45,7 +45,7 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 | Slot | For | Now |
 |---|---|---|
 | `EpisodeConfig._episodes[n]._homeBackground` → `Background` | Home background per episode | **Art** for 2 and 5; 1, 3, 4 use episode 2's |
-| `TopBar/AvatarButton` (`HomeScreen._avatarImage`) | Avatar: the current episode's mascot frame (set by `HomeFlow`) | **Art** |
+| `TopBar/AvatarButton` | Avatar frame, the same in every episode | `Avatar_Frame_Empty` (the delivered empty frame, standing in) |
 | `TopBar/Lives`, `TopBar/Coins` | Displays, sliced; count on the heart / coin side, text on the pill | **Art** (`Display_Lives`, `Display_Coins`) |
 | `TopBar/SettingsButton` | Settings | **Art** (`Button_Settings`) |
 | `HomePage/LevelButton` + `/TierBadge` | Level button and tier badge (`LevelTierLook` tints are white until tier art exists) | **Art** (`Button_Green`); badge `UISprite` |
@@ -128,6 +128,7 @@ Known issues:
 - Opening `Level.unity` as a preview scene while it is open logs "More than one global light…" (tooling only).
 - `Popup.IsOpen` is the GameObject's active state: animated closes must keep input blocked until the close ends.
 - Stacked popups: the settings panel shows around Are You Sure / More Lives (by design; art may prefer to hide it).
-- The mascot frame (170×170) nearly fills the 180-high top bar.
+- The mascot frame (255×255, top left) hangs below the 180-high top bar, ending above the board area; the stuck banner
+  and "Shuffling…" label are inset to clear it.
 - Lives refill uses the device clock, so moving the clock forward grants lives (offline game; accepted).
 - In the Editor, stopping Play mode mid-level counts as closing the app and costs a life on the next Play.

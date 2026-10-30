@@ -31,10 +31,12 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 **Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveData.CurrentVersion` and add a migration to `SaveJsonCodec` when the shape changes (version 2 added the try fields; a version 1 save migrates with try 0 and no last variant. Version 3 adds the life timer, the level-in-progress mark, the player name and the tutorials seen, and turns the try count into the retry count: a version 2 save keeps its count as retries, starts the life timer at load if lives are below the maximum, and gets no mark, the name `Player` and no tutorials seen). Editor tools: **Ball Sort ▸ Reset Save** (disabled in Play mode) and **Ball Sort ▸ Player Data…** (set coins, lives, the time to the next life, booster counts and the player name, jump to any level (retries cleared), and clear the tutorials seen; it also shows the level, retries, last variant, level in progress and tutorials seen; edits the save in Edit mode, the live player in Play mode).
 
 ## Home screen
-- **Top bar:** avatar (top-left: the current episode's mascot frame), lives (the count on the art's heart, the time to
-  the next life on its pill) and coins (the count on the pill next to the art's coin) between the corners, settings
+- **Top bar:** avatar (top-left: an empty frame, the same in every episode; mascot frames are a Level scene thing), lives (the count on the art's heart, the time to
+  the next life on its pill) and coins (the count on the pill next to the art's coin, on one line: it shrinks to fit and
+  is abbreviated, e.g. 125K or 1.2M, only once it would get too small, `AmountLabel`) between the corners, settings
   button (top-right).
-- **Center:** big **Level button** (green) showing `Level N`. If `AllLevelsComplete`: shows `All levels complete` and
+- **Center:** big **Level button** (green) showing `Level N`, low on the page just above the bottom bar (about a quarter
+  of the screen up), so the episode illustration stays visible. If `AllLevelsComplete`: shows `All levels complete` and
   replays level 100. Its look depends on the level's tier: regular, hard or super hard (for now only the "Hard" or
   "Super hard" badge; tier button art is missing, docs/art-inventory.md). At 0 lives it opens the More Lives popup
   instead of loading the level.
@@ -50,7 +52,9 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - Settings popup (Home): Sound, Music, Haptics toggles.
 
 ## Level screen
-- **Top-left:** settings icon. **Top-center:** `Level N`. **Top-right:** the episode's mascot frame (display only, for now). No avatar, coins, or lives here.
+- **Top-left:** the episode's mascot frame (display only, for now; it hangs below the top bar, clear of the board).
+  **Top-center:** `Level N` (shrinks rather than reach the frame or the button). **Top-right:** settings button, as on
+  Home. No avatar, coins, or lives here.
 - **Middle:** the board (tubes laid out on the level's grid).
 - **Bottom:** booster bar — Undo, Shuffle, Add tube — each with its remaining count.
 - **Input:** tap a tube to select it (its run lifts above the glass), tap it again to deselect, tap another tube to
@@ -118,7 +122,8 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   5 episodes × 20 levels (first levels 1, 21, 41, 61, 81). Placeholder art until step 6.
 - The current episode is derived from the current level (the last episode whose first level is not after it), never
   stored. Home shows the episode of `PlayerData.CurrentLevel`; the Level scene shows the episode of the level being
-  played: its background, and its mascot frame at the top right (for now).
+  played: its background, and its mascot frame at the top left. Home never shows a mascot frame except in the Episode
+  Unlocked overlay.
 - **Episode Unlocked:** Continue on the Win panel of a win that moved `CurrentLevel` into a new episode (to level 21,
   41, 61 or 81) brings up Home on the previous episode's background. About 0.7 s later (`HomeFlow._episodeUnlockedDelay`) the
   Episode Unlocked overlay appears ("Episode N unlocked" and the new episode's mascot frame) and the Home background

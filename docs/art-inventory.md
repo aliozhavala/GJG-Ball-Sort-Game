@@ -53,14 +53,16 @@ Colour ids (the placeholder tints decide the match; id 8 was lime, the closest d
 ### Episodes
 | Incoming | New path | Slot |
 |---|---|---|
-| `frames/ingame_frame_ep<N>_wcharacter.png` | `Episodes/MascotFrame_Ep<N>_<Theme>.png` | `EpisodeConfig` mascot frame: Level top right, Home avatar, Episode Unlocked |
+| `frames/ingame_frame_ep<N>_wcharacter.png` | `Episodes/MascotFrame_Ep<N>_<Theme>.png` | `EpisodeConfig` mascot frame: Level scene top left, Episode Unlocked overlay |
 | `illustrations/ingame-background_<theme>_ep<N>.png` | `Backgrounds/Level_Ep<N>_<Theme>.png` | `EpisodeConfig` Level background, episodes 1–5 |
 | `illustrations/mainmenu-background_summer_ep2.png` | `Backgrounds/Home_Ep2_Summer.png` | `EpisodeConfig` Home background, episode 2 |
 | `illustrations/mainmenu-background_space_ep5.png` | `Backgrounds/Home_Ep5_Space.png` | `EpisodeConfig` Home background, episode 5 |
 
 ### Not used (no slot)
-`frames/ingame_frame_{lab,summer,ice,lava,space}.png` (empty episode rings), `frames/mainmenu_frame.png` (empty purple
-ring), `menus/downmenu_{default,leader,shop}.png` (bars without icons), `tube/tube_full_ice.png` (tube + ice in one
+`frames/mainmenu_frame.png` (empty purple ring) is the Home avatar's placeholder frame, as
+`UI/Avatar/Avatar_Frame_Empty.png`, until a real avatar frame arrives.
+
+`frames/ingame_frame_{lab,summer,ice,lava,space}.png` (empty episode rings), `menus/downmenu_{default,leader,shop}.png` (bars without icons), `tube/tube_full_ice.png` (tube + ice in one
 image; we draw them separately). They are in `Assets/Art/Unused/` (not referenced, so not built) until the artist says
 what they are for.
 
@@ -129,7 +131,7 @@ Stretch and tile tests:
 
 **UI**
 11. **The bottom bar's order is Shop · Home · Leaderboard** (basket left, door centre, test-tube chart right), the
-    reverse of today's Leaderboard · Home · Shop. Its **sections are 41 / 19 / 41 %**, not thirds.
+    reverse of the old Leaderboard · Home · Shop (the game now follows the art). Its **sections are 41 / 19 / 41 %**, not thirds.
 12. **The coin and heart are drawn into the display pills**, so there is no standalone coin for the Win reward
     (`+20 ●`) and the Play on price (`900 ●`), and no standalone heart for More Lives.
 13. **The shop does not fit one screen**: header 440 + panel 900 + bundle 256 px at art scale is ≈1,600 px tall at
@@ -160,6 +162,9 @@ shared canvas size.
 - **Clay ice at the tube's width**: the delivered ice is drawn 2.1× the tube's body, so the game scales it down to the
   tube's drawn width (rim), which makes it small. Please redraw it no wider than the rim (180 px at the tube canvas's
   scale), keeping its height, ideally with a see-through middle so the bottom ball stays visible (problem 5).
+- **Monster body sizes**: every PNG is 256×256, but the round bodies (without arms, feet, horns or antennae) differ
+  between colours, roughly 170–190 px wide (lilac smallest, orange and turquoise largest), so some monsters look bigger
+  in the tubes. Please draw every body at one size (e.g. 175 px) on the same centre; the game does not correct it.
 - **Hidden ball size**: please redraw it at the monsters' size (≈175 px body on the 256 canvas, same centre); the game
   scales it down meanwhile (`ColorPalette._hiddenSpriteSize`) (problem 6). Blink frames optional.
 - **Glass front layer for the tubes**: a translucent glass/highlight layer drawn over the balls, on the same canvas and
@@ -191,8 +196,8 @@ shared canvas size.
 - **Leaderboard page**: title/header and a row (rank, avatar, name, score).
 - **Shop item art** for the six frames of the shop panel (e.g. coin packs, booster packs) and a price tag; the bundle
   card's title (or we write it in text).
-- **Avatar frame** decision: we use the episode's mascot frame as the avatar; if `mainmenu_frame` or the empty
-  episode rings were meant for the avatar (player picture inside), tell us *(code)*.
+- **Empty avatar frame** for Home's avatar (top left; the same in every episode, a player picture may go inside later).
+  The empty purple `mainmenu_frame` stands in meanwhile; if that is the intended one, just confirm.
 
 **Packaging**
 - **App icon** and **splash screen**.
@@ -200,7 +205,7 @@ shared canvas size.
 ## 5. How the art is prepared (Ball Sort ▸ Art ▸ Prepare Sprites)
 
 One menu item makes delivered art ready; it can be run any time, files already trimmed are left as they are.
-- **Trim each** (`UI/Buttons`, `UI/Displays`, `UI/Shop`): every file cut to its drawn pixels.
+- **Trim each** (`UI/Buttons`, `UI/Displays`, `UI/Shop`, `UI/Avatar`): every file cut to its drawn pixels.
 - **Trim shared** (`UI/Home`, `Episodes`): a folder is one swap set, cut to one rectangle holding all its files'
   content, so the bottom bar's versions and the five frames line up.
 - **Tube** (`Tubes/*`, `Mechanics/Clay_Ice`, `Mechanics/Veil_Towel`, while they still share the delivery canvas): the

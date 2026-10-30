@@ -547,3 +547,29 @@ All changes made through Unity MCP Editor commands (or the new **Ball Sort ▸ A
 - Play mode on a 1440×3088 Game view (editor test visits, nothing spent): Home, Shop (top and scrolled), Leaderboard
   tab via real taps; levels 51 (hidden, veil, clay, capacity 16), 85 (lock and key, veils, clay, capacity 10) and 12
   (solver moves until two tubes completed: laughing faces, caps). Screenshots in `Screenshots/step6-art/`.
+
+## 2026-10-30 — Step 6a visual tweaks
+
+All changes made through Unity MCP Editor commands.
+
+### Assets
+- `Assets/Art/Unused/Frame_Purple_Empty.png` moved to `Assets/Art/Sprites/UI/Avatar/Avatar_Frame_Empty.png` (new
+  folder `UI/Avatar`); Prepare Sprites trimmed it (772×792) and applied the `UI/Avatar` import rule.
+- `Assets/Data/Config/TubeVisualConfig.asset`: `_slotHeight` 1 → 0.91 (balls 1/10 of a ball closer per slot),
+  `_bottomOffset` 0.55 → 0.59 (bottom ball ≈5 px higher at the reference resolution).
+
+### Scenes
+- `Assets/Scenes/Home.unity`: `TopBar/AvatarButton` image → `Avatar_Frame_Empty` (no longer set per episode);
+  `TopBar/Coins/Label`: `AmountLabel` added (max 44 pt, min 30 pt), TMP auto-size off, no wrapping;
+  `HomeScreen._coins` → it (`_coinsLabel`, `_coinsFormat`, `_avatarImage` are gone); `HomePage/LevelButton` anchored to
+  the bottom centre of the page, 24 above it (just over the bottom bar).
+- `Assets/Scenes/Level.unity`: `TopBar/SettingsButton` anchored top right (x −40); `TopBar/MascotFrame` top left,
+  255×255, pivot top-left at (30, −6); `TopBar/LevelTitle` stretched with 311 margins left and right, auto-size 36–72,
+  no wrapping; `StuckPanel/Banner` and `ShufflingIndicator` inset 300 left and right, auto-size 30–50, no wrapping.
+
+### Verification runs (no persistent changes)
+- Console clean. EditMode tests: 1724 passed, 0 failed (17 new, `AmountFormatTests`).
+- Play mode (1080×1920 Game view, editor test visits): coin label shown with 12345 → 44 pt, 123456 → 38.9 pt,
+  1234567 → 33.3 pt, 12345678 → "12.3M", 123456789 → "123M", 1234567890 → "1.2B", always one line (display only, the
+  wallet untouched). Slot height changed to 1.2 on the asset in Play mode: the board re-laid out on the next frame
+  (slot 1 at 1.79), then restored to 0.91 (1.50). Screenshots in `Screenshots/step6-art-2/`.

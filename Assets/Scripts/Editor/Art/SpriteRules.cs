@@ -22,6 +22,7 @@ namespace BallSort.Editor.Art
             Root + "/UI/Buttons",
             Root + "/UI/Displays",
             Root + "/UI/Shop",
+            Root + "/UI/Avatar",
         };
 
         /// <summary>
@@ -57,6 +58,7 @@ namespace BallSort.Editor.Art
             new FolderImport(Root + "/UI/Displays", 1024, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/UI/Home", 1024, TextureImporterFormat.ASTC_6x6),
             new FolderImport(Root + "/UI/Shop", 1024, TextureImporterFormat.ASTC_6x6),
+            new FolderImport(Root + "/UI/Avatar", 1024, TextureImporterFormat.ASTC_6x6),
             new FolderImport(Root + "/Episodes", 1024, TextureImporterFormat.ASTC_6x6),
             new FolderImport(Root + "/Backgrounds", 2048, TextureImporterFormat.ASTC_6x6, opaque: true),
         };
