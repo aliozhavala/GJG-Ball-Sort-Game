@@ -23,6 +23,8 @@ namespace BallSort.Game.Views
             [SerializeField] private Sprite _closed;
             [Tooltip("Laughing: balls in a completed tube.")]
             [SerializeField] private Sprite _laugh;
+            [Tooltip("Shocked: an invalid tap on the ball's tube. Empty = the closed-eyes face.")]
+            [SerializeField] private Sprite _shock;
             [Tooltip("Multiplies the sprite: white for coloured art, the colour itself for a white placeholder.")]
             [SerializeField] private Color _spriteTint;
             [Tooltip("The colour where it is shown without a ball, e.g. the veil's badge.")]
@@ -42,6 +44,7 @@ namespace BallSort.Game.Views
                     BallExpression.HalfOpen => _halfOpen,
                     BallExpression.Closed => _closed,
                     BallExpression.Laugh => _laugh,
+                    BallExpression.Shock => _shock != null ? _shock : _closed,
                     _ => _open,
                 };
                 return sprite != null ? sprite : _open;

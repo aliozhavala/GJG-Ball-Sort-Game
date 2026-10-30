@@ -37,9 +37,17 @@ namespace BallSort.Game.Views
         [SerializeField] private Sprite _frontSprite;
         [SerializeField] private Color _frontTint = new Color(1f, 1f, 1f, 0.12f);
 
-        [Header("Cap on a completed tube (9-sliced)")]
+        [Header("Cork on a completed tube (9-sliced, tinted in the tube's colour)")]
         [SerializeField] private Sprite _capSprite;
+        [Tooltip("Multiplies the tube's colour; its alpha is the cork's.")]
         [SerializeField] private Color _capTint = Color.white;
+
+        [Header("Glow around a completed tube (9-sliced, pivot at the bottom centre, tinted in the tube's colour)")]
+        [SerializeField] private Sprite _glowSprite;
+        [Tooltip("Multiplies the tube's colour.")]
+        [SerializeField] private Color _glowTint = Color.white;
+        [Tooltip("How far the glow reaches past the tube's body on every side.")]
+        [SerializeField, Min(0f)] private float _glowPadding = 0.12f;
 
         [Header("Geometry")]
         [Tooltip("Width of the tube body.")]
@@ -52,8 +60,6 @@ namespace BallSort.Game.Views
         [SerializeField, Min(0f)] private float _topPadding = 0.15f;
         [SerializeField, Min(0.1f)] private float _ballDiameter = 0.9f;
         [SerializeField, Min(0.05f)] private float _capHeight = 0.5f;
-        [Tooltip("How far a selected run rises; stays inside the two-slot gap between rows. Part of the tap target.")]
-        [SerializeField, Min(0f)] private float _liftHeight = 1f;
 
         [Header("Spacing")]
         [Tooltip("Gap between neighbouring tubes. Rows are spaced by the grid rule (two ball slots), not here.")]
@@ -98,12 +104,14 @@ namespace BallSort.Game.Views
         public Color FrontTint => _frontTint;
         public Sprite CapSprite => _capSprite;
         public Color CapTint => _capTint;
+        public Sprite GlowSprite => _glowSprite;
+        public Color GlowTint => _glowTint;
+        public float GlowPadding => _glowPadding;
         public float TubeWidth => _tubeWidth;
         public float SlotHeight => _slotHeight;
         public float BottomOffset => _bottomOffset;
         public float BallDiameter => _ballDiameter;
         public float CapHeight => _capHeight;
-        public float LiftHeight => _liftHeight;
         public float HorizontalSpacing => _horizontalSpacing;
         public Sprite VeilSprite => _veilSprite;
         public Color VeilTint => _veilTint;

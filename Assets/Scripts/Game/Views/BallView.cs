@@ -1,4 +1,7 @@
+using System;
 using BallSort.Core.Model;
+using DG.Tweening;
+using DG.Tweening.Core;
 using UnityEngine;
 
 namespace BallSort.Game.Views
@@ -10,14 +13,18 @@ namespace BallSort.Game.Views
     /// The root is scaled to the ball diameter; the body and the marks are normalised to it, so any
     /// sprite size works. All are SpriteRenderers so they scale and sort together.
     /// <para>
-    /// Every change of position goes through <see cref="MoveTo"/>, and every change of the key mark
-    /// through <see cref="UpdateKeyMark"/>, so the animation pass can swap each instant snap for a
-    /// tween in one place.
+    /// Every change of position goes through <see cref="MoveTo(Vector3)"/> and its overloads (snap,
+    /// tween, flight), and every change of the key mark through <see cref="UpdateKeyMark"/>. The root's
+    /// position is the moved position plus the bounce offsets (hop, bump, bob); squash and stretch
+    /// scale the shape, whose face child turns back upright so the art never tilts. All motion runs
+    /// on the <see cref="BoardClock"/>, and <see cref="FinishMotion"/> ends it at once, so a ball
+    /// touched mid-animation is where the model says before it moves again.
     /// </para>
     /// <para>
-    /// Its face goes through <see cref="SetExpression"/> alone, so blinking and laughing can be
-    /// animated there. Balls of one tube draw in slot order, upper balls in front, so appendages
-    /// reaching into the slot above tuck behind that ball.
+    /// Its face goes through <see cref="SetExpression(BallExpression, ColorPalette)"/> alone: a
+    /// resting face (open, or laughing in a completed tube) and a face held for a while (shock).
+    /// Balls of one tube draw in slot order, upper balls in front, so appendages reaching into the
+    /// slot above tuck behind that ball.
     /// </para>
     /// <para>
     /// The ball keeps its own copy of its key: by the time a reveal is announced the board has
@@ -32,6 +39,12 @@ namespace BallSort.Game.Views
         [SerializeField] private SpriteRenderer _hiddenMark;
         [Tooltip("The key drawn on a revealed ball that carries one.")]
         [SerializeField] private SpriteRenderer _keyMark;
+        [Tooltip("Turned and scaled for squash and stretch; parent of the face.")]
+        [SerializeField] private Transform _shape;
+        [Tooltip("Child of the shape, turned back upright; parent of the body and marks.")]
+        [SerializeField] private Transform _face;
+        [Tooltip("Follows the ball through the arc and drop.")]
+        [SerializeField] private TrailRenderer _trail;
 
         private int _bodySortingLayer;
         private int _bodySortingOrder;
@@ -41,10 +54,54 @@ namespace BallSort.Game.Views
         private int _keySortingOrder;
         private int _ordersPerBall = 1;
 
+        private AnimationConfig _animation;
+        private ColorPalette _palette;
+        private Action<BallView> _departed;
+        private Action<BallView> _landed;
+
         private bool _isHidden;
         private int _colorId;
+        private BallExpression _restingExpression;
         private BallExpression _expression;
         private int _keyLockId = Ball.NoKey;
+        private float _diameter = 1f;
+
+        // Position = moved position + bounce offsets, all in the parent's (board) units.
+        private Vector3 _position;
+        private float _hop;
+        private float _bump;
+        private float _bob;
+
+        private Tween _motion;
+        private Tween _hopTween;
+        private Tween _bumpTween;
+        private Tween _squashTween;
+        private Tween _bobTween;
+        private Tween _faceTween;
+
+        // The flight in progress.
+        private Vector3 _arcFrom;
+        private Vector3 _arcTo;
+        private float _arcHeight;
+        private float _screenWidth;
+        private Vector3 _lastPosition;
+        private float _lastElapsed;
+        private bool _isFlight;
+        private bool _hasDeparted;
+        private bool _hasLanded;
+
+        // Cached so starting a tween allocates no delegate.
+        private DOGetter<Vector3> _getPosition;
+        private DOSetter<Vector3> _setPosition;
+        private TweenCallback<float> _arcStep;
+        private TweenCallback<float> _hopStep;
+        private TweenCallback<float> _bumpStep;
+        private TweenCallback<float> _squashStep;
+        private TweenCallback<float> _bobStep;
+        private TweenCallback _onDeparted;
+        private TweenCallback _onLanded;
+        private TweenCallback _onFlightUpdate;
+        private TweenCallback _restoreFace;
 
         /// <summary>Board index of the tube holding this ball.</summary>
         public int TubeIndex { get; private set; } = -1;
@@ -55,9 +112,39 @@ namespace BallSort.Game.Views
         /// <summary>True while drawn above the tube's glass front (selected or in flight).</summary>
         public bool IsRaised { get; private set; }
 
+        /// <summary>The ball's colour id (meaningful once revealed).</summary>
+        public int ColorId => _colorId;
+
+        public bool IsHidden => _isHidden;
+
+        /// <summary>True from the start of a flight until it lands.</summary>
+        public bool IsFlying => _isFlight && _motion != null && _motion.IsActive();
+
+        /// <summary>The tube the current or last flight left.</summary>
+        public int FlightSource { get; private set; } = -1;
+
+        /// <summary>True when the current or last flight was an undo.</summary>
+        public bool IsUndoFlight { get; private set; }
+
+        /// <summary>
+        /// Gives a pooled ball its config and the board's flight callbacks, once, when it is created.
+        /// </summary>
+        /// <param name="departed">A flight has left its source tube (end of the rise).</param>
+        /// <param name="landed">A flight has reached its slot.</param>
+        public void Initialize(AnimationConfig animation, Action<BallView> departed, Action<BallView> landed)
+        {
+            _animation = animation;
+            _departed = departed;
+            _landed = landed;
+        }
+
         /// <summary>Shows <paramref name="ball"/> as the board holds it: colour or hidden, with or without its key.</summary>
         public void Show(Ball ball, ColorPalette palette, LockPalette locks, float diameter)
         {
+            StopMotion();
+            _palette = palette;
+            _diameter = diameter;
+
             _hiddenMark.sprite = palette.HiddenMarkSprite;
             _hiddenMark.transform.localScale = Vector3.one * (palette.HiddenMarkSize / SpriteWidth(palette.HiddenMarkSprite));
 
@@ -67,6 +154,7 @@ namespace BallSort.Game.Views
             _keyMark.color = locks.GetTint(ball.KeyLockId);
             _keyLockId = ball.KeyLockId;
 
+            _restingExpression = BallExpression.Open;
             _expression = BallExpression.Open;
             ShowColour(ball.ColorId, ball.IsHidden, palette);
             transform.localScale = Vector3.one * diameter;
@@ -76,16 +164,25 @@ namespace BallSort.Game.Views
         public void Reveal(int colorId, ColorPalette palette) => ShowColour(colorId, false, palette);
 
         /// <summary>
-        /// The single entry point for the ball's face. Snaps for now. A hidden ball keeps its hidden
-        /// look and shows the expression once revealed.
+        /// The single entry point for the ball's resting face (open, or laughing in a completed tube).
+        /// A hidden ball keeps its hidden look and shows the expression once revealed.
         /// </summary>
         public void SetExpression(BallExpression expression, ColorPalette palette)
         {
-            _expression = expression;
-            if (!_isHidden)
-            {
-                _body.sprite = palette.GetSprite(_colorId, expression);
-            }
+            BoardTweens.KillIfActive(_faceTween);
+            _restingExpression = expression;
+            ApplyExpression(expression, palette);
+        }
+
+        /// <summary>
+        /// Shows <paramref name="expression"/> for <paramref name="seconds"/> of board time (e.g. shock on an
+        /// invalid tap), then goes back to the resting face.
+        /// </summary>
+        public void SetExpression(BallExpression expression, ColorPalette palette, float seconds)
+        {
+            BoardTweens.KillIfActive(_faceTween);
+            ApplyExpression(expression, palette);
+            _faceTween = DOVirtual.DelayedCall(seconds, _restoreFace, false).OnBoardClock();
         }
 
         /// <summary>The ball's key has been found; its mark goes.</summary>
@@ -102,8 +199,121 @@ namespace BallSort.Game.Views
             Slot = slot;
         }
 
-        /// <summary>The single entry point for moving a ball, in its parent's space. Snaps for now.</summary>
-        public void MoveTo(Vector3 localPosition) => transform.localPosition = localPosition;
+        /// <summary>Moves the ball under <paramref name="parent"/> without moving it on screen (a flight starts where it is).</summary>
+        public void SetParentKeepingPlace(Transform parent)
+        {
+            transform.SetParent(parent, true);
+            _position = transform.localPosition - new Vector3(0f, _hop + _bump + _bob, 0f);
+        }
+
+        /// <summary>Puts the ball at <paramref name="localPosition"/> at once, in its parent's space, ending any motion.</summary>
+        public void MoveTo(Vector3 localPosition)
+        {
+            StopMotion();
+            _position = localPosition;
+            Apply();
+        }
+
+        /// <summary>Moves the ball to <paramref name="localPosition"/> over <paramref name="duration"/> seconds (lift, lower).</summary>
+        public void MoveTo(Vector3 localPosition, float duration, Ease ease)
+        {
+            FinishMotion();
+            _isFlight = false;
+            _motion = DOTween.To(_getPosition, _setPosition, localPosition, duration).SetEase(ease).OnBoardClock();
+        }
+
+        /// <summary>
+        /// Flies the ball along <paramref name="flight"/>: rise, arc and drop, stretching along its
+        /// velocity, with a trail through the arc and drop. Lands with a squash and a hop. Any motion
+        /// still running finishes first.
+        /// </summary>
+        public void MoveTo(in BallFlight flight)
+        {
+            FinishMotion();
+            FlightSource = flight.SourceTube;
+            IsUndoFlight = flight.IsUndo;
+            _isFlight = true;
+            _hasDeparted = false;
+            _hasLanded = false;
+            _arcFrom = flight.RisePoint;
+            _arcTo = flight.ArcEnd;
+            _arcHeight = flight.ArcHeight;
+            _screenWidth = Mathf.Max(flight.ScreenWidth, 0.001f);
+            _lastPosition = _position;
+            _lastElapsed = 0f;
+
+            _motion = DOTween.Sequence()
+                .AppendInterval(flight.Delay)
+                .Append(DOTween.To(_getPosition, _setPosition, flight.RisePoint, _animation.RiseDuration)
+                    .SetEase(_animation.RiseEase))
+                .AppendCallback(_onDeparted)
+                .Append(DOVirtual.Float(0f, 1f, flight.ArcDuration, _arcStep).SetEase(_animation.ArcEase))
+                .Append(DOTween.To(_getPosition, _setPosition, flight.Slot, _animation.DropDuration)
+                    .SetEase(_animation.DropEase))
+                .OnUpdate(_onFlightUpdate)
+                .OnComplete(_onLanded)
+                .OnBoardClock();
+        }
+
+        /// <summary>Starts or stops the held ball's bob.</summary>
+        public void SetBobbing(bool bobbing)
+        {
+            BoardTweens.KillIfActive(_bobTween);
+            _bob = 0f;
+            Apply();
+            if (bobbing && _animation.LiftBob > 0f)
+            {
+                _bobTween = DOVirtual.Float(0f, 1f, _animation.LiftBobPeriod, _bobStep)
+                    .SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).OnBoardClock();
+            }
+        }
+
+        /// <summary>The hop bounce (landing, tube-complete dance), after <paramref name="delay"/> seconds.</summary>
+        public void Hop(float delay)
+        {
+            BoardTweens.KillIfActive(_hopTween);
+            float duration = _animation.HopBounceDuration;
+            _hopTween = DOVirtual.Float(0f, duration, duration, _hopStep)
+                .SetEase(Ease.Linear).SetDelay(delay).OnComplete(ClearHop).OnBoardClock();
+        }
+
+        /// <summary>A small bump up and back, when a ball lands above this one, after <paramref name="delay"/> seconds.</summary>
+        public void Bump(float delay)
+        {
+            BoardTweens.KillIfActive(_bumpTween);
+            float duration = _animation.BallBumpDuration;
+            _bumpTween = DOVirtual.Float(0f, duration, duration, _bumpStep)
+                .SetEase(Ease.Linear).SetDelay(delay).OnComplete(ClearBump).OnBoardClock();
+        }
+
+        /// <summary>
+        /// Ends every running motion at once, where it would have ended: a flight lands (its callbacks
+        /// fire), bounces settle, the bob stops.
+        /// </summary>
+        public void FinishMotion()
+        {
+            BoardTweens.CompleteIfActive(_motion);
+            BoardTweens.CompleteIfActive(_squashTween);
+            BoardTweens.CompleteIfActive(_hopTween);
+            BoardTweens.CompleteIfActive(_bumpTween);
+            if (_bobTween != null && _bobTween.IsActive())
+            {
+                SetBobbing(false);
+            }
+        }
+
+        /// <summary>Kills every motion without its callbacks and resets the offsets: the ball is going back to the pool.</summary>
+        public void StopMotion()
+        {
+            KillTweens();
+            _hop = 0f;
+            _bump = 0f;
+            _bob = 0f;
+            _isFlight = false;
+            ResetShape();
+            StopTrail();
+            Apply();
+        }
 
         /// <summary>
         /// Draws the ball above (<paramref name="raised"/>) or back inside its tube. A raised ball's
@@ -115,11 +325,12 @@ namespace BallSort.Game.Views
             int slotOrder = Mathf.Max(Slot, 0) * _ordersPerBall;
             if (raised)
             {
-                // Keep the parts' order: body, then the marks on top of it.
+                // Keep the parts' order: body, then the marks on top of it; the trail just behind.
                 int baseOrder = sortingOrder - Mathf.Min(_bodySortingOrder, Mathf.Min(_markSortingOrder, _keySortingOrder)) + slotOrder;
                 Apply(_body, sortingLayer, baseOrder + _bodySortingOrder);
                 Apply(_hiddenMark, sortingLayer, baseOrder + _markSortingOrder);
                 Apply(_keyMark, sortingLayer, baseOrder + _keySortingOrder);
+                Apply(_trail, sortingLayer, baseOrder + _bodySortingOrder - 1);
             }
             else
             {
@@ -142,12 +353,182 @@ namespace BallSort.Game.Views
             UpdateKeyMark();
         }
 
+        private void ApplyExpression(BallExpression expression, ColorPalette palette)
+        {
+            _expression = expression;
+            if (!_isHidden)
+            {
+                _body.sprite = palette.GetSprite(_colorId, expression);
+            }
+        }
+
+        private void RestoreFace() => ApplyExpression(_restingExpression, _palette);
+
         /// <summary>
         /// The single entry point for the key mark: drawn while the ball is revealed and still carries
         /// its key, so a key on a hidden ball stays invisible. Snaps for now.
         /// </summary>
         private void UpdateKeyMark() =>
             _keyMark.enabled = _keyLockId != Ball.NoKey && !_isHidden && _keyMark.sprite != null;
+
+        private void Apply() =>
+            transform.localPosition = _position + new Vector3(0f, _hop + _bump + _bob, 0f);
+
+        private void SetPosition(Vector3 position)
+        {
+            _position = position;
+            Apply();
+        }
+
+        private void ArcStep(float k)
+        {
+            _position = Vector3.LerpUnclamped(_arcFrom, _arcTo, k) + new Vector3(0f, _arcHeight * 4f * k * (1f - k), 0f);
+            Apply();
+        }
+
+        /// <summary>Stretches the ball along its velocity, measured over the flight's last step of board time.</summary>
+        private void OnFlightUpdate()
+        {
+            float elapsed = _motion.Elapsed(false);
+            float dt = elapsed - _lastElapsed;
+            if (dt <= 1e-5f)
+            {
+                return;
+            }
+
+            Vector3 velocity = (_position - _lastPosition) / dt;
+            _lastPosition = _position;
+            _lastElapsed = elapsed;
+
+            float speed = velocity.magnitude / _screenWidth;
+            if (speed < _animation.StretchMinSpeed)
+            {
+                ResetShape();
+                return;
+            }
+
+            float stretch = Mathf.Min(speed / _animation.StretchFullSpeed, _animation.StretchMax) * _animation.Squash;
+            float angle = Mathf.Atan2(velocity.y, velocity.x) * Mathf.Rad2Deg;
+            _shape.localRotation = Quaternion.Euler(0f, 0f, angle);
+            _shape.localScale = new Vector3(1f + stretch, 1f - stretch, 1f);
+            _face.localRotation = Quaternion.Euler(0f, 0f, -angle);
+        }
+
+        private void OnDeparted()
+        {
+            if (_hasDeparted)
+            {
+                return;
+            }
+
+            _hasDeparted = true;
+            StartTrail();
+            _departed?.Invoke(this);
+        }
+
+        private void OnLanded()
+        {
+            if (_hasLanded)
+            {
+                return;
+            }
+
+            // A flight finished early passes its departure on the way.
+            OnDeparted();
+            _hasLanded = true;
+            _isFlight = false;
+            ResetShape();
+            StopTrail();
+            Squash();
+            Hop(0f);
+            _landed?.Invoke(this);
+        }
+
+        private void Squash()
+        {
+            BoardTweens.KillIfActive(_squashTween);
+            float duration = _animation.LandSquashDuration;
+            _squashTween = DOVirtual.Float(0f, duration, duration, _squashStep)
+                .SetEase(Ease.Linear).OnComplete(ResetShape).OnBoardClock();
+        }
+
+        private void SquashStep(float t)
+        {
+            float amount = _animation.LandSquashAmount * _animation.Squash *
+                BoardTweens.Wobble(t, _animation.LandSquashFrequency, _animation.LandSquashDamping);
+            _shape.localScale = new Vector3(1f + amount, 1f - amount, 1f);
+        }
+
+        private void HopStep(float t)
+        {
+            _hop = _animation.HopBounceHeight * _diameter *
+                BoardTweens.Hop(t, _animation.HopBounceDuration, _animation.HopBounceDamping);
+            Apply();
+        }
+
+        private void BumpStep(float t)
+        {
+            _bump = _animation.BumpHeight * _diameter * BoardTweens.HalfSine(t, _animation.BallBumpDuration);
+            Apply();
+        }
+
+        private void BobStep(float k)
+        {
+            _bob = _animation.LiftBob * _diameter * Mathf.Sin(2f * Mathf.PI * k);
+            Apply();
+        }
+
+        private void ClearHop()
+        {
+            _hop = 0f;
+            Apply();
+        }
+
+        private void ClearBump()
+        {
+            _bump = 0f;
+            Apply();
+        }
+
+        private void ResetShape()
+        {
+            _shape.localRotation = Quaternion.identity;
+            _shape.localScale = Vector3.one;
+            _face.localRotation = Quaternion.identity;
+        }
+
+        private void StartTrail()
+        {
+            if (!_animation.Trail || _isHidden)
+            {
+                return;
+            }
+
+            Color colour = _palette.GetColor(_colorId);
+            _trail.time = _animation.TrailTime;
+            _trail.startColor = new Color(colour.r, colour.g, colour.b, _animation.TrailAlpha);
+            _trail.endColor = new Color(colour.r, colour.g, colour.b, 0f);
+            _trail.startWidth = _animation.TrailWidth * 0.5f * transform.lossyScale.x;
+            _trail.endWidth = 0f;
+            _trail.Clear();
+            _trail.emitting = true;
+        }
+
+        private void StopTrail()
+        {
+            _trail.emitting = false;
+            _trail.Clear();
+        }
+
+        private void KillTweens()
+        {
+            BoardTweens.KillIfActive(_motion);
+            BoardTweens.KillIfActive(_squashTween);
+            BoardTweens.KillIfActive(_hopTween);
+            BoardTweens.KillIfActive(_bumpTween);
+            BoardTweens.KillIfActive(_bobTween);
+            BoardTweens.KillIfActive(_faceTween);
+        }
 
         private static float SpriteWidth(Sprite sprite) => sprite != null ? sprite.bounds.size.x : 1f;
 
@@ -159,9 +540,9 @@ namespace BallSort.Game.Views
 
         private void Awake()
         {
-            if (_body == null || _hiddenMark == null || _keyMark == null)
+            if (_body == null || _hiddenMark == null || _keyMark == null || _shape == null || _face == null || _trail == null)
             {
-                Debug.LogError($"{name}: body, hidden mark and key mark must be assigned.", this);
+                Debug.LogError($"{name}: body, hidden mark, key mark, shape, face and trail must be assigned.", this);
                 return;
             }
 
@@ -173,6 +554,21 @@ namespace BallSort.Game.Views
             _keySortingOrder = _keyMark.sortingOrder;
             _ordersPerBall = Mathf.Max(_bodySortingOrder, Mathf.Max(_markSortingOrder, _keySortingOrder)) -
                 Mathf.Min(_bodySortingOrder, Mathf.Min(_markSortingOrder, _keySortingOrder)) + 1;
+
+            _getPosition = () => _position;
+            _setPosition = SetPosition;
+            _arcStep = ArcStep;
+            _hopStep = HopStep;
+            _bumpStep = BumpStep;
+            _squashStep = SquashStep;
+            _bobStep = BobStep;
+            _onDeparted = OnDeparted;
+            _onLanded = OnLanded;
+            _onFlightUpdate = OnFlightUpdate;
+            _restoreFace = RestoreFace;
+            _trail.emitting = false;
         }
+
+        private void OnDestroy() => KillTweens();
     }
 }

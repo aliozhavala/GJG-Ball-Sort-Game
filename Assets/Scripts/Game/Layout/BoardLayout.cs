@@ -38,9 +38,25 @@ namespace BallSort.Game.Layout
 
         private Vector2 _boardSize;
         private bool _hasBoard;
+        private float _fitScale = 1f;
+        private float _punch = 1f;
         private Rect _lastSafeArea;
         private Vector2Int _lastScreenSize;
         private float _lastOrthographicSize;
+
+        /// <summary>The screen's width in unscaled board units (the flight's speed and stretch are measured in it).</summary>
+        public float ScreenWidthInBoardUnits =>
+            _camera.orthographicSize * 2f * _camera.aspect / Mathf.Max(_fitScale, 0.0001f);
+
+        /// <summary>
+        /// Multiplies the fitted scale (the tube-complete punch); 1 is the fitted board. Scales about
+        /// the board's centre, which is the root's position.
+        /// </summary>
+        public void SetPunch(float factor)
+        {
+            _punch = factor;
+            ApplyScale();
+        }
 
         /// <summary>
         /// Positions every tube on <paramref name="grid"/> and fits the board to the screen.
@@ -81,7 +97,7 @@ namespace BallSort.Game.Layout
                 int rowCells = grid.IsAligned(placement.Row) ? alignedCells : grid.GetCellCount(placement.Row);
                 float firstX = (config.TubeWidth - RowWidth(rowCells, config)) * 0.5f;
                 float baseY = size.y * 0.5f - (placement.Row + 1) * pitchY;
-                tubes[t].transform.localPosition = new Vector3(firstX + placement.Cell * pitchX, baseY, 0f);
+                tubes[t].Place(new Vector3(firstX + placement.Cell * pitchX, baseY, 0f));
             }
 
             if (_hasBoard && size == _boardSize)
@@ -154,7 +170,8 @@ namespace BallSort.Game.Layout
             // Floor: a screen too short for the HUD must not flip the board with a negative scale.
             float scale = Mathf.Max(0.01f,
                 Mathf.Min((right - left) / _boardSize.x, (top - bottom) / _boardSize.y, _maxScale));
-            transform.localScale = new Vector3(scale, scale, 1f);
+            _fitScale = scale;
+            ApplyScale();
             transform.position = new Vector3((left + right) * 0.5f, (bottom + top) * 0.5f, transform.position.z);
         }
 
@@ -180,6 +197,12 @@ namespace BallSort.Game.Layout
             rect.GetWorldCorners(_corners);
             Vector2 screen = RectTransformUtility.WorldToScreenPoint(uiCamera, _corners[corner]);
             return ScreenToWorld(screen, new Vector2(Screen.width, Screen.height));
+        }
+
+        private void ApplyScale()
+        {
+            float scale = _fitScale * _punch;
+            transform.localScale = new Vector3(scale, scale, 1f);
         }
 
         private static float RowWidth(int tubeCount, TubeVisualConfig config) =>

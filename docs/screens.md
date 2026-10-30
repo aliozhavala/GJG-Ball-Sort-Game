@@ -57,7 +57,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   Home. No avatar, coins, or lives here.
 - **Middle:** the board (tubes laid out on the level's grid).
 - **Bottom:** booster bar — Undo, Shuffle, Add tube — each with its remaining count.
-- **Input:** tap a tube to select it (its run lifts above the glass), tap it again to deselect, tap another tube to
+- **Input:** tap a tube to select it (its top ball lifts above the mouth; the rest of the run follows when it moves), tap it again to deselect, tap another tube to
   move. An illegal move, or a tap on a tube that can't be selected, plays invalid-move feedback and clears the
   selection. Tapping empty space deselects. The selection is also dropped on undo, add tube, Play on, restart,
   entering/leaving stuck and the win.

@@ -14,5 +14,8 @@ namespace BallSort.Game.Views
 
         /// <summary>Laughing: balls in a completed tube.</summary>
         Laugh,
+
+        /// <summary>Shocked, for a moment: an invalid tap on the ball's tube.</summary>
+        Shock,
     }
 }

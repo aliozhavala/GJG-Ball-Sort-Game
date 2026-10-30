@@ -63,15 +63,15 @@ accept being interrupted (complete or kill a ball's tween before moving it again
 
 | Animation | Hook (one place each) | Today |
 |---|---|---|
-| Select / deselect lift | `TubeView.Lift` / `Lower` → `BallView.MoveTo`, `SetRaised` | snap |
-| Ball move (fly + drop, staggered) | `BoardView.Transfer` (on `MoveApplied`, `MoveUndone` reversed) → `BallView.MoveTo` | snap |
-| Reveal flip | `BallView.Reveal` (on `BallRevealed`) | snap |
-| Key mark leaves | `BallView.RemoveKey` → `UpdateKeyMark` (on `KeyFound`) | snap |
-| Veil / door opens | `CoverView.SetOpen` (on `TubeUnveiled` / `LockOpened`); it also shows the covered balls | snap |
-| Cap drops, balls laugh | `TubeView.SetCapVisible` and `BallView.SetExpression` (via `BoardView.ShowCompleted`, on `TubeCompleted`, also after an undo that completes) + `LevelFeedback.PlayTubeCompleted` (sparkle, sound, haptic) | snap / empty |
+| Select / deselect lift | `TubeView.Lift` / `Lower` → `BallView.MoveTo`, `SetRaised` | **animated** (docs/animations.md 2.2) |
+| Ball move (fly + drop, staggered), landing | `BoardView.Transfer` (on `MoveApplied`, `MoveUndone` reversed) → `BallView.MoveTo(BallFlight)`; landing in `BallView` / `TubeView.NotifyLanded` | **animated** (2.3, 2.4) |
+| Reveal flip | `BallView.Reveal` (on `BallRevealed`, once the moving balls have left the tube) | snap, timed |
+| Key mark leaves | `BallView.RemoveKey` → `UpdateKeyMark` (on `KeyFound`, after the landing) | snap, timed |
+| Veil / door opens | `CoverView.SetOpen` (on `TubeUnveiled` / `LockOpened`, after the landing); it also shows the covered balls | snap, timed |
+| Cork drops, glow, balls laugh and dance | `TubeView.ShowCompleted` (when the tube's last ball lands, also after an undo that completes) + `LevelFeedback.PlayTubeCompleted` (VFX) and cork seat (hit-stop, punch) | **animated** (2.6) |
 | Blinking | `BallView.SetExpression` (`HalfOpen`, `Closed`, back to `Open`); sprites already in `ColorPalette` | not used yet |
-| Invalid move | `LevelFeedback.PlayInvalidMove` (from `TubeInput.InvalidMove`) | tube flash |
-| Celebration | `LevelFeedback.PlayCelebrationAsync` (awaited before the Win panel) | label for 1 s |
+| Invalid move | `LevelFeedback.PlayInvalidMove` (from `TubeInput.InvalidMove`) → `BoardView.ShowInvalid` | **animated** (2.5: shake, shock face) |
+| Celebration | `LevelFeedback.PlayCelebrationAsync` (awaited before the Win panel) | label for 1 s, once the board has settled |
 | Added tube, re-centring | `BoardView.OnTubeAdded` | snap |
 | Restart / shuffle | `BoardView.Rebuild` (on `Restarted` / `Shuffled`) | rebuild |
 | Stuck bar in / out | `LevelHud.ShowStuck` → `StuckPanel.SetVisible` | snap |

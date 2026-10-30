@@ -1,0 +1,110 @@
+# Animations (board moves: 2.2–2.6)
+
+What is built from product's `docs/design/animations.md` §2.2–2.6 and the matching sounds of `docs/design/SFX_GUIDE.md`
+§3. The other sections (intro, mechanics, boosters, win, idle) are not built yet. Every number is an `AnimationConfig`
+field (Inspector-tunable); sound rules are on `SfxConfig`. Choices that differ from the product document are marked
+**(ours)**.
+
+## Rules
+- **Logic never waits on animation.** Core applies the move at once; views play what already happened.
+- **Order follows the events:** move → reveal → cap/laugh → veil → key → its door → win. Later beats are triggered by the
+  balls' flights (a ball leaving its tube, the last ball landing), not by fixed timers, so an interrupted flight still
+  plays them in order.
+- **Input stays live.** Touching a ball or tube that is still animating finishes its tweens first (lift, flight, landing,
+  pending beats); so does a layout change (added tube).
+- **Popups** block input until their close animation ends (no popup animation yet: `Popup.IsOpen` still gates input).
+- **Board clock:** every board tween runs on DOTween's manual update, driven by `BoardClock` at `_speed` × the hit-stop
+  rate. UI, input, sounds, particles and trails run on normal time. `Time.timeScale` is never touched.
+- **Units:** **d** = ball diameter (`TubeVisualConfig.BallDiameter`, board units, so motion scales with the board);
+  **SW** = screen width in board units; times in seconds at `_speed` 1.
+
+| § | Hook | Trigger |
+|---|---|---|
+| 2.2 | `BoardView.ShowSelection` → `TubeView.Lift` / `Lower` → `BallView.MoveTo`, `SetRaised` | `TubeInput.SelectionChanged` |
+| 2.3 | `BoardView.Transfer` → `BallView.MoveTo` (flight) | `MoveApplied`; `MoveUndone` (reversed) |
+| 2.4 | `BallView` landing, `TubeView` bump | end of a flight |
+| 2.5 | `LevelFeedback.PlayInvalidMove` → `TubeView` shake, `BallView.SetExpression` | `TubeInput.InvalidMove` |
+| 2.6 | `BoardView.ShowCompleted` → `TubeView` cork, glow, dance; `LevelFeedback.PlayTubeCompleted` (VFX, hit-stop, punch, sounds) | `TubeCompleted`, played when the tube's last ball lands |
+
+## 2.2 Select / deselect
+- **Select:** only the **top ball** lifts **(product; replaces "the run lifts")**; the rest of the run follows during the
+  move. It rises to `_liftHeight` **0.72 d** above the mouth in `_liftDuration` **0.23 s**, `_liftEase` **OutCubic**
+  (≈90 % in 0.12 s, the prototype's exponential follow at rate 20, as a tween **(ours)**). Sound `select`.
+- **Held:** bobs ±`_liftBob` **0.06 d**, period `_liftBobPeriod` **1.25 s** (InOutSine yo-yo loop).
+- **Deselect:** back to its slot with the same duration and ease. Sound `deselect`, only when a ball really drops back
+  (not when the selection clears because the ball flew off).
+- The tube does not move. A tap on a tube that can't be selected plays 2.5.
+
+## 2.3 Ball flight (hop)
+The moved balls (top first, partial moves included) each fly three segments, ball *i* starting `_chainDelay`
+**0.08 s** × *i* after the first:
+
+| Segment | To | Duration | Ease |
+|---|---|---|---|
+| Rise | `_liftHeight` above the **source** mouth | `_riseDuration` **0.10** | `_riseEase` **OutQuad** |
+| Arc | `_liftHeight` above the **target** mouth | `_arcBaseDuration` **0.15** + `_arcDurationPerScreenWidth` **0.23** × D / SW | `_arcEase` **InOutSine** |
+| Drop | its slot | `_dropDuration` **0.12** | `_dropEase` **InQuad** |
+
+- D = horizontal + vertical distance between the two mouths. Arc height = `_arcHeightBase` **0.5 d** +
+  `_arcHeightPerDistance` **0.32** × D, a parabola `h·4k(1−k)` on the eased progress k.
+- **Stretch** along the velocity: `min(v / _stretchFullSpeed (6.7 SW/s), _stretchMax 0.3) × _squash 0.7` (≤ 21 %),
+  none below `_stretchMinSpeed` **0.15 SW/s**.
+- **Trail** (`_trail` on) during arc and drop: `_trailTime` **0.15 s** (9 frames at 60 fps), ball colour, widening to
+  `_trailWidth` **1.4** × radius, alpha up to `_trailAlpha` **0.45**; cleared on landing.
+- The source's new top is revealed (snap until 3.1) when the last moved ball has left it (end of its rise).
+- **Undo** uses the same flight, all balls reversed, without land sounds (SFX guide §5); its 1.7× speed is §4, later.
+
+## 2.4 Landing (each ball, at the end of its drop)
+- **Squash** `_landSquashDuration` **0.45 s**: f = e^(−`_landSquashDamping` 11·t)·cos(`_landSquashFrequency` 30·t),
+  scale x = 1 + `_landSquashAmount` **0.32** × `_squash` × f, y = 1 − the same.
+- **Hop bounce** `_hopBounceDuration` **0.55 s**: y = |sin(2πt / duration)| × `_hopBounceHeight` **0.4 d** ×
+  e^(−`_hopBounceDamping` 4·t): two bounces, ≈0.23 d and ≈0.08 d.
+- **Balls below** bump `_bumpHeight` **0.07 d** (half sine, `_ballBumpDuration` **0.2 s**), each `_bumpRippleDelay`
+  **0.03 s** × its depth below the new ball later.
+- **Tube bump** `_bumpHeight` (half sine, `_tubeBumpDuration` **0.22 s**).
+- **Droplets** (`_droplets` on): pooled `DropletsVfx` in the ball colour (count, size, gravity on the prefab).
+- Sound `land`, pitch by slot (below).
+
+## 2.5 Invalid move
+- On the tapped tube (target of an illegal move, or a tube that can't be selected); a lifted ball drops back first (2.2).
+- **Shake** `_invalidShakeDuration` **0.4 s**: x = sin(`_invalidShakeFrequency` 55·t) × `_invalidShakeAmount` **0.16 d** ×
+  e^(−`_invalidShakeDamping` 9·t).
+- **Shock face** on its revealed balls for `_shockFaceDuration` **0.7 s**, then back to their resting face.
+- Replaces the old placeholder tube flash. Sound `invalid` (+ `deselect` if a ball was lifted).
+
+## 2.6 Tube complete
+Starts when the completed tube's **last ball lands** (move or undo). From there:
+
+| t | Piece | Values |
+|---|---|---|
+| 0 | Chime sound | pitch by chain (below) |
+| 0 | Cork | `TubeVisualConfig` cap, tinted in the tube's colour, drops `_corkDropHeight` **1.2 d** onto the rim **(ours: the prototype's 90 px, about 2 d, starts inside the row above)** in `_corkDropDuration` **0.45 s**, `_corkEase` **OutBounce**; stays |
+| 0 | Glow | tube outline in the ball colour, alpha 1 → `_glowIdleAlpha` **0.5** in `_glowFadeDuration` **0.6 s**, then ±`_glowPulse` **0.12**, period `_glowPulsePeriod` **1.6 s**; stays |
+| 0 | Sparkles + ring | pooled `TubeCompleteVfx`: 14 + 3 × chain sparkles (faster with chain), ring 2.2 d over 0.5 s (prefab values) |
+| 0 | Confetti | 26 pieces from the mouth, 1.4–2.2 s (prefab values) |
+| 0 | Dance | each ball does the hop bounce (2.4), `_danceStagger` **0.07 s** apart, bottom to top; balls laugh from here on **(ours: they stay laughing, not 1.6 s)** |
+| `_corkImpactTime` **0.16** | Cork seats | cork sound, hit-stop `_hitStopDuration` **0.06 s** at `_hitStopTimeScale` **0.06**, punch: board scale 1 → 1 + `_punchScale` **0.028** → 1, half sine over `_punchDuration` **0.3 s** **(SFX guide timing; animations.md starts them at 0)** |
+
+- **Chain** = completed tubes on the board − 1 (a completion is never undone, so no rollback is needed).
+- Toggles: `_sparkles`, `_confetti`, `_dance`, `_glow`, `_chainEscalate` (sparkles and chime pitch grow with chain).
+- A tube rebuilt completed (restart, shuffle) shows cork, glow and laugh at rest, without the sequence.
+
+## Later beats in the same move (snaps until §3)
+Timed so the order reads right; §3 will replace the snaps with animations in the same places.
+- Veil opens `_towelDelay` **0.45 s** after the last land.
+- Key mark goes at the last land (+ `_keyWaitAfterComplete` **0.25 s** if a tube completed), never before a veil the
+  same move opened; its door opens right after.
+- Win: the celebration starts once the board has settled.
+
+## Sounds (`SfxConfig`, played through `AudioService`)
+| Sound | When | Pitch |
+|---|---|---|
+| `select` | ball starts to lift | random ±3 % |
+| `deselect` | lifted ball starts back | random ±3 % |
+| `land` | each ball lands (not on undo) | 2^(PENT[min(slot, 6)] / 24), PENT = 0 2 4 7 9 12 14, × random ±3 % |
+| `invalid` | invalid tap | 1 |
+| `tubeCompleteChime` | last ball lands in a completed tube | 2^(min(chain, 12) / 12) × random ±3 % |
+| `tubeCork` | cork seats | random ±3 % |
+
+Master volume `_sfxVolume` **0.7**; every clip plays at 1.0 into it. No voice limit (pooled sources, 10 voices). The
+Sound setting off mutes everything. Random pitch applies to the mp3 clips and `deselect` (SFX guide §2).

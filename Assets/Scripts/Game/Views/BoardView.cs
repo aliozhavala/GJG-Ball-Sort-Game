@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using BallSort.Core.Levels;
 using BallSort.Core.Model;
 using BallSort.Core.Session;
 using BallSort.Game.Layout;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Pool;
 using Debug = UnityEngine.Debug;
@@ -17,12 +19,19 @@ namespace BallSort.Game.Views
     /// <remarks>
     /// The board is built in full only when the level loads, restarts or is shuffled, reading balls,
     /// keys, covers and clay from the board state; every other event changes just the views it
-    /// touches (balls change tubes, a ball turns face up, a key mark goes, a cover opens, a cap
-    /// appears, a tube is appended). Tubes, balls and covers are pooled, so nothing is instantiated
+    /// touches (balls change tubes, a ball turns face up, a key mark goes, a cover opens, a tube
+    /// completes, a tube is appended). Tubes, balls and covers are pooled, so nothing is instantiated
     /// or destroyed once the pools are warm.
     /// <para>
     /// Covers are separate views over the tubes: one per veil, one door per lock across all of its
     /// tubes. They are refitted after every layout change.
+    /// </para>
+    /// <para>
+    /// Moves and undos fly their balls (docs/animations.md). The session's later events in the same
+    /// operation play in their order, timed off the flights: the source's new top is revealed once the
+    /// last moving ball has left it, a completion plays when the tube's last ball lands, and veils,
+    /// keys and doors follow the landing. The model is never waited on: only the views lag behind
+    /// it, and touching a tube plays what it is waiting for at once.
     /// </para>
     /// </remarks>
     [RequireComponent(typeof(BoardLayout))]
@@ -34,6 +43,7 @@ namespace BallSort.Game.Views
         [SerializeField] private ColorPalette _palette;
         [SerializeField] private LockPalette _lockPalette;
         [SerializeField] private TubeVisualConfig _tubeConfig;
+        [SerializeField] private AnimationConfig _animation;
         [SerializeField] private BoardLayout _layout;
         [Tooltip("Inactive holder for pooled views.")]
         [SerializeField] private Transform _poolRoot;
@@ -41,17 +51,59 @@ namespace BallSort.Game.Views
         private readonly List<TubeView> _tubes = new List<TubeView>();
         private readonly List<CoverView> _covers = new List<CoverView>();
         private readonly List<BallView> _ballBuffer = new List<BallView>();
+        private readonly List<TubeView> _singleTube = new List<TubeView>(1);
         private ObjectPool<TubeView> _tubePool;
         private ObjectPool<BallView> _ballPool;
         private ObjectPool<CoverView> _coverPool;
         private LevelSession _session;
         private int _liftedTube = -1;
+        private Action<BallView> _onBallDeparted;
+        private Action<BallView> _onBallLanded;
+
+        // The move or undo whose events are arriving: where its balls land, and what it has done so far.
+        private int _operationTarget = -1;
+        private bool _operationCompleted;
+        private bool _operationOpenedVeil;
 #if UNITY_EDITOR
         private bool _tubeConfigChanged;
 #endif
 
         /// <summary>Tube views in board order; index matches the board's tube index.</summary>
         public IReadOnlyList<TubeView> Tubes => _tubes;
+
+        /// <summary>The board's layout: fit, scale and the tube-complete punch.</summary>
+        public BoardLayout Layout => _layout;
+
+        public ColorPalette Palette => _palette;
+
+        /// <summary>True when no ball is flying and no beat of a move is still waiting to play.</summary>
+        public bool IsSettled
+        {
+            get
+            {
+                foreach (TubeView tube in _tubes)
+                {
+                    if (!tube.IsSettled)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>A ball has landed in its slot (move or undo: see <see cref="BallView.IsUndoFlight"/>).</summary>
+        public event Action<BallView> BallLanded;
+
+        /// <summary>
+        /// A completed tube's last ball has landed and its completion starts: the tube, its colour id and
+        /// the chain (the tubes completed before it in the level).
+        /// </summary>
+        public event Action<TubeView, int, int> CompletionStarted;
+
+        /// <summary>A completed tube's cork has seated, <see cref="AnimationConfig.CorkImpactTime"/> into its completion.</summary>
+        public event Action<TubeView> CorkSeated;
 
         /// <summary>Shows <paramref name="session"/>'s board and follows its events until destroyed.</summary>
         public void Initialize(LevelSession session)
@@ -72,7 +124,7 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
-        /// Lifts the selected tube's run, or lowers the previous one when <paramref name="tubeIndex"/>
+        /// Lifts the selected tube's top ball, or lowers the previous one when <paramref name="tubeIndex"/>
         /// is negative.
         /// </summary>
         public void ShowSelection(int tubeIndex)
@@ -85,8 +137,25 @@ namespace BallSort.Game.Views
             _liftedTube = tubeIndex;
             if (tubeIndex >= 0)
             {
-                _tubes[tubeIndex].Lift(_session.Board[tubeIndex].RunLength);
+                _tubes[tubeIndex].Lift();
             }
+        }
+
+        /// <summary>
+        /// The invalid-move feedback on the board (docs/animations.md, 2.5): the tube shakes and its
+        /// balls look shocked; a covered tube shakes with its cover.
+        /// </summary>
+        public void ShowInvalid(int tubeIndex)
+        {
+            TubeView tube = _tubes[tubeIndex];
+            if (TryFindClosedCover(tube, out CoverView cover))
+            {
+                cover.Shake(_animation, _tubeConfig.BallDiameter);
+                return;
+            }
+
+            tube.Shake();
+            tube.SetBallExpression(BallExpression.Shock, _palette, _animation.ShockFaceDuration);
         }
 
         /// <summary>Returns every tube, ball and cover to the pools.</summary>
@@ -113,6 +182,7 @@ namespace BallSort.Game.Views
             _tubes.Clear();
             _ballBuffer.Clear();
             _liftedTube = -1;
+            _operationTarget = -1;
         }
 
         private void Rebuild()
@@ -142,7 +212,7 @@ namespace BallSort.Game.Views
 
                 if (board.IsCompleted(t))
                 {
-                    ShowCompleted(tubeView);
+                    tubeView.ShowCompleted(_palette.GetColor(tube.Top.ColorId), _palette, animate: false);
                 }
 
                 if (tube.IsCovered)
@@ -164,7 +234,7 @@ namespace BallSort.Game.Views
         {
             TubeView tubeView = _tubePool.Get();
             tubeView.name = $"Tube {tubeIndex}";
-            tubeView.Setup(tubeIndex, capacity, isClay, _tubeConfig);
+            tubeView.Setup(tubeIndex, capacity, isClay, _tubeConfig, _animation);
             _tubes.Add(tubeView);
             return tubeView;
         }
@@ -219,12 +289,55 @@ namespace BallSort.Game.Views
             return false;
         }
 
-        private void Transfer(int fromIndex, int toIndex, int count)
+        private bool TryFindClosedCover(TubeView tube, out CoverView found)
         {
-            _tubes[fromIndex].TakeTop(count, _ballBuffer);
-            foreach (BallView ball in _ballBuffer)
+            foreach (CoverView cover in _covers)
             {
-                _tubes[toIndex].AddBall(ball);
+                if (cover.IsOpen)
+                {
+                    continue;
+                }
+
+                foreach (TubeView covered in cover.Tubes)
+                {
+                    if (covered == tube)
+                    {
+                        found = cover;
+                        return true;
+                    }
+                }
+            }
+
+            found = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Flies the top <paramref name="count"/> balls from one tube to another (docs/animations.md,
+        /// 2.3): each rises above the source's mouth, arcs to above the target's and drops into its
+        /// slot, one chain delay after the ball above it. The views hold the balls in their new tubes
+        /// at once; only the drawing travels.
+        /// </summary>
+        private void Transfer(int fromIndex, int toIndex, int count, bool isUndo)
+        {
+            TubeView source = _tubes[fromIndex];
+            TubeView target = _tubes[toIndex];
+            source.TakeTop(count, _ballBuffer);
+
+            // The flight is drawn in the target's ball space: board space, shifted.
+            Vector3 rise = target.BallSpace.InverseTransformPoint(source.BallSpace.TransformPoint(source.LiftPoint));
+            Vector3 arcEnd = target.LiftPoint;
+            float distance = Mathf.Abs(arcEnd.x - rise.x) + Mathf.Abs(arcEnd.y - rise.y);
+            float screenWidth = _layout.ScreenWidthInBoardUnits;
+            float arcDuration = _animation.ArcBaseDuration + _animation.ArcDurationPerScreenWidth * distance / screenWidth;
+            float arcHeight = _animation.ArcHeightBase * _tubeConfig.BallDiameter + _animation.ArcHeightPerDistance * distance;
+
+            for (int i = 0; i < _ballBuffer.Count; i++)
+            {
+                BallView ball = _ballBuffer[i];
+                Vector3 slot = target.ReceiveBall(ball);
+                ball.MoveTo(new BallFlight(
+                    fromIndex, isUndo, i * _animation.ChainDelay, rise, arcEnd, slot, arcDuration, arcHeight, screenWidth));
             }
 
             _ballBuffer.Clear();
@@ -232,42 +345,146 @@ namespace BallSort.Game.Views
             AssertInSync(toIndex);
         }
 
-        private void OnMoveApplied(MoveEventArgs e) => Transfer(e.FromIndex, e.ToIndex, e.Count);
-
-        // The event describes the original move; undoing it carries the balls back.
-        private void OnMoveUndone(MoveEventArgs e) => Transfer(e.ToIndex, e.FromIndex, e.Count);
-
-        private void OnBallRevealed(BallRevealedEventArgs e) =>
-            _tubes[e.TubeIndex].Balls[e.SlotIndex].Reveal(e.ColorId, _palette);
-
-        private void OnTubeCompleted(TubeCompletedEventArgs e) => ShowCompleted(_tubes[e.TubeIndex]);
-
-        /// <summary>A completed tube gets its cap, and its balls laugh.</summary>
-        private void ShowCompleted(TubeView tube)
+        private void BeginOperation(int targetIndex)
         {
-            tube.SetCapVisible(true);
-            tube.SetBallExpression(BallExpression.Laugh, _palette);
+            _operationTarget = targetIndex;
+            _operationCompleted = false;
+            _operationOpenedVeil = false;
         }
 
+        private void OnMoveApplied(MoveEventArgs e)
+        {
+            BeginOperation(e.ToIndex);
+            Transfer(e.FromIndex, e.ToIndex, e.Count, isUndo: false);
+        }
+
+        // The event describes the original move; undoing it carries the balls back.
+        private void OnMoveUndone(MoveEventArgs e)
+        {
+            BeginOperation(e.FromIndex);
+            Transfer(e.ToIndex, e.FromIndex, e.Count, isUndo: true);
+        }
+
+        private void OnBallDeparted(BallView ball) => _tubes[ball.FlightSource].NotifyDeparted();
+
+        private void OnBallLanded(BallView ball)
+        {
+            _tubes[ball.TubeIndex].NotifyLanded(ball);
+            BallLanded?.Invoke(ball);
+        }
+
+        // The new top shows once the balls above it have left (a snap until the reveal flip, §3.1).
+        private void OnBallRevealed(BallRevealedEventArgs e)
+        {
+            TubeView tube = _tubes[e.TubeIndex];
+            BallView ball = tube.Balls[e.SlotIndex];
+            int colorId = e.ColorId;
+            tube.WhenDeparted(() => ball.Reveal(colorId, _palette));
+        }
+
+        // The completion plays when the tube's last ball lands.
+        private void OnTubeCompleted(TubeCompletedEventArgs e)
+        {
+            _operationCompleted = true;
+            TubeView tube = _tubes[e.TubeIndex];
+            int colorId = e.ColorId;
+            int chain = Mathf.Max(0, CountCompletedTubes() - 1);
+            tube.WhenArrived(() => PlayCompletion(tube, colorId, chain));
+        }
+
+        private void PlayCompletion(TubeView tube, int colorId, int chain)
+        {
+            tube.ShowCompleted(_palette.GetColor(colorId), _palette, animate: true);
+            CompletionStarted?.Invoke(tube, colorId, chain);
+            tube.AddBeat(DOVirtual.DelayedCall(_animation.CorkImpactTime, () => CorkSeated?.Invoke(tube), false)
+                .OnBoardClock());
+        }
+
+        private int CountCompletedTubes()
+        {
+            int count = 0;
+            for (int t = 0; t < _session.Board.TubeCount; t++)
+            {
+                if (_session.Board.IsCompleted(t))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        // Snaps until the towel animation (§3.2), timed after the completion.
         private void OnTubeUnveiled(TubeUnveiledEventArgs e)
         {
             foreach (CoverView cover in _covers)
             {
                 if (cover.Kind == CoverKind.Veil && cover.Tubes[0].TubeIndex == e.TubeIndex)
                 {
-                    cover.SetOpen(true);
+                    _operationOpenedVeil = true;
+                    AfterLanding(_animation.TowelDelay, cover.Tubes, () => cover.SetOpen(true));
                     return;
                 }
             }
         }
 
-        private void OnKeyFound(KeyFoundEventArgs e) => _tubes[e.TubeIndex].Balls[e.SlotIndex].RemoveKey();
+        // Snaps until the key flight (§3.3).
+        private void OnKeyFound(KeyFoundEventArgs e)
+        {
+            TubeView tube = _tubes[e.TubeIndex];
+            BallView ball = tube.Balls[e.SlotIndex];
+            _singleTube.Clear();
+            _singleTube.Add(tube);
+            AfterLanding(KeyDelay(), _singleTube, ball.RemoveKey);
+        }
 
         private void OnLockOpened(LockOpenedEventArgs e)
         {
             if (TryFindDoor(e.LockId, out CoverView door))
             {
-                door.SetOpen(true);
+                AfterLanding(KeyDelay(), door.Tubes, () => door.SetOpen(true));
+            }
+        }
+
+        /// <summary>
+        /// A key mark leaves (and its door opens) at the landing: after the completion's beat when the
+        /// move completed a tube, and never before a veil the same move opened.
+        /// </summary>
+        private float KeyDelay()
+        {
+            float delay = _operationCompleted ? _animation.KeyWaitAfterComplete : 0f;
+            return _operationOpenedVeil ? Mathf.Max(delay, _animation.TowelDelay) : delay;
+        }
+
+        /// <summary>
+        /// Plays <paramref name="action"/> <paramref name="delay"/> seconds of board time after the
+        /// operation's balls have landed. Touching any of <paramref name="tubes"/> plays it at once.
+        /// </summary>
+        private void AfterLanding(float delay, IReadOnlyList<TubeView> tubes, TweenCallback action)
+        {
+            TubeView target = _operationTarget >= 0 && _operationTarget < _tubes.Count ? _tubes[_operationTarget] : null;
+            var affected = new TubeView[tubes.Count];
+            for (int i = 0; i < affected.Length; i++)
+            {
+                affected[i] = tubes[i];
+            }
+
+            void Schedule()
+            {
+                Tween beat = DOVirtual.DelayedCall(delay, action, false).OnBoardClock();
+                foreach (TubeView tube in affected)
+                {
+                    tube.AddBeat(beat);
+                }
+            }
+
+            if (target != null)
+            {
+                target.WhenArrived(Schedule);
+            }
+            else
+            {
+                Schedule();
             }
         }
 
@@ -323,34 +540,44 @@ namespace BallSort.Game.Views
             _session = null;
         }
 
+        private BallView CreateBall()
+        {
+            BallView ball = Instantiate(_ballPrefab, _poolRoot);
+            ball.Initialize(_animation, _onBallDeparted, _onBallLanded);
+            return ball;
+        }
+
         private void Awake()
         {
             if (_tubePrefab == null || _ballPrefab == null || _coverPrefab == null || _palette == null ||
-                _lockPalette == null || _tubeConfig == null || _layout == null || _poolRoot == null)
+                _lockPalette == null || _tubeConfig == null || _animation == null || _layout == null || _poolRoot == null)
             {
                 Debug.LogError($"{name}: all references must be assigned.", this);
                 enabled = false;
                 return;
             }
 
+            _onBallDeparted = OnBallDeparted;
+            _onBallLanded = OnBallLanded;
+
             _tubePool = new ObjectPool<TubeView>(
                 () => Instantiate(_tubePrefab, _poolRoot),
                 tube => { tube.transform.SetParent(transform, false); tube.gameObject.SetActive(true); },
-                tube => { tube.gameObject.SetActive(false); tube.transform.SetParent(_poolRoot, false); },
+                tube => { tube.StopMotion(); tube.gameObject.SetActive(false); tube.transform.SetParent(_poolRoot, false); },
                 tube => Destroy(tube.gameObject),
                 collectionCheck: true, defaultCapacity: 12, maxSize: 32);
 
             _ballPool = new ObjectPool<BallView>(
-                () => Instantiate(_ballPrefab, _poolRoot),
+                CreateBall,
                 ball => ball.gameObject.SetActive(true),
-                ball => { ball.gameObject.SetActive(false); ball.transform.SetParent(_poolRoot, false); },
+                ball => { ball.StopMotion(); ball.gameObject.SetActive(false); ball.transform.SetParent(_poolRoot, false); },
                 ball => Destroy(ball.gameObject),
                 collectionCheck: true, defaultCapacity: 48, maxSize: 128);
 
             _coverPool = new ObjectPool<CoverView>(
                 () => Instantiate(_coverPrefab, _poolRoot),
                 cover => { cover.transform.SetParent(transform, false); cover.gameObject.SetActive(true); },
-                cover => { cover.gameObject.SetActive(false); cover.transform.SetParent(_poolRoot, false); },
+                cover => { cover.StopMotion(); cover.gameObject.SetActive(false); cover.transform.SetParent(_poolRoot, false); },
                 cover => Destroy(cover.gameObject),
                 collectionCheck: true, defaultCapacity: 4, maxSize: 18);
         }

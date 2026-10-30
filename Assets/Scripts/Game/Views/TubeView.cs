@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
@@ -7,13 +8,19 @@ namespace BallSort.Game.Views
 {
     /// <summary>
     /// One tube on screen: the tube drawn behind the balls from a top, a stretched middle and a bottom
-    /// part, the balls, an optional glass front, a cap shown once the tube is completed, the clay at
-    /// the base of clay tubes and a flash for refused taps. The transform's origin is the tube's base
-    /// centre.
+    /// part, the balls, an optional glass front, the cork and glow of a completed tube and the clay at
+    /// the base of clay tubes. The transform's origin is the tube's base centre.
     /// </summary>
     /// <remarks>
     /// Covers are not part of the tube: a <see cref="CoverView"/> may span several tubes, and hides
     /// their balls through <see cref="SetBallsVisible"/>.
+    /// <para>
+    /// The layout sets the tube's home (<see cref="Place"/>); the bump and shake are offsets on top of
+    /// it, so a re-layout mid-animation never leaves the tube out of place. The tube also counts the
+    /// balls flying out of it and into it, so later beats of a move (the reveal, the completion, cover
+    /// and key changes) wait for the balls rather than for a timer: <see cref="WhenDeparted"/>,
+    /// <see cref="WhenArrived"/>. Touching the tube (<see cref="FinishPending"/>) plays them at once.
+    /// </para>
     /// </remarks>
     [RequireComponent(typeof(BoxCollider2D))]
     public sealed class TubeView : MonoBehaviour
@@ -24,11 +31,13 @@ namespace BallSort.Game.Views
         [SerializeField] private SpriteRenderer _bottom;
         [Tooltip("Optional glass front over the balls; its sorting layer is also where lifted balls draw.")]
         [SerializeField] private SpriteRenderer _front;
+        [Tooltip("The cork on a completed tube.")]
         [SerializeField] private SpriteRenderer _cap;
         [Tooltip("Clay at the base of a clay tube, behind the balls.")]
         [SerializeField] private SpriteRenderer _clay;
-        [Tooltip("Placeholder feedback for a refused tap; on the VFX layer so it also shows over covers.")]
-        [SerializeField] private SpriteRenderer _flash;
+        [Tooltip("Glow around a completed tube, in its colour, behind the tube.")]
+        [FormerlySerializedAs("_flash")]
+        [SerializeField] private SpriteRenderer _glow;
         [Tooltip("Parent for this tube's balls.")]
         [SerializeField] private Transform _ballRoot;
         [SerializeField] private BoxCollider2D _tapTarget;
@@ -36,9 +45,32 @@ namespace BallSort.Game.Views
         [SerializeField] private int _raisedSortingOrder = 10;
 
         private readonly List<BallView> _balls = new List<BallView>();
+        private readonly List<Action> _afterDeparture = new List<Action>();
+        private readonly List<Action> _afterArrival = new List<Action>();
+        private readonly List<Tween> _beats = new List<Tween>();
         private TubeVisualConfig _config;
+        private AnimationConfig _animation;
         private int _liftedCount;
-        private Tween _flashTween;
+        private int _departures;
+        private int _arrivals;
+
+        private Vector3 _home;
+        private float _shakeX;
+        private float _bumpY;
+        private Color _glowColour;
+
+        private Tween _shakeTween;
+        private Tween _bumpTween;
+        private Tween _corkTween;
+        private Tween _glowTween;
+
+        private TweenCallback<float> _shakeStep;
+        private TweenCallback<float> _bumpStep;
+        private TweenCallback<float> _glowStep;
+        private TweenCallback<float> _glowPulseStep;
+        private TweenCallback _clearShake;
+        private TweenCallback _clearBump;
+        private TweenCallback _startGlowPulse;
 
         /// <summary>Board index of the tube this view shows.</summary>
         public int TubeIndex { get; private set; }
@@ -49,15 +81,29 @@ namespace BallSort.Game.Views
         /// <summary>Height of the tube body above its base, in board units.</summary>
         public float BodyHeight { get; private set; }
 
+        /// <summary>Where the layout put the tube, without the bump and shake.</summary>
+        public Vector3 HomePosition => _home;
+
+        /// <summary>The space the balls live in.</summary>
+        public Transform BallSpace => _ballRoot;
+
+        /// <summary>Where a lifted ball's centre sits, in ball space: above the mouth by the lift height.</summary>
+        public Vector3 LiftPoint => new Vector3(0f, BodyHeight + _animation.LiftHeight * _config.BallDiameter, 0f);
+
+        /// <summary>True when no ball is flying out of or into the tube and no beat is waiting.</summary>
+        public bool IsSettled => _departures == 0 && _arrivals == 0 && !HasActiveBeat();
+
         /// <summary>
         /// Sizes the tube for <paramref name="capacity"/> balls. The tap target also covers the lift
-        /// area above the rim, so a tap on a lifted run still hits its tube.
+        /// area above the rim, so a tap on a lifted ball still hits its tube.
         /// </summary>
         /// <param name="isClay">Shows the clay overlay; clay is permanent, so it is set only here.</param>
-        public void Setup(int tubeIndex, int capacity, bool isClay, TubeVisualConfig config)
+        public void Setup(int tubeIndex, int capacity, bool isClay, TubeVisualConfig config, AnimationConfig animation)
         {
+            StopMotion();
             TubeIndex = tubeIndex;
             _config = config;
+            _animation = animation;
             _liftedCount = 0;
 
             float height = config.TubeHeight(capacity);
@@ -77,7 +123,7 @@ namespace BallSort.Game.Views
             ApplyOutline(_front, config.FrontSprite, config.FrontTint, scale, height);
             ApplySprite(_cap, config.CapSprite, config.CapTint,
                 new Vector2(config.TubeWidth, config.CapHeight), new Vector3(0f, height, 0f));
-            SetCapVisible(false);
+            _cap.enabled = false;
 
             // Clay is as wide as the tube is drawn (its rim), so it never reaches the next tube.
             float tubeDrawnWidth = SpriteWidth(config.TopSprite) * scale;
@@ -85,21 +131,30 @@ namespace BallSort.Game.Views
             ApplyPart(_clay, config.ClaySprite, config.ClayTint, 0f, new Vector3(clayScale, clayScale, 1f));
             _clay.enabled = isClay && _clay.sprite != null;
 
-            // The flash uses the outline: it is the tube's silhouette.
-            _flashTween?.Kill();
-            ApplyOutline(_flash, config.OutlineSprite, Color.clear, scale, height);
+            // The glow is the tube's size plus its padding all round, sliced so its soft edge keeps its width.
+            float padding = config.GlowPadding;
+            ApplySprite(_glow, config.GlowSprite, Color.clear,
+                new Vector2(config.TubeWidth + 2f * padding, height + 2f * padding), new Vector3(0f, -padding, 0f));
+            _glow.enabled = false;
 
             // A pooled view may come back from a covered tube.
             SetBallsVisible(true);
 
-            float tapHeight = height + config.LiftHeight;
+            float tapHeight = height + _animation.LiftHeight * config.BallDiameter + config.BallDiameter * 0.5f;
             _tapTarget.size = new Vector2(config.TubeWidth + config.HorizontalSpacing, tapHeight);
             _tapTarget.offset = new Vector2(0f, tapHeight * 0.5f);
         }
 
+        /// <summary>Puts the tube at <paramref name="home"/>, in board space; bump and shake stay on top of it.</summary>
+        public void Place(Vector3 home)
+        {
+            _home = home;
+            ApplyOffsets();
+        }
+
         /// <summary>
-        /// Puts <paramref name="ball"/> in the next free slot. Any lifted balls drop back first, so
-        /// lifted balls are always the top of the tube.
+        /// Puts <paramref name="ball"/> in the next free slot at once (building the board). Any lifted
+        /// ball drops back first, so a lifted ball is always the top of the tube.
         /// </summary>
         public void AddBall(BallView ball)
         {
@@ -113,11 +168,34 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
-        /// Removes the top <paramref name="count"/> balls and appends them to
-        /// <paramref name="into"/>, topmost first. They stay parented here until added elsewhere.
+        /// Takes <paramref name="ball"/> into the next free slot, keeping it where it is on screen and
+        /// drawn raised; the caller flies it in. Counts it as arriving until <see cref="NotifyLanded"/>.
+        /// </summary>
+        /// <returns>The slot's position in ball space.</returns>
+        public Vector3 ReceiveBall(BallView ball)
+        {
+            Lower();
+            int slot = _balls.Count;
+            ball.SetParentKeepingPlace(_ballRoot);
+            ball.AssignSlot(TubeIndex, slot);
+            ball.SetRaised(true, _front.sortingLayerID, _raisedSortingOrder);
+            _balls.Add(ball);
+            _arrivals++;
+            return SlotPosition(slot);
+        }
+
+        /// <summary>
+        /// Removes the top <paramref name="count"/> balls and appends them to <paramref name="into"/>,
+        /// topmost first, to fly elsewhere; each counts as departing until <see cref="NotifyDeparted"/>.
+        /// A ball still landing here lands first.
         /// </summary>
         public void TakeTop(int count, List<BallView> into)
         {
+            for (int i = 0; i < count; i++)
+            {
+                _balls[_balls.Count - 1 - i].FinishMotion();
+            }
+
             for (int i = 0; i < count; i++)
             {
                 int top = _balls.Count - 1;
@@ -125,62 +203,208 @@ namespace BallSort.Game.Views
                 _balls.RemoveAt(top);
             }
 
+            _departures += count;
             _liftedCount = Mathf.Max(0, _liftedCount - count);
         }
 
         /// <summary>
-        /// Raises the top <paramref name="count"/> balls (the selected run) by the lift offset and
-        /// draws them above the glass. Lowers any previous lift first.
+        /// Lifts the top ball above the mouth (the rest of its run follows during the move) and bobs
+        /// it. Anything the tube was still playing finishes first.
         /// </summary>
-        public void Lift(int count)
+        /// <returns>False when the tube is empty.</returns>
+        public bool Lift()
         {
             Lower();
-            _liftedCount = Mathf.Min(count, _balls.Count);
-            var offset = new Vector3(0f, _config.LiftHeight, 0f);
-            for (int slot = _balls.Count - _liftedCount; slot < _balls.Count; slot++)
+            FinishPending();
+            if (_balls.Count == 0)
             {
-                _balls[slot].SetRaised(true, _front.sortingLayerID, _raisedSortingOrder);
-                _balls[slot].MoveTo(SlotPosition(slot) + offset);
+                return false;
             }
+
+            _liftedCount = 1;
+            BallView top = _balls[_balls.Count - 1];
+            top.SetRaised(true, _front.sortingLayerID, _raisedSortingOrder);
+            top.MoveTo(LiftPoint, _animation.LiftDuration, _animation.LiftEase);
+            top.SetBobbing(true);
+            return true;
         }
 
-        /// <summary>Drops any lifted balls back into their slots.</summary>
-        public void Lower()
+        /// <summary>Drops a lifted ball back into its slot.</summary>
+        /// <returns>True when a ball was lifted (it now drops back).</returns>
+        public bool Lower()
         {
-            for (int slot = _balls.Count - _liftedCount; slot < _balls.Count; slot++)
+            if (_liftedCount == 0 || _balls.Count == 0)
             {
-                _balls[slot].SetRaised(false, _front.sortingLayerID, _raisedSortingOrder);
-                _balls[slot].MoveTo(SlotPosition(slot));
+                _liftedCount = 0;
+                return false;
             }
 
             _liftedCount = 0;
+            BallView top = _balls[_balls.Count - 1];
+            int slot = _balls.Count - 1;
+            top.SetBobbing(false);
+            top.MoveTo(SlotPosition(slot), _animation.LiftDuration, _animation.LiftEase);
+            top.SetRaised(false, _front.sortingLayerID, _raisedSortingOrder);
+            return true;
+        }
+
+        /// <summary>A ball flying out of this tube has left it (end of its rise).</summary>
+        public void NotifyDeparted()
+        {
+            if (_departures == 0)
+            {
+                return;
+            }
+
+            _departures--;
+            if (_departures == 0)
+            {
+                Run(_afterDeparture);
+            }
+        }
+
+        /// <summary>
+        /// <paramref name="ball"/> has landed in its slot here: it goes back inside the tube, the balls
+        /// below bump in a ripple and the tube bumps.
+        /// </summary>
+        public void NotifyLanded(BallView ball)
+        {
+            ball.SetRaised(false, _front.sortingLayerID, _raisedSortingOrder);
+            for (int slot = 0; slot < ball.Slot && slot < _balls.Count; slot++)
+            {
+                _balls[slot].Bump((ball.Slot - slot) * _animation.BumpRippleDelay);
+            }
+
+            Bump();
+            if (_arrivals == 0)
+            {
+                return;
+            }
+
+            _arrivals--;
+            if (_arrivals == 0)
+            {
+                Run(_afterArrival);
+            }
+        }
+
+        /// <summary>Runs <paramref name="action"/> once every ball flying out of this tube has left it (now, if none is).</summary>
+        public void WhenDeparted(Action action) => RunOrQueue(_departures, _afterDeparture, action);
+
+        /// <summary>Runs <paramref name="action"/> once every ball flying into this tube has landed (now, if none is).</summary>
+        public void WhenArrived(Action action) => RunOrQueue(_arrivals, _afterArrival, action);
+
+        /// <summary>
+        /// Keeps <paramref name="beat"/> (a delayed snap or callback on the board clock) with this tube,
+        /// so <see cref="FinishPending"/> plays it at once and a rebuild drops it.
+        /// </summary>
+        public void AddBeat(Tween beat)
+        {
+            for (int i = _beats.Count - 1; i >= 0; i--)
+            {
+                if (!_beats[i].IsActive())
+                {
+                    _beats.RemoveAt(i);
+                }
+            }
+
+            _beats.Add(beat);
+        }
+
+        /// <summary>
+        /// Plays at once everything the tube is still waiting for: its balls land, the beats waiting on
+        /// balls that left it run, its pending beats fire. Called before the player acts on the tube.
+        /// </summary>
+        public void FinishPending()
+        {
+            for (int i = 0; i < _balls.Count; i++)
+            {
+                _balls[i].FinishMotion();
+            }
+
+            _departures = 0;
+            Run(_afterDeparture);
+            while (_beats.Count > 0)
+            {
+                Tween beat = _beats[0];
+                _beats.RemoveAt(0);
+                BoardTweens.CompleteIfActive(beat);
+            }
+        }
+
+        /// <summary>The invalid-move shake (docs/animations.md, 2.5).</summary>
+        public void Shake()
+        {
+            BoardTweens.KillIfActive(_shakeTween);
+            float duration = _animation.InvalidShakeDuration;
+            _shakeTween = DOVirtual.Float(0f, duration, duration, _shakeStep)
+                .SetEase(Ease.Linear).OnComplete(_clearShake).OnBoardClock();
+        }
+
+        /// <summary>The tube rises a little and settles, when a ball lands in it.</summary>
+        public void Bump()
+        {
+            BoardTweens.KillIfActive(_bumpTween);
+            float duration = _animation.TubeBumpDuration;
+            _bumpTween = DOVirtual.Float(0f, duration, duration, _bumpStep)
+                .SetEase(Ease.Linear).OnComplete(_clearBump).OnBoardClock();
+        }
+
+        /// <summary>
+        /// Shows the tube completed in <paramref name="colour"/>: cork, glow, laughing balls. Animated
+        /// (docs/animations.md, 2.6), the cork drops, the glow fades to its idle pulse and the balls hop
+        /// in turn; otherwise all of it shows at rest.
+        /// </summary>
+        public void ShowCompleted(Color colour, ColorPalette palette, bool animate)
+        {
+            SetBallExpression(BallExpression.Laugh, palette);
+
+            Color capTint = _config.CapTint * colour;
+            _cap.color = new Color(capTint.r, capTint.g, capTint.b, _config.CapTint.a);
+            _cap.enabled = _cap.sprite != null;
+            Vector3 seated = new Vector3(0f, BodyHeight, 0f);
+            BoardTweens.KillIfActive(_corkTween);
+            _cap.transform.localPosition = seated;
+
+            _glowColour = _config.GlowTint * colour;
+            _glow.enabled = _animation.Glow && _glow.sprite != null;
+            BoardTweens.KillIfActive(_glowTween);
+
+            if (!animate)
+            {
+                StartGlowPulse();
+                return;
+            }
+
+            _cap.transform.localPosition = seated + new Vector3(0f, _animation.CorkDropHeight * _config.BallDiameter, 0f);
+            _corkTween = _cap.transform.DOLocalMove(seated, _animation.CorkDropDuration)
+                .SetEase(_animation.CorkEase).OnBoardClock();
+
+            SetGlowAlpha(1f);
+            _glowTween = DOVirtual.Float(1f, _animation.GlowIdleAlpha, _animation.GlowFadeDuration, _glowStep)
+                .SetEase(Ease.Linear).OnComplete(_startGlowPulse).OnBoardClock();
+
+            if (_animation.Dance)
+            {
+                for (int slot = 0; slot < _balls.Count; slot++)
+                {
+                    _balls[slot].Hop(slot * _animation.DanceStagger);
+                }
+            }
         }
 
         /// <summary>Hides or shows every ball in the tube; driven by <see cref="CoverView.SetOpen"/>.</summary>
         public void SetBallsVisible(bool visible) => _ballRoot.gameObject.SetActive(visible);
 
-        /// <summary>
-        /// Washes the tube in <paramref name="color"/>, fading out over <paramref name="duration"/>
-        /// seconds. A new flash replaces a running one.
-        /// </summary>
-        public void Flash(Color color, float duration)
-        {
-            _flashTween?.Kill();
-            _flash.color = color;
-            _flashTween = _flash.DOFade(0f, duration).SetLink(gameObject, LinkBehaviour.KillOnDisable);
-        }
-
         /// <summary>Hands every ball back to the caller (for pooling) and empties the tube.</summary>
         public void TakeAllBalls(List<BallView> into)
         {
-            Lower();
+            _liftedCount = 0;
             into.AddRange(_balls);
             _balls.Clear();
         }
 
-        public void SetCapVisible(bool visible) => _cap.enabled = visible && _cap.sprite != null;
-
-        /// <summary>Gives every ball in the tube <paramref name="expression"/>: laughing once the tube is completed.</summary>
+        /// <summary>Gives every ball in the tube <paramref name="expression"/> as its resting face.</summary>
         public void SetBallExpression(BallExpression expression, ColorPalette palette)
         {
             foreach (BallView ball in _balls)
@@ -189,7 +413,125 @@ namespace BallSort.Game.Views
             }
         }
 
-        private Vector3 SlotPosition(int slot) => new Vector3(0f, _config.SlotY(slot), 0f);
+        /// <summary>Gives every revealed ball <paramref name="expression"/> for <paramref name="seconds"/> (shock).</summary>
+        public void SetBallExpression(BallExpression expression, ColorPalette palette, float seconds)
+        {
+            foreach (BallView ball in _balls)
+            {
+                ball.SetExpression(expression, palette, seconds);
+            }
+        }
+
+        /// <summary>Kills every animation and forgets every waiting beat: the tube is rebuilt or pooled.</summary>
+        public void StopMotion()
+        {
+            KillTweens();
+            _beats.Clear();
+            _afterDeparture.Clear();
+            _afterArrival.Clear();
+            _departures = 0;
+            _arrivals = 0;
+            _shakeX = 0f;
+            _bumpY = 0f;
+            ApplyOffsets();
+        }
+
+        /// <summary>A ball's position in <paramref name="slot"/>, in ball space.</summary>
+        public Vector3 SlotPosition(int slot) => new Vector3(0f, _config.SlotY(slot), 0f);
+
+        private bool HasActiveBeat()
+        {
+            foreach (Tween beat in _beats)
+            {
+                if (beat.IsActive())
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void RunOrQueue(int waiting, List<Action> queue, Action action)
+        {
+            if (waiting == 0)
+            {
+                action();
+            }
+            else
+            {
+                queue.Add(action);
+            }
+        }
+
+        // In order; an action may queue more.
+        private static void Run(List<Action> actions)
+        {
+            while (actions.Count > 0)
+            {
+                Action action = actions[0];
+                actions.RemoveAt(0);
+                action();
+            }
+        }
+
+        private void ApplyOffsets() => transform.localPosition = _home + new Vector3(_shakeX, _bumpY, 0f);
+
+        private void ShakeStep(float t)
+        {
+            _shakeX = _animation.InvalidShakeAmount * _config.BallDiameter *
+                BoardTweens.Shake(t, _animation.InvalidShakeFrequency, _animation.InvalidShakeDamping);
+            ApplyOffsets();
+        }
+
+        private void BumpStep(float t)
+        {
+            _bumpY = _animation.BumpHeight * _config.BallDiameter * BoardTweens.HalfSine(t, _animation.TubeBumpDuration);
+            ApplyOffsets();
+        }
+
+        private void ClearShake()
+        {
+            _shakeX = 0f;
+            ApplyOffsets();
+        }
+
+        private void ClearBump()
+        {
+            _bumpY = 0f;
+            ApplyOffsets();
+        }
+
+        private void StartGlowPulse()
+        {
+            BoardTweens.KillIfActive(_glowTween);
+            SetGlowAlpha(_animation.GlowIdleAlpha);
+            if (_animation.GlowPulse > 0f)
+            {
+                _glowTween = DOVirtual.Float(0f, 1f, _animation.GlowPulsePeriod, _glowPulseStep)
+                    .SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).OnBoardClock();
+            }
+        }
+
+        private void GlowPulseStep(float k) =>
+            SetGlowAlpha(_animation.GlowIdleAlpha + _animation.GlowPulse * Mathf.Sin(2f * Mathf.PI * k));
+
+        private void SetGlowAlpha(float alpha)
+        {
+            _glow.color = new Color(_glowColour.r, _glowColour.g, _glowColour.b, _glowColour.a * alpha);
+        }
+
+        private void KillTweens()
+        {
+            BoardTweens.KillIfActive(_shakeTween);
+            BoardTweens.KillIfActive(_bumpTween);
+            BoardTweens.KillIfActive(_corkTween);
+            BoardTweens.KillIfActive(_glowTween);
+            foreach (Tween beat in _beats)
+            {
+                BoardTweens.KillIfActive(beat);
+            }
+        }
 
         /// <summary>A piece drawn as is, scaled and placed by its pivot on the tube's centre line.</summary>
         private static void ApplyPart(SpriteRenderer renderer, Sprite sprite, Color tint, float y, Vector3 scale)
@@ -243,13 +585,21 @@ namespace BallSort.Game.Views
         private void Awake()
         {
             if (_top == null || _middle == null || _bottom == null || _front == null || _cap == null ||
-                _clay == null || _flash == null || _ballRoot == null || _tapTarget == null)
+                _clay == null || _glow == null || _ballRoot == null || _tapTarget == null)
             {
                 Debug.LogError(
-                    $"{name}: top, middle, bottom, front, cap, clay, flash, ball root and tap target must be assigned.", this);
+                    $"{name}: top, middle, bottom, front, cap, clay, glow, ball root and tap target must be assigned.", this);
             }
+
+            _shakeStep = ShakeStep;
+            _bumpStep = BumpStep;
+            _glowStep = SetGlowAlpha;
+            _glowPulseStep = GlowPulseStep;
+            _clearShake = ClearShake;
+            _clearBump = ClearBump;
+            _startGlowPulse = StartGlowPulse;
         }
 
-        private void OnDestroy() => _flashTween?.Kill();
+        private void OnDestroy() => KillTweens();
     }
 }

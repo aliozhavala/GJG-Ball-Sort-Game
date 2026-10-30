@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using BallSort.Core.Model;
+using DG.Tweening;
 using UnityEngine;
 
 namespace BallSort.Game.Views
@@ -23,6 +24,12 @@ namespace BallSort.Game.Views
         [SerializeField] private SpriteRenderer _icon;
 
         private readonly List<TubeView> _tubes = new List<TubeView>();
+        private Vector3 _home;
+        private float _shakeX;
+        private Tween _shakeTween;
+        private AnimationConfig _animation;
+        private float _diameter;
+        private TweenCallback<float> _shakeStep;
 
         public CoverKind Kind { get; private set; }
 
@@ -41,6 +48,7 @@ namespace BallSort.Game.Views
             Kind = kind;
             Id = id;
             _tubes.Clear();
+            StopMotion();
 
             _body.sprite = body;
             _body.color = bodyTint;
@@ -71,13 +79,14 @@ namespace BallSort.Game.Views
             float height = 0f;
             foreach (TubeView tube in _tubes)
             {
-                float x = tube.transform.localPosition.x;
+                float x = tube.HomePosition.x;
                 left = Mathf.Min(left, x);
                 right = Mathf.Max(right, x);
                 height = Mathf.Max(height, tube.BodyHeight);
             }
 
-            transform.localPosition = new Vector3((left + right) * 0.5f, _tubes[0].transform.localPosition.y, 0f);
+            _home = new Vector3((left + right) * 0.5f, _tubes[0].HomePosition.y, 0f);
+            ApplyOffset();
             if (Kind == CoverKind.Veil)
             {
                 FitVeil(config, height);
@@ -120,6 +129,41 @@ namespace BallSort.Game.Views
             }
         }
 
+        /// <summary>
+        /// The invalid-move shake (docs/animations.md, 2.5) for a tap on a covered tube: the cover
+        /// shakes with every tube under it, so nothing peeks out.
+        /// </summary>
+        public void Shake(AnimationConfig animation, float ballDiameter)
+        {
+            _animation = animation;
+            _diameter = ballDiameter;
+            BoardTweens.KillIfActive(_shakeTween);
+            float duration = animation.InvalidShakeDuration;
+            _shakeTween = DOVirtual.Float(0f, duration, duration, _shakeStep)
+                .SetEase(Ease.Linear).OnComplete(StopMotion).OnBoardClock();
+            foreach (TubeView tube in _tubes)
+            {
+                tube.Shake();
+            }
+        }
+
+        /// <summary>Ends a running shake: the cover is rebuilt or pooled.</summary>
+        public void StopMotion()
+        {
+            BoardTweens.KillIfActive(_shakeTween);
+            _shakeX = 0f;
+            ApplyOffset();
+        }
+
+        private void ShakeStep(float t)
+        {
+            _shakeX = _animation.InvalidShakeAmount * _diameter *
+                BoardTweens.Shake(t, _animation.InvalidShakeFrequency, _animation.InvalidShakeDamping);
+            ApplyOffset();
+        }
+
+        private void ApplyOffset() => transform.localPosition = _home + new Vector3(_shakeX, 0f, 0f);
+
         private static float SpriteWidth(Sprite sprite) => sprite != null ? sprite.bounds.size.x : 1f;
 
         private void Awake()
@@ -128,6 +172,10 @@ namespace BallSort.Game.Views
             {
                 Debug.LogError($"{name}: body and icon must be assigned.", this);
             }
+
+            _shakeStep = ShakeStep;
         }
+
+        private void OnDestroy() => BoardTweens.KillIfActive(_shakeTween);
     }
 }

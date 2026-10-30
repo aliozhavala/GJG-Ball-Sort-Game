@@ -2482,6 +2482,7 @@ GameObject:
   - component: {fileID: 1142962736}
   - component: {fileID: 1142962735}
   - component: {fileID: 1142962738}
+  - component: {fileID: 1142962739}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -2507,6 +2508,7 @@ MonoBehaviour:
   _palette: {fileID: 11400000, guid: 91416c9d554ab2047a198c2cbf75825a, type: 2}
   _lockPalette: {fileID: 11400000, guid: 7705364bfdd784d45a18365fdda53858, type: 2}
   _tubeConfig: {fileID: 11400000, guid: ba3a82e04befdc74788de24b9a64a390, type: 2}
+  _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
   _layout: {fileID: 1142962736}
   _poolRoot: {fileID: 1801952057}
 --- !u!114 &1142962736
@@ -2556,6 +2558,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Input.TubeInput
   _camera: {fileID: 519420031}
+--- !u!114 &1142962739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1142962734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fe9e2d6e5fc1584184ef21a92e269be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Views.BoardClock
+  _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
 --- !u!1001 &1150835034
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2909,7 +2924,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Views.LevelFeedback
   _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
+  _clock: {fileID: 1142962739}
   _celebration: {fileID: 1973204590}
+  _sparkles: {fileID: 5926310509936953801, guid: 763c1d8639d373c47a07367a47f67f04, type: 3}
+  _ring: {fileID: 3797218006555269455, guid: 7f7e0aacff1367e428b1471309249aa1, type: 3}
+  _confetti: {fileID: 6343190156446273167, guid: ae4d3573ea17b8543972201e75632ed2, type: 3}
+  _droplets: {fileID: 1174934197166351166, guid: ae3b2036bec406742aa247acb7a4dcee, type: 3}
 --- !u!114 &1281242728
 MonoBehaviour:
   m_ObjectHideFlags: 0

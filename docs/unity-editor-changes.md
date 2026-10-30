@@ -573,3 +573,38 @@ All changes made through Unity MCP Editor commands.
   1234567 → 33.3 pt, 12345678 → "12.3M", 123456789 → "123M", 1234567890 → "1.2B", always one line (display only, the
   wallet untouched). Slot height changed to 1.2 on the asset in Play mode: the board re-laid out on the next frame
   (slot 1 at 1.79), then restored to 0.91 (1.50). Screenshots in `Screenshots/step6-art-2/`.
+
+## 2026-10-30 — Step 6b board animations (docs/animations.md 2.2–2.6)
+
+All changes made through Unity MCP Editor commands.
+
+### Assets
+- New placeholder sprites (generated, white, Sprite, 100 PPU, no mipmaps, clamp):
+  `Assets/Art/Sprites/Placeholder/Tube_Glow.png` (128×128, 9-slice border 48, pivot bottom centre),
+  `Vfx_Sparkle.png` (64×64), `Vfx_Ring.png` (128×128).
+- New folder `Assets/Prefabs/VFX/` with `Vfx_TubeSparkles`, `Vfx_TubeRing`, `Vfx_Confetti`, `Vfx_Droplets` (one
+  `ParticleSystem` + `VfxBurst` each; Sprite-Unlit-Default material, VFX sorting layer, local simulation, hierarchy
+  scaling, texture sheet in Sprites mode with the placeholders above / `Ball_Circle`).
+- `Assets/Prefabs/Ball.prefab`: new children `Shape` → `Face`; `Body`, `HiddenMark`, `KeyMark` moved under `Face`
+  (local transforms kept); `TrailRenderer` on the root (not emitting, 0.15 s, Sprite-Unlit-Default, TubeFront);
+  `BallView._shape`, `_face`, `_trail` assigned.
+- `Assets/Prefabs/Tube.prefab`: `Flash` renamed `Glow`, sorting layer VFX → TubeBack, order −1, renderer disabled;
+  `TubeView._flash` → `_glow` (`FormerlySerializedAs`).
+- `Assets/Data/Config/TubeVisualConfig.asset`: `_glowSprite` → `Tube_Glow` (`_liftHeight` removed from the code; the
+  lift now lives in `AnimationConfig`).
+- `Assets/Data/Config/AnimationConfig.asset`: new fields at their defaults; kept-name fields reset to the new values
+  (`_liftDuration` 0.12 → 0.23, `_liftEase` OutQuad → OutCubic, `_dropDuration` 0.15 → 0.12, `_dropEase` OutQuad →
+  InQuad, `_invalidShakeDuration` 0.25 → 0.4); `_corkDropHeight` 1.2.
+
+### Scenes
+- `Assets/Scenes/Level.unity`: `Board` gained `BoardClock` (`_animation` → AnimationConfig); `BoardView._animation` →
+  AnimationConfig; `LevelFlow/LevelFeedback._clock` → the board's `BoardClock`, `_sparkles` / `_ring` / `_confetti` /
+  `_droplets` → the four VFX prefabs.
+
+### Verification runs (no persistent changes)
+- Console clean after every compile. EditMode tests: 1724 passed, 0 failed.
+- Play mode, editor test visits: level 5 V1 solution played with selections and overlapping flights (won, every ball
+  view back in its slot after settling, tubes at home, board scale back after the punch); `veil.json` and
+  `lock_and_key.json` with invalid taps on every tube, a mid-flight undo, selecting tubes while balls land (won; ball
+  faces, slots and doors match the model). Frames of a completion checked (lift, stretch and trail, glow, cork, VFX).
+- The undo spent by the check was restored in the save (Undo 99).
