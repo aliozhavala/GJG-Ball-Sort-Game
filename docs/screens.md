@@ -31,14 +31,20 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 **Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveData.CurrentVersion` and add a migration to `SaveJsonCodec` when the shape changes (version 2 added the try fields; a version 1 save migrates with try 0 and no last variant. Version 3 adds the life timer, the level-in-progress mark, the player name and the tutorials seen, and turns the try count into the retry count: a version 2 save keeps its count as retries, starts the life timer at load if lives are below the maximum, and gets no mark, the name `Player` and no tutorials seen). Editor tools: **Ball Sort ▸ Reset Save** (disabled in Play mode) and **Ball Sort ▸ Player Data…** (set coins, lives, the time to the next life, booster counts and the player name, jump to any level (retries cleared), and clear the tutorials seen; it also shows the level, retries, last variant, level in progress and tutorials seen; edits the save in Edit mode, the live player in Play mode).
 
 ## Home screen
-- **Top bar:** avatar (top-left), lives `♥ 5` with the time to the next life and coins `● 1000` between the corners, settings icon (top-right).
-- **Center:** big **Level button** showing `Level N`. If `AllLevelsComplete`: shows `All levels complete` and replays level 100.
-  Its look depends on the level's tier: regular, hard or super hard (placeholder: a tint per tier, plus a "Hard" or
-  "Super hard" label). At 0 lives it opens the More Lives popup instead of loading the level.
-- **Bottom nav:** Leaderboard · Home · Shop tabs. The selected tab is highlighted; Home is selected on arriving. Selection
-  shows only through the highlight: every tab stays interactable (`HomeTabs` enforces it).
-  Leaderboard and Shop swap the center for their page, a placeholder (a title and placeholder content, nothing in it
-  does anything); Home brings the Level button back. The top bar stays on every tab.
+- **Top bar:** avatar (top-left: the current episode's mascot frame), lives (the count on the art's heart, the time to
+  the next life on its pill) and coins (the count on the pill next to the art's coin) between the corners, settings
+  button (top-right).
+- **Center:** big **Level button** (green) showing `Level N`. If `AllLevelsComplete`: shows `All levels complete` and
+  replays level 100. Its look depends on the level's tier: regular, hard or super hard (for now only the "Hard" or
+  "Super hard" badge; tier button art is missing, docs/art-inventory.md). At 0 lives it opens the More Lives popup
+  instead of loading the level.
+- **Bottom nav:** Shop · Home · Leaderboard, the order of the bar art. One bar image in three versions, each with its
+  tab raised; selecting a tab swaps the bar to its version. Three invisible tap areas match the drawn sections
+  (41 / 19 / 41 % of the bar's width). Home is selected on arriving. Every tab stays interactable (`HomeTabs` enforces it).
+  Leaderboard and Shop swap the center for their page; Home brings the Level button back. The top bar stays on every tab.
+  - **Shop page:** a vertical scroll view: the shop header ("Shop"), the shop panel (six empty item frames until item
+    art arrives) and three copies of the bundle card with a name and a price. All static: nothing in it does anything.
+  - **Leaderboard page:** placeholder (a title and five empty rows).
 - **Avatar** → **Edit Profile** popup: the player name in an input field, prefilled with the saved name. **Save** stores
   it (trimmed, 1–16 characters; disabled while empty) and closes; **Close** (✕) closes without saving.
 - Settings popup (Home): Sound, Music, Haptics toggles.
@@ -136,12 +142,12 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 ## Shared UI pieces
 - **Toast:** short message, auto-hides, never blocks input. A new message replaces the current one instead of queueing.
 - **Popup:** modal with dimmed background; blocks input beneath it. Open = GameObject active. Draw order is hierarchy order: screen content, then popups, then the toast last. Popups can stack: Are You Sure and More Lives open over the settings popup, and only the topmost takes input. The tutorial popup and the Episode Unlocked overlay close on a tap anywhere; the others have buttons.
-- Placeholder settings icon is "≡": LiberationSans has no gear glyph.
+- Buttons (art, 9-sliced so they stretch to any width): green for Continue, the Level button and Save (Edit Profile);
+  red for Give up and Are You Sure's Confirm; yellow for Play on and the shop's prices; the round ✕ closes every popup;
+  the round gear is both settings buttons. Settings' Restart and Home and the booster buttons keep placeholders.
 - Canvas Scaler 1080×1920, match 0.5; `SafeArea` on root panels.
-- **Art slots:** every sprite the lives, popup, tab, episode and tutorial pieces need has a slot holding a placeholder
-  today (Unity's built-in UI sprites, tinted; the heart and the five mascot frames are generated placeholders in
-  `Art/Sprites/Placeholder/UI/` and `Art/Sprites/Placeholder/Mascots/`), so final art drops in without code changes. Per-episode art (Home and
-  Level backgrounds, mascot frame) is in `EpisodeConfig`, the tutorial image in `TutorialConfig`, and everything else is
-  an `Image` on its screen or popup object: the avatar, the heart (Home lives display and More Lives; it replaces the
-  `♥` glyph), the tab icons and the selected-tab highlight, the popup panels (Are You Sure, More Lives, Edit Profile,
-  tutorial), the Episode Unlocked overlay, and the Shop and Leaderboard pages.
+- **Art slots:** per-episode art (Home and Level backgrounds, mascot frame) is in `EpisodeConfig`, the tutorial image in
+  `TutorialConfig`, the bottom bar's three versions on `HomeTabs`, and everything else is an `Image` on its screen or
+  popup object. Which slots hold final art and which still hold placeholders (Unity's built-in UI sprites, tinted, and
+  the generated heart in `Art/Sprites/Placeholder/UI/`) is listed in docs/art-inventory.md. Home backgrounds exist for
+  episodes 2 and 5; episodes 1, 3 and 4 use episode 2's until theirs arrive.

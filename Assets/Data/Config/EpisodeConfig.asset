@@ -14,22 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Services.EpisodeConfig
   _episodes:
   - _firstLevel: 1
-    _homeBackground: {fileID: 21300000, guid: c3cf4341fd31bee43a046657bcaec206, type: 3}
-    _levelBackground: {fileID: 21300000, guid: e6be158d7fe5a8b4eb28ee45c17d8479, type: 3}
-    _mascotFrame: {fileID: 21300000, guid: 50b8b9e0eb6545f448161e5985e477eb, type: 3}
+    _homeBackground: {fileID: 21300000, guid: f4b6999180bdd8a49b77a054a51b2f9a, type: 3}
+    _levelBackground: {fileID: 21300000, guid: 366c2b13bdb1a3845b412e7561bb469d, type: 3}
+    _mascotFrame: {fileID: 21300000, guid: 9662224b7b0ac0547a42653ccd99fab2, type: 3}
   - _firstLevel: 21
-    _homeBackground: {fileID: 21300000, guid: 34690445094448a4b8281759b4a87856, type: 3}
-    _levelBackground: {fileID: 21300000, guid: 64b3a98683d4d984481e87c39bc425b9, type: 3}
-    _mascotFrame: {fileID: 21300000, guid: 3f3e524b7a47b3f43af0ee32927f4ffd, type: 3}
+    _homeBackground: {fileID: 21300000, guid: f4b6999180bdd8a49b77a054a51b2f9a, type: 3}
+    _levelBackground: {fileID: 21300000, guid: 55dbc8f8d8a8e7c4b9c2c415c3d8a311, type: 3}
+    _mascotFrame: {fileID: 21300000, guid: 90b77726e38652a4ab023ffc135e5106, type: 3}
   - _firstLevel: 41
-    _homeBackground: {fileID: 21300000, guid: ad2c44f6afc4984498090e8c37c8b635, type: 3}
-    _levelBackground: {fileID: 21300000, guid: 975a2bc7f450f994e96cd58cbaef9f34, type: 3}
-    _mascotFrame: {fileID: 21300000, guid: c7facacc1db41644ea59b3b358ad4616, type: 3}
+    _homeBackground: {fileID: 21300000, guid: f4b6999180bdd8a49b77a054a51b2f9a, type: 3}
+    _levelBackground: {fileID: 21300000, guid: 6001a6415898a4347aa994ec1708573d, type: 3}
+    _mascotFrame: {fileID: 21300000, guid: 1424c4a1e01987f4db9f0e5f322294a9, type: 3}
   - _firstLevel: 61
-    _homeBackground: {fileID: 21300000, guid: 64c39337dd779cb4eb7691eb5d8ea524, type: 3}
-    _levelBackground: {fileID: 21300000, guid: e0b6d80dc6e4b1d458235070c1b6359d, type: 3}
-    _mascotFrame: {fileID: 21300000, guid: 1f5ffd99a1c42ba4cbe4b07b10c9a737, type: 3}
+    _homeBackground: {fileID: 21300000, guid: f4b6999180bdd8a49b77a054a51b2f9a, type: 3}
+    _levelBackground: {fileID: 21300000, guid: bddb5b04208732742b15b000cae5ea47, type: 3}
+    _mascotFrame: {fileID: 21300000, guid: de9b8295117550f4b92968673a3612b1, type: 3}
   - _firstLevel: 81
-    _homeBackground: {fileID: 21300000, guid: 6aca0206250f682449f811703564aa00, type: 3}
-    _levelBackground: {fileID: 21300000, guid: 254ba99c16ef6df4aa7e24f0d1fd2584, type: 3}
-    _mascotFrame: {fileID: 21300000, guid: 46444671f4730bc4081ab93e265cef39, type: 3}
+    _homeBackground: {fileID: 21300000, guid: e157f74d7225c18478ede09b132f2d3c, type: 3}
+    _levelBackground: {fileID: 21300000, guid: 4ee68d0cfdafa0f45b5074d3463cbfe6, type: 3}
+    _mascotFrame: {fileID: 21300000, guid: 611d71a089cdc5442bd13e2ff3a025b1, type: 3}

@@ -49,12 +49,12 @@ namespace BallSort.Game.Flow
             int unlocked = arrival.UnlockedEpisode;
             if (arrival.HasUnlockedEpisode && unlocked > 0 && unlocked < episodes.Count)
             {
-                _background.Show(episodes.GetEpisode(unlocked - 1).HomeBackground);
+                ShowEpisode(episodes.GetEpisode(unlocked - 1));
                 StartCoroutine(ShowEpisodeUnlocked(unlocked, episodes.GetEpisode(unlocked)));
             }
             else
             {
-                _background.Show(episodes.GetEpisodeForLevel(player.CurrentLevel).HomeBackground);
+                ShowEpisode(episodes.GetEpisodeForLevel(player.CurrentLevel));
             }
 
             if (!string.IsNullOrEmpty(arrival.Notice))
@@ -67,9 +67,16 @@ namespace BallSort.Game.Flow
         {
             _homeScreen.SetInputBlocked(true);
             yield return new WaitForSeconds(_episodeUnlockedDelay);
-            _background.Show(episode.HomeBackground);
+            ShowEpisode(episode);
             _homeScreen.EpisodeUnlocked.Show(episodeIndex + 1, episode.MascotFrame);
             _homeScreen.SetInputBlocked(false);
+        }
+
+        /// <summary>Home wears <paramref name="episode"/>: its background, and its mascot frame as the avatar.</summary>
+        private void ShowEpisode(Episode episode)
+        {
+            _background.Show(episode.HomeBackground);
+            _homeScreen.ShowAvatar(episode.MascotFrame);
         }
 
         private void Awake()

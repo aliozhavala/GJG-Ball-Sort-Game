@@ -53,11 +53,13 @@ namespace BallSort.Game.Views
         public void AddTube(TubeView tube) => _tubes.Add(tube);
 
         /// <summary>
-        /// Stretches the body over the covered tubes: from the left edge of the leftmost to the right
-        /// edge of the rightmost, as tall as the tallest, standing on their base line.
+        /// Fits the body to the covered tubes. A veil hangs from its tube's rim like the art, as wide as
+        /// drawn, its hem <see cref="TubeVisualConfig.VeilBottomGap"/> above the base. A door spans from
+        /// the left edge of the leftmost tube to the right edge of the rightmost, as tall as the
+        /// tallest, standing on their base line.
         /// </summary>
         /// <remarks>A lock's tubes sit next to each other in one row and share a capacity (docs/mechanics.md).</remarks>
-        public void FitToTubes(float tubeWidth)
+        public void FitToTubes(TubeVisualConfig config)
         {
             if (_tubes.Count == 0)
             {
@@ -76,10 +78,31 @@ namespace BallSort.Game.Views
             }
 
             transform.localPosition = new Vector3((left + right) * 0.5f, _tubes[0].transform.localPosition.y, 0f);
+            if (Kind == CoverKind.Veil)
+            {
+                FitVeil(config, height);
+                return;
+            }
+
             var centre = new Vector3(0f, height * 0.5f, 0f);
-            _body.size = new Vector2(right - left + tubeWidth, height);
+            _body.transform.localScale = Vector3.one;
+            _body.size = new Vector2(right - left + config.TubeWidth, height);
             _body.transform.localPosition = centre;
             _icon.transform.localPosition = centre;
+        }
+
+        /// <remarks>
+        /// Drawn at the tube art's scale, so its sliced top and hem keep their drawn size and only the
+        /// stripes between them stretch with the tube's height. The badge sits in the veil's middle.
+        /// </remarks>
+        private void FitVeil(TubeVisualConfig config, float tubeHeight)
+        {
+            float scale = config.ArtScale;
+            float veilHeight = Mathf.Max(tubeHeight - config.VeilBottomGap, 0.1f);
+            _body.transform.localScale = new Vector3(scale, scale, 1f);
+            _body.transform.localPosition = new Vector3(0f, tubeHeight, 0f);
+            _body.size = new Vector2(SpriteWidth(_body.sprite), veilHeight / scale);
+            _icon.transform.localPosition = new Vector3(0f, tubeHeight - veilHeight * 0.5f, 0f);
         }
 
         /// <summary>

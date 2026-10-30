@@ -6,15 +6,32 @@ namespace BallSort.Game.Views
     /// Tube art and geometry, in world units of an unscaled board. <see cref="Layout.BoardLayout"/>
     /// scales the whole board afterwards, so these only need to be right relative to each other.
     /// </summary>
+    /// <remarks>
+    /// The tube art is drawn at one scale, <see cref="ArtScale"/>, that makes its body
+    /// <see cref="TubeWidth"/> wide; the clay and veil art share it, so they keep their size relative
+    /// to the tube. Each piece is placed by its pivot, which Ball Sort ▸ Art ▸ Prepare Sprites sets on
+    /// the walls' centre line: the top part and the veil at the rim's top, the middle part at its
+    /// bottom, the bottom part, the outline and the clay at the base.
+    /// </remarks>
     [CreateAssetMenu(fileName = "TubeVisualConfig", menuName = "Ball Sort/Tube Visual Config")]
     public sealed class TubeVisualConfig : ScriptableObject
     {
-        [Header("Sprites (9-sliced: Mesh Type = Full Rect, borders set)")]
-        [SerializeField] private Sprite _backSprite;
+        [Header("Tube (top and bottom keep their size, the middle stretches to the tube's height)")]
+        [SerializeField] private Sprite _topSprite;
+        [SerializeField] private Sprite _middleSprite;
+        [SerializeField] private Sprite _bottomSprite;
+        [SerializeField] private Color _tubeTint = Color.white;
+        [Tooltip("Width of the tube's body (outer edges of the walls) in the tube art, in pixels. Scales the art to Tube Width.")]
+        [SerializeField, Min(1f)] private float _artBodyWidth = 145f;
+        [Tooltip("The whole tube in one sprite, 9-sliced at the rim and the bottom; the invalid-tap flash uses it.")]
+        [SerializeField] private Sprite _outlineSprite;
+
+        [Header("Glass front (optional; shaped like the outline, drawn over the balls)")]
         [SerializeField] private Sprite _frontSprite;
-        [SerializeField] private Sprite _capSprite;
-        [SerializeField] private Color _backTint = new Color(1f, 1f, 1f, 0.25f);
         [SerializeField] private Color _frontTint = new Color(1f, 1f, 1f, 0.12f);
+
+        [Header("Cap on a completed tube (9-sliced)")]
+        [SerializeField] private Sprite _capSprite;
         [SerializeField] private Color _capTint = Color.white;
 
         [Header("Geometry")]
@@ -36,9 +53,11 @@ namespace BallSort.Game.Views
         [SerializeField, Min(0f)] private float _horizontalSpacing = 0.45f;
 
         [Header("Veil (9-sliced; may be translucent, covered balls are hidden separately)")]
-        [Tooltip("Stretched over the whole tube body, large tubes included.")]
+        [Tooltip("Hangs from the rim at the art's scale; its middle stretches for taller tubes.")]
         [SerializeField] private Sprite _veilSprite;
-        [SerializeField] private Color _veilTint = new Color(0.55f, 0.53f, 0.62f);
+        [SerializeField] private Color _veilTint = Color.white;
+        [Tooltip("Height of the veil's hem above the tube's base: the tube's bottom shows below it.")]
+        [SerializeField, Min(0f)] private float _veilBottomGap = 1f;
         [Tooltip("Drawn in the veil's centre, tinted with the ball colour that opens it.")]
         [SerializeField] private Sprite _veilBadgeSprite;
         [SerializeField, Min(0.05f)] private float _veilBadgeSize = 0.8f;
@@ -50,18 +69,19 @@ namespace BallSort.Game.Views
         [SerializeField] private Sprite _lockIconSprite;
         [SerializeField, Min(0.05f)] private float _lockIconSize = 1f;
 
-        [Header("Clay (9-sliced overlay on the bottom of a clay tube)")]
+        [Header("Clay (at the base of a clay tube, behind the balls)")]
+        [Tooltip("Scaled down to the tube's drawn width, keeping its proportions, so it never reaches the next tube.")]
         [SerializeField] private Sprite _claySprite;
-        [Tooltip("Keep it translucent so the bottom ball stays visible.")]
-        [SerializeField] private Color _clayTint = new Color(0.60f, 0.46f, 0.34f, 0.6f);
-        [Tooltip("Height of the clay from the tube's base.")]
-        [SerializeField, Min(0.05f)] private float _clayHeight = 1.2f;
+        [SerializeField] private Color _clayTint = Color.white;
 
-        public Sprite BackSprite => _backSprite;
+        public Sprite TopSprite => _topSprite;
+        public Sprite MiddleSprite => _middleSprite;
+        public Sprite BottomSprite => _bottomSprite;
+        public Color TubeTint => _tubeTint;
+        public Sprite OutlineSprite => _outlineSprite;
         public Sprite FrontSprite => _frontSprite;
-        public Sprite CapSprite => _capSprite;
-        public Color BackTint => _backTint;
         public Color FrontTint => _frontTint;
+        public Sprite CapSprite => _capSprite;
         public Color CapTint => _capTint;
         public float TubeWidth => _tubeWidth;
         public float SlotHeight => _slotHeight;
@@ -72,6 +92,7 @@ namespace BallSort.Game.Views
         public float HorizontalSpacing => _horizontalSpacing;
         public Sprite VeilSprite => _veilSprite;
         public Color VeilTint => _veilTint;
+        public float VeilBottomGap => _veilBottomGap;
         public Sprite VeilBadgeSprite => _veilBadgeSprite;
         public float VeilBadgeSize => _veilBadgeSize;
         public Sprite DoorSprite => _doorSprite;
@@ -80,7 +101,10 @@ namespace BallSort.Game.Views
         public float LockIconSize => _lockIconSize;
         public Sprite ClaySprite => _claySprite;
         public Color ClayTint => _clayTint;
-        public float ClayHeight => _clayHeight;
+
+        /// <summary>Scale that makes the tube art's body <see cref="TubeWidth"/> wide.</summary>
+        public float ArtScale =>
+            _bottomSprite != null ? _tubeWidth * _bottomSprite.pixelsPerUnit / _artBodyWidth : 1f;
 
         /// <summary>Local y of a ball's centre in <paramref name="slotIndex"/>, measured from the tube base.</summary>
         public float SlotY(int slotIndex) => _bottomOffset + slotIndex * _slotHeight;
@@ -90,9 +114,9 @@ namespace BallSort.Game.Views
 
         private void OnValidate()
         {
-            if (_backSprite == null || _frontSprite == null)
+            if (_topSprite == null || _middleSprite == null || _bottomSprite == null || _outlineSprite == null)
             {
-                Debug.LogWarning($"{name}: back and front sprites must be assigned.", this);
+                Debug.LogWarning($"{name}: top, middle, bottom and outline sprites must be assigned.", this);
             }
 
             // Covered balls are hidden either way, so a missing cover sprite would show an empty tube.

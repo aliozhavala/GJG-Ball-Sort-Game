@@ -129,13 +129,17 @@ namespace BallSort.Game.Views
             {
                 Tube tube = board[t];
                 TubeView tubeView = SpawnTube(t, tube.Capacity, tube.IsClay);
-                tubeView.SetCapVisible(board.IsCompleted(t));
 
                 for (int slot = 0; slot < tube.Count; slot++)
                 {
                     BallView ballView = _ballPool.Get();
                     ballView.Show(tube[slot], _palette, _lockPalette, _tubeConfig.BallDiameter);
                     tubeView.AddBall(ballView);
+                }
+
+                if (board.IsCompleted(t))
+                {
+                    ShowCompleted(tubeView);
                 }
 
                 if (tube.IsCovered)
@@ -148,7 +152,7 @@ namespace BallSort.Game.Views
 
             foreach (CoverView cover in _covers)
             {
-                cover.FitToTubes(_tubeConfig.TubeWidth);
+                cover.FitToTubes(_tubeConfig);
                 cover.SetOpen(false);
             }
         }
@@ -178,7 +182,7 @@ namespace BallSort.Game.Views
             {
                 view.name = $"Veil {cover.Id}";
                 view.Setup(CoverKind.Veil, cover.Id, _tubeConfig.VeilSprite, _tubeConfig.VeilTint,
-                    _tubeConfig.VeilBadgeSprite, _palette.GetTint(cover.Id), _tubeConfig.VeilBadgeSize);
+                    _tubeConfig.VeilBadgeSprite, _palette.GetColor(cover.Id), _tubeConfig.VeilBadgeSize);
             }
             else
             {
@@ -233,7 +237,14 @@ namespace BallSort.Game.Views
         private void OnBallRevealed(BallRevealedEventArgs e) =>
             _tubes[e.TubeIndex].Balls[e.SlotIndex].Reveal(e.ColorId, _palette);
 
-        private void OnTubeCompleted(TubeCompletedEventArgs e) => _tubes[e.TubeIndex].SetCapVisible(true);
+        private void OnTubeCompleted(TubeCompletedEventArgs e) => ShowCompleted(_tubes[e.TubeIndex]);
+
+        /// <summary>A completed tube gets its cap, and its balls laugh.</summary>
+        private void ShowCompleted(TubeView tube)
+        {
+            tube.SetCapVisible(true);
+            tube.SetBallExpression(BallExpression.Laugh, _palette);
+        }
 
         private void OnTubeUnveiled(TubeUnveiledEventArgs e)
         {
@@ -266,7 +277,7 @@ namespace BallSort.Game.Views
             // Re-centring can move the covered tubes; doors and veils follow them.
             foreach (CoverView cover in _covers)
             {
-                cover.FitToTubes(_tubeConfig.TubeWidth);
+                cover.FitToTubes(_tubeConfig);
             }
 
             AssertInSync(e.TubeIndex);

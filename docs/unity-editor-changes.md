@@ -483,3 +483,67 @@ All changes made through Unity MCP Editor commands.
   9 positions explored; on synthetic one-colour 13-tube boards built to keep every move reversible, about 0.1 ms per
   position (limit 8: 0.7–0.8 ms, 16: 1.4–1.6 ms, 24: 2.7–3.0 ms, 32: 3.4–4.4 ms, 48: 6.0–7.4 ms, 64: 9.9–11.2 ms).
   `DefaultPositionLimit` set to 32.
+
+## 2026-10-30 — Step 6a: first art delivery integrated
+
+All changes made through Unity MCP Editor commands (or the new **Ball Sort ▸ Art ▸ Prepare Sprites**, run through MCP).
+
+### Assets moved and renamed (`AssetDatabase.MoveAsset`, `.meta` files kept)
+- 82 PNGs from `Assets/Art/Incoming/` to `Assets/Art/Sprites/{Balls, Tubes, Mechanics, UI/Buttons, UI/Displays,
+  UI/Home, UI/Shop, Episodes, Backgrounds}` and `Assets/Art/Unused/` (mapping in docs/art-inventory.md); the empty
+  `Incoming` folders moved to the trash. Originals committed untouched before trimming.
+- New folders: `Assets/Art/Sprites/{Balls, Tubes, Mechanics, UI, UI/Buttons, UI/Displays, UI/Home, UI/Shop, Episodes,
+  Backgrounds}`, `Assets/Art/Unused`.
+
+### Prepare Sprites (first run)
+- Trimmed in place: 5 buttons, 2 displays, 3 shop pieces (each to its content); 3 bottom bars (shared 928×244);
+  5 mascot frames (shared 856×844); tube top/middle/bottom/full, clay and veil (cut from the shared canvas, pivots set).
+- Import settings on 72 sprites (`SpriteRules`): Sprite, Single, 100 PPU, no mipmaps, clamp, bilinear, max size and
+  Android/iOS ASTC per folder; ball pivots on the body centre; 9-slice borders on the pills, displays, veil and tube
+  outline. A second run changed no file (idempotent).
+
+### Configs
+- `Assets/Data/Config/ColorPalette.asset`: entries 0–9 → the monsters' four faces (Red, Blue, Yellow, Green, Purple,
+  Orange, Turquoise, Pink, Lilac, Brown), sprite tint white, sprite size 256/175; `_color` sampled from each monster's
+  body (veil badge); entries 10–11 keep `Ball_Circle` tinted with their colour; hidden sprite `Ball_Hidden`, tint white,
+  size 256/195; hidden mark cleared.
+- `Assets/Data/Config/TubeVisualConfig.asset`: top/middle/bottom/outline tube sprites, tube tint white, art body width
+  145; front empty; veil `Veil_Towel`, tint white, bottom gap 1; clay `Clay_Ice`, tint white. Cap and door unchanged.
+- `Assets/Data/Config/EpisodeConfig.asset`: Level backgrounds and mascot frames for episodes 1–5; Home backgrounds
+  `Home_Ep2_Summer` for episodes 1–4, `Home_Ep5_Space` for episode 5.
+
+### Prefabs
+- `Assets/Prefabs/Tube.prefab`: `Back` renamed `Bottom`; new `Middle` and `Top` (copies of it, TubeBack, order 0, Simple);
+  `Clay` moved to TubeBack order 1 (behind the balls), Simple; `TubeView._top/_middle/_bottom` assigned.
+- `Assets/Prefabs/UI/AreYouSurePopup.prefab`: ConfirmButton → `Button_Red` (sliced, white bold label); CloseButton →
+  `Button_Close` (120×120, label hidden).
+- `Assets/Prefabs/UI/EditProfilePopup.prefab`: SaveButton → `Button_Green`; CloseButton → `Button_Close`.
+- `Assets/Prefabs/UI/MoreLivesPopup.prefab`, `SettingsPopup.prefab`: CloseButton → `Button_Close`.
+- `Assets/Prefabs/UI/WinPopup.prefab`: ContinueButton → `Button_Green`.
+
+### Scenes
+- `Assets/Scenes/Home.unity`:
+  - `TopBar/AvatarButton` 160×160, `MascotFrame_Ep1_Lab` (preserve aspect), label hidden; `HomeScreen._avatarImage`
+    assigned, `_coinsFormat` = "{0}".
+  - `TopBar/Lives` 280×110 at x −150, `Display_Lives` sliced; `Heart` stretched over the drawn heart (image disabled),
+    count white bold 46; `Timer` over the pill, white bold 40.
+  - `TopBar/Coins` 280×110 at x 160, `Display_Coins` sliced; `Label` over the pill, white bold 44.
+  - `TopBar/SettingsButton` 140×140, `Button_Settings`, label hidden.
+  - `HomePage/LevelButton` → `Button_Green` sliced, white bold label; `LevelTierLook` tints all white.
+  - `BottomNav`: layout group removed, `AspectRatioFitter` (width controls height, 3.80), image `BottomBar_Home`;
+    children reordered `ShopButton`, `HomeButton`, `LeaderboardButton`, each an invisible tap area over its drawn
+    section (anchors 0.010–0.408, 0.408–0.594, 0.594–0.992), icons, labels and highlights removed, transition none;
+    `HomeTabs._bar` and `_tabs` (Shop, Home, Leaderboard with their bar sprites), start tab 1.
+  - Pages (`ShopPage`, `HomePage`, `LeaderboardPage`) stretched with offsets bottom 290, top 180.
+  - `ShopPage`: old `Panel` removed; new `Scroll` (ScrollRect, vertical) → `Viewport` (RectMask2D) → `Content`
+    (VerticalLayoutGroup, ContentSizeFitter) with `Header` (`Shop_Header`, "Shop"), `Panel` (`Shop_Panel`) and
+    `Bundle1–3` (`Shop_Bundle`, name and price texts), all 920 wide.
+- `Assets/Scenes/Level.unity`: `TopBar/SettingsButton` 140×140 `Button_Settings` (label hidden); `TopBar/MascotFrame`
+  170×170, preserve aspect; `LevelTitle` bold; `StuckPanel/Buttons/GiveUpButton` → `Button_Red`, `PlayOnButton` →
+  `Button_Yellow` (dark label); `StuckPanel._playOnFormat` = "Play on — {0} ●".
+
+### Verification runs (no persistent changes)
+- Console clean after every compile. EditMode tests: 1707 passed, 0 failed.
+- Play mode on a 1440×3088 Game view (editor test visits, nothing spent): Home, Shop (top and scrolled), Leaderboard
+  tab via real taps; levels 51 (hidden, veil, clay, capacity 16), 85 (lock and key, veils, clay, capacity 10) and 12
+  (solver moves until two tubes completed: laughing faces, caps). Screenshots in `Screenshots/step6-art/`.

@@ -1,13 +1,15 @@
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// One tube on screen: a sliced back layer, the balls, a sliced glass front layer, a cap shown
-    /// once the tube is completed, a clay overlay on clay tubes and a flash for refused taps. The
-    /// transform's origin is the tube's base centre.
+    /// One tube on screen: the tube drawn behind the balls from a top, a stretched middle and a bottom
+    /// part, the balls, an optional glass front, a cap shown once the tube is completed, the clay at
+    /// the base of clay tubes and a flash for refused taps. The transform's origin is the tube's base
+    /// centre.
     /// </summary>
     /// <remarks>
     /// Covers are not part of the tube: a <see cref="CoverView"/> may span several tubes, and hides
@@ -16,10 +18,14 @@ namespace BallSort.Game.Views
     [RequireComponent(typeof(BoxCollider2D))]
     public sealed class TubeView : MonoBehaviour
     {
-        [SerializeField] private SpriteRenderer _back;
+        [SerializeField] private SpriteRenderer _top;
+        [SerializeField] private SpriteRenderer _middle;
+        [FormerlySerializedAs("_back")]
+        [SerializeField] private SpriteRenderer _bottom;
+        [Tooltip("Optional glass front over the balls; its sorting layer is also where lifted balls draw.")]
         [SerializeField] private SpriteRenderer _front;
         [SerializeField] private SpriteRenderer _cap;
-        [Tooltip("Translucent overlay on the bottom of a clay tube.")]
+        [Tooltip("Clay at the base of a clay tube, behind the balls.")]
         [SerializeField] private SpriteRenderer _clay;
         [Tooltip("Placeholder feedback for a refused tap; on the VFX layer so it also shows over covers.")]
         [SerializeField] private SpriteRenderer _flash;
@@ -56,23 +62,32 @@ namespace BallSort.Game.Views
 
             float height = config.TubeHeight(capacity);
             BodyHeight = height;
-            var bodySize = new Vector2(config.TubeWidth, height);
-            var bodyCentre = new Vector3(0f, height * 0.5f, 0f);
+            float scale = config.ArtScale;
 
-            ApplySprite(_back, config.BackSprite, config.BackTint, bodySize, bodyCentre);
-            ApplySprite(_front, config.FrontSprite, config.FrontTint, bodySize, bodyCentre);
+            // The bottom stands on the base and the top hangs from the rim, both at the art's size;
+            // the middle stretches over the gap between them.
+            float middleBottom = HeightAbovePivot(config.BottomSprite) * scale;
+            float middleTop = height - HeightBelowPivot(config.TopSprite) * scale;
+            float middleScale = Mathf.Max(0f, middleTop - middleBottom) /
+                Mathf.Max(SpriteHeight(config.MiddleSprite), 0.001f);
+            ApplyPart(_bottom, config.BottomSprite, config.TubeTint, 0f, new Vector3(scale, scale, 1f));
+            ApplyPart(_middle, config.MiddleSprite, config.TubeTint, middleBottom, new Vector3(scale, middleScale, 1f));
+            ApplyPart(_top, config.TopSprite, config.TubeTint, height, new Vector3(scale, scale, 1f));
+
+            ApplyOutline(_front, config.FrontSprite, config.FrontTint, scale, height);
             ApplySprite(_cap, config.CapSprite, config.CapTint,
                 new Vector2(config.TubeWidth, config.CapHeight), new Vector3(0f, height, 0f));
             SetCapVisible(false);
 
-            float clayHeight = Mathf.Min(config.ClayHeight, height);
-            ApplySprite(_clay, config.ClaySprite, config.ClayTint,
-                new Vector2(config.TubeWidth, clayHeight), new Vector3(0f, clayHeight * 0.5f, 0f));
+            // Clay is as wide as the tube is drawn (its rim), so it never reaches the next tube.
+            float tubeDrawnWidth = SpriteWidth(config.TopSprite) * scale;
+            float clayScale = tubeDrawnWidth / Mathf.Max(SpriteWidth(config.ClaySprite), 0.001f);
+            ApplyPart(_clay, config.ClaySprite, config.ClayTint, 0f, new Vector3(clayScale, clayScale, 1f));
             _clay.enabled = isClay && _clay.sprite != null;
 
-            // The flash uses the back sprite: it is the tube's silhouette.
+            // The flash uses the outline: it is the tube's silhouette.
             _flashTween?.Kill();
-            ApplySprite(_flash, config.BackSprite, Color.clear, bodySize, bodyCentre);
+            ApplyOutline(_flash, config.OutlineSprite, Color.clear, scale, height);
 
             // A pooled view may come back from a covered tube.
             SetBallsVisible(true);
@@ -165,7 +180,55 @@ namespace BallSort.Game.Views
 
         public void SetCapVisible(bool visible) => _cap.enabled = visible && _cap.sprite != null;
 
+        /// <summary>Gives every ball in the tube <paramref name="expression"/>: laughing once the tube is completed.</summary>
+        public void SetBallExpression(BallExpression expression, ColorPalette palette)
+        {
+            foreach (BallView ball in _balls)
+            {
+                ball.SetExpression(expression, palette);
+            }
+        }
+
         private Vector3 SlotPosition(int slot) => new Vector3(0f, _config.SlotY(slot), 0f);
+
+        /// <summary>A piece drawn as is, scaled and placed by its pivot on the tube's centre line.</summary>
+        private static void ApplyPart(SpriteRenderer renderer, Sprite sprite, Color tint, float y, Vector3 scale)
+        {
+            renderer.sprite = sprite;
+            renderer.color = tint;
+            renderer.drawMode = SpriteDrawMode.Simple;
+            renderer.transform.localPosition = new Vector3(0f, y, 0f);
+            renderer.transform.localScale = scale;
+            renderer.enabled = sprite != null;
+        }
+
+        /// <summary>
+        /// A whole-tube sprite pivoted at the base, 9-sliced so its rim and bottom keep the art's size
+        /// while it stretches to <paramref name="height"/>.
+        /// </summary>
+        private static void ApplyOutline(SpriteRenderer renderer, Sprite sprite, Color tint, float scale, float height)
+        {
+            renderer.sprite = sprite;
+            renderer.color = tint;
+            renderer.drawMode = SpriteDrawMode.Sliced;
+            renderer.transform.localPosition = Vector3.zero;
+            renderer.transform.localScale = new Vector3(scale, scale, 1f);
+            renderer.enabled = sprite != null;
+            if (sprite != null)
+            {
+                renderer.size = new Vector2(SpriteWidth(sprite), height / scale);
+            }
+        }
+
+        private static float SpriteWidth(Sprite sprite) => sprite != null ? sprite.bounds.size.x : 0f;
+
+        private static float SpriteHeight(Sprite sprite) => sprite != null ? sprite.bounds.size.y : 0f;
+
+        private static float HeightAbovePivot(Sprite sprite) =>
+            sprite != null ? (sprite.rect.height - sprite.pivot.y) / sprite.pixelsPerUnit : 0f;
+
+        private static float HeightBelowPivot(Sprite sprite) =>
+            sprite != null ? sprite.pivot.y / sprite.pixelsPerUnit : 0f;
 
         private static void ApplySprite(
             SpriteRenderer renderer, Sprite sprite, Color tint, Vector2 size, Vector3 localPosition)
@@ -179,10 +242,11 @@ namespace BallSort.Game.Views
 
         private void Awake()
         {
-            if (_back == null || _front == null || _cap == null || _clay == null || _flash == null ||
-                _ballRoot == null || _tapTarget == null)
+            if (_top == null || _middle == null || _bottom == null || _front == null || _cap == null ||
+                _clay == null || _flash == null || _ballRoot == null || _tapTarget == null)
             {
-                Debug.LogError($"{name}: back, front, cap, clay, flash, ball root and tap target must be assigned.", this);
+                Debug.LogError(
+                    $"{name}: top, middle, bottom, front, cap, clay, flash, ball root and tap target must be assigned.", this);
             }
         }
 

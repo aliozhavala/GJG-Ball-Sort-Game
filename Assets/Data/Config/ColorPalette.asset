@@ -14,33 +14,94 @@ MonoBehaviour:
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Views.ColorPalette
   _defaultSprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
   _entries:
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.8980392, g: 0.22352941, b: 0.20784314, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.11764706, g: 0.53333336, b: 0.8980392, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.99215686, g: 0.84705883, b: 0.20784314, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.2627451, g: 0.627451, b: 0.2784314, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.5568628, g: 0.14117648, b: 0.6666667, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.9843137, g: 0.54901963, b: 0, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0, g: 0.6745098, b: 0.75686276, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.9411765, g: 0.38431373, b: 0.57254905, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.7529412, g: 0.7921569, b: 0.2, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.42745098, g: 0.29803923, b: 0.25490198, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.15686275, g: 0.20784314, b: 0.5764706, a: 1}
-  - _sprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-    _tint: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-  _hiddenSprite: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
-  _hiddenTint: {r: 0.32, g: 0.33, b: 0.38, a: 1}
-  _hiddenMarkSprite: {fileID: 21300000, guid: 23592f0fd163465418a00eaae762c45a, type: 3}
+  - _open: {fileID: 21300000, guid: 639fa302b68c8a9458554260b2e1141a, type: 3}
+    _halfOpen: {fileID: 21300000, guid: 550514ac1da5e504abd821ad5cc39f20, type: 3}
+    _closed: {fileID: 21300000, guid: f236fe5d2a35c224384e1fbec98546f1, type: 3}
+    _laugh: {fileID: 21300000, guid: a48582b25d3fb2e4081c86c6894eed21, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.816, g: 0.208, b: 0.145, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: 558d5034658886f4c888cbf0fc82133b, type: 3}
+    _halfOpen: {fileID: 21300000, guid: 8df0eb3f47611e747b9e6a7ca01476ec, type: 3}
+    _closed: {fileID: 21300000, guid: 5cdee20174fd417479432cc3e888ea7d, type: 3}
+    _laugh: {fileID: 21300000, guid: b3f6171e52e77994c8222662929bee6f, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.192, g: 0.349, b: 0.859, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: 59179362d60946d46b34b5dd9997e4e0, type: 3}
+    _halfOpen: {fileID: 21300000, guid: bf5f0174e077e1f408a9b63b4a84e5ef, type: 3}
+    _closed: {fileID: 21300000, guid: 8315fd5e386f1f04c8b7e5e147a0313f, type: 3}
+    _laugh: {fileID: 21300000, guid: bf13874296582d34598daf0d490b673f, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.882, g: 0.714, b: 0.259, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: 3142598f63fcc5f49bb6467843fb3bb2, type: 3}
+    _halfOpen: {fileID: 21300000, guid: 84229ee9ac2ed5e409322bc0a6f33594, type: 3}
+    _closed: {fileID: 21300000, guid: fec66339274dfd54982a1ed0545237d8, type: 3}
+    _laugh: {fileID: 21300000, guid: 1b356e2e9a4f3944fbf3ad9cbefbc64f, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.361, g: 0.702, b: 0.224, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: 13114e7ab9d271242b57db000f5059b5, type: 3}
+    _halfOpen: {fileID: 21300000, guid: aa219d26cc23188458f18f9ca31417c7, type: 3}
+    _closed: {fileID: 21300000, guid: da9eebdae6412ce449df4e2084265285, type: 3}
+    _laugh: {fileID: 21300000, guid: 436bc820388eeba4fb47f340d478071f, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.553, g: 0.129, b: 0.804, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: a0d9184b6491cc341a2625f7e1fb3031, type: 3}
+    _halfOpen: {fileID: 21300000, guid: 4885c7cae7b5f414db58b26ab8537fe9, type: 3}
+    _closed: {fileID: 21300000, guid: bcf169d6c0d13e345b6776d4ae6ad5a6, type: 3}
+    _laugh: {fileID: 21300000, guid: 446f5e6bd4e9f9549967b3a421c281a3, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.902, g: 0.463, b: 0.196, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: d1816ab05ac116049b7f3485fd3c1e82, type: 3}
+    _halfOpen: {fileID: 21300000, guid: 12f77b079b6348444b41c29aa3c47311, type: 3}
+    _closed: {fileID: 21300000, guid: a65d452bba0b0784392a5b478cbb6dd3, type: 3}
+    _laugh: {fileID: 21300000, guid: 252e858675c3727479718c84032800c5, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.378, g: 0.773, b: 0.757, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: 2e8818ad35e234d46ad227fe21314e77, type: 3}
+    _halfOpen: {fileID: 21300000, guid: fb2ceb0f648a3164e824babd44207dde, type: 3}
+    _closed: {fileID: 21300000, guid: 4bc7767c68123274e9bd142071488874, type: 3}
+    _laugh: {fileID: 21300000, guid: 815afc616e3e6d04bae23d2a250cb34c, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.886, g: 0.486, b: 0.573, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: 3ced7f962cf4c6f4f9c937bdb8217eaa, type: 3}
+    _halfOpen: {fileID: 21300000, guid: 84ad196f27575424a83cc8e86a39075e, type: 3}
+    _closed: {fileID: 21300000, guid: 7c915cf99a584b242acdb45e4ed9afe1, type: 3}
+    _laugh: {fileID: 21300000, guid: b5baf4f5e08305c46b773ef3c9481254, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.573, g: 0.463, b: 0.725, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: e951d105780db614e93f0a57049fded4, type: 3}
+    _halfOpen: {fileID: 21300000, guid: 9835a1d74e26a2f45b22ffa1c1d6c1cd, type: 3}
+    _closed: {fileID: 21300000, guid: 4b709406606c45a4a87530c8fede7bbe, type: 3}
+    _laugh: {fileID: 21300000, guid: ede6b7f5a730c74429e125c369d56acf, type: 3}
+    _spriteTint: {r: 1, g: 1, b: 1, a: 1}
+    _color: {r: 0.714, g: 0.412, b: 0.239, a: 1}
+    _spriteSize: 1.4628571
+  - _open: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _halfOpen: {fileID: 0}
+    _closed: {fileID: 0}
+    _laugh: {fileID: 0}
+    _spriteTint: {r: 0.15686275, g: 0.20784314, b: 0.5764706, a: 1}
+    _color: {r: 0.15686275, g: 0.20784314, b: 0.5764706, a: 1}
+    _spriteSize: 1
+  - _open: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
+    _halfOpen: {fileID: 0}
+    _closed: {fileID: 0}
+    _laugh: {fileID: 0}
+    _spriteTint: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    _color: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    _spriteSize: 1
+  _hiddenSprite: {fileID: 21300000, guid: 8af0dd0a8c72d3c439a6b44e4cd89c4c, type: 3}
+  _hiddenTint: {r: 1, g: 1, b: 1, a: 1}
+  _hiddenSpriteSize: 1.3128206
+  _hiddenMarkSprite: {fileID: 0}
   _hiddenMarkSize: 0.55
   _keyMarkSprite: {fileID: 21300000, guid: f1d53f472bf59a94ea9796f7472b0c73, type: 3}
   _keyMarkSize: 0.75

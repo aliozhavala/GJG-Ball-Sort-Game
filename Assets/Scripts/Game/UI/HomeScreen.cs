@@ -19,6 +19,8 @@ namespace BallSort.Game.UI
     {
         [Header("Top bar")]
         [SerializeField] private Button _avatarButton;
+        [Tooltip("The avatar's picture: the current episode's mascot frame.")]
+        [SerializeField] private Image _avatarImage;
         [SerializeField] private LivesDisplay _lives;
         [SerializeField] private TMP_Text _coinsLabel;
         [SerializeField] private Button _settingsButton;
@@ -79,6 +81,16 @@ namespace BallSort.Game.UI
             _avatarButton.onClick.AddListener(_editProfilePopup.Open);
         }
 
+        /// <summary>Shows <paramref name="picture"/> as the avatar; null keeps the current one.</summary>
+        public void ShowAvatar(Sprite picture)
+        {
+            if (picture != null)
+            {
+                _avatarImage.sprite = picture;
+                _avatarImage.preserveAspect = true;
+            }
+        }
+
         /// <summary>Shows a short message over the Home screen, e.g. a notice from the previous scene.</summary>
         public void ShowToast(string message) => _toast.Show(message);
 
@@ -101,7 +113,7 @@ namespace BallSort.Game.UI
 
         private void Awake()
         {
-            if (_avatarButton == null || _lives == null || _coinsLabel == null || _settingsButton == null ||
+            if (_avatarButton == null || _avatarImage == null || _lives == null || _coinsLabel == null || _settingsButton == null ||
                 _levelButton == null || _levelLabel == null || _levelTierLook == null || _tabs == null ||
                 _settingsPopup == null || _editProfilePopup == null || _moreLivesPopup == null ||
                 _episodeUnlockedOverlay == null || _inputBlocker == null || _toast == null)

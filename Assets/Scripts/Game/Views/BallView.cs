@@ -15,6 +15,11 @@ namespace BallSort.Game.Views
     /// tween in one place.
     /// </para>
     /// <para>
+    /// Its face goes through <see cref="SetExpression"/> alone, so blinking and laughing can be
+    /// animated there. Balls of one tube draw in slot order, upper balls in front, so appendages
+    /// reaching into the slot above tuck behind that ball.
+    /// </para>
+    /// <para>
     /// The ball keeps its own copy of its key: by the time a reveal is announced the board has
     /// already found the key (docs/mechanics.md), so the mark must show on the reveal and only go
     /// when <see cref="RemoveKey"/> follows.
@@ -34,8 +39,11 @@ namespace BallSort.Game.Views
         private int _markSortingOrder;
         private int _keySortingLayer;
         private int _keySortingOrder;
+        private int _ordersPerBall = 1;
 
         private bool _isHidden;
+        private int _colorId;
+        private BallExpression _expression;
         private int _keyLockId = Ball.NoKey;
 
         /// <summary>Board index of the tube holding this ball.</summary>
@@ -59,12 +67,26 @@ namespace BallSort.Game.Views
             _keyMark.color = locks.GetTint(ball.KeyLockId);
             _keyLockId = ball.KeyLockId;
 
+            _expression = BallExpression.Open;
             ShowColour(ball.ColorId, ball.IsHidden, palette);
             transform.localScale = Vector3.one * diameter;
         }
 
         /// <summary>Turns a hidden ball face up. A key it carries stays, now visible, until <see cref="RemoveKey"/>.</summary>
         public void Reveal(int colorId, ColorPalette palette) => ShowColour(colorId, false, palette);
+
+        /// <summary>
+        /// The single entry point for the ball's face. Snaps for now. A hidden ball keeps its hidden
+        /// look and shows the expression once revealed.
+        /// </summary>
+        public void SetExpression(BallExpression expression, ColorPalette palette)
+        {
+            _expression = expression;
+            if (!_isHidden)
+            {
+                _body.sprite = palette.GetSprite(_colorId, expression);
+            }
+        }
 
         /// <summary>The ball's key has been found; its mark goes.</summary>
         public void RemoveKey()
@@ -90,30 +112,33 @@ namespace BallSort.Game.Views
         public void SetRaised(bool raised, int sortingLayer, int sortingOrder)
         {
             IsRaised = raised;
+            int slotOrder = Mathf.Max(Slot, 0) * _ordersPerBall;
             if (raised)
             {
                 // Keep the parts' order: body, then the marks on top of it.
-                int baseOrder = sortingOrder - Mathf.Min(_bodySortingOrder, Mathf.Min(_markSortingOrder, _keySortingOrder));
+                int baseOrder = sortingOrder - Mathf.Min(_bodySortingOrder, Mathf.Min(_markSortingOrder, _keySortingOrder)) + slotOrder;
                 Apply(_body, sortingLayer, baseOrder + _bodySortingOrder);
                 Apply(_hiddenMark, sortingLayer, baseOrder + _markSortingOrder);
                 Apply(_keyMark, sortingLayer, baseOrder + _keySortingOrder);
             }
             else
             {
-                Apply(_body, _bodySortingLayer, _bodySortingOrder);
-                Apply(_hiddenMark, _markSortingLayer, _markSortingOrder);
-                Apply(_keyMark, _keySortingLayer, _keySortingOrder);
+                Apply(_body, _bodySortingLayer, _bodySortingOrder + slotOrder);
+                Apply(_hiddenMark, _markSortingLayer, _markSortingOrder + slotOrder);
+                Apply(_keyMark, _keySortingLayer, _keySortingOrder + slotOrder);
             }
         }
 
         private void ShowColour(int colorId, bool hidden, ColorPalette palette)
         {
             _isHidden = hidden;
-            Sprite sprite = hidden ? palette.HiddenSprite : palette.GetSprite(colorId);
+            _colorId = colorId;
+            Sprite sprite = hidden ? palette.HiddenSprite : palette.GetSprite(colorId, _expression);
             _body.sprite = sprite;
-            _body.color = hidden ? palette.HiddenTint : palette.GetTint(colorId);
+            _body.color = hidden ? palette.HiddenTint : palette.GetSpriteTint(colorId);
             _hiddenMark.enabled = hidden && _hiddenMark.sprite != null;
-            _body.transform.localScale = Vector3.one / SpriteWidth(sprite);
+            float size = hidden ? palette.HiddenSpriteSize : palette.GetSpriteSize(colorId);
+            _body.transform.localScale = Vector3.one * (size / SpriteWidth(sprite));
             UpdateKeyMark();
         }
 
@@ -146,6 +171,8 @@ namespace BallSort.Game.Views
             _markSortingOrder = _hiddenMark.sortingOrder;
             _keySortingLayer = _keyMark.sortingLayerID;
             _keySortingOrder = _keyMark.sortingOrder;
+            _ordersPerBall = Mathf.Max(_bodySortingOrder, Mathf.Max(_markSortingOrder, _keySortingOrder)) -
+                Mathf.Min(_bodySortingOrder, Mathf.Min(_markSortingOrder, _keySortingOrder)) + 1;
         }
     }
 }
