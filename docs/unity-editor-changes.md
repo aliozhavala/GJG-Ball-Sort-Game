@@ -608,3 +608,25 @@ All changes made through Unity MCP Editor commands.
   `lock_and_key.json` with invalid taps on every tube, a mid-flight undo, selecting tubes while balls land (won; ball
   faces, slots and doors match the model). Frames of a completion checked (lift, stretch and trail, glow, cork, VFX).
 - The undo spent by the check was restored in the save (Undo 99).
+
+## 2026-10-30 — Step 6b sounds (2.2–2.6)
+
+All changes made through Unity MCP Editor commands, except the copy of the sound files.
+
+### Assets
+- `Assets/Audio/SFX/{boosters,gameplay,mechanics,ui,win_rewards}/`: the 22 files of `Reference/sfx/` copied as is
+  (file copy, Unity generated the `.meta` files); imported by `SfxImportRules` (short clips Decompress On Load + ADPCM,
+  `sfx_win_fanfare` and `sfx_hidden_reveal` Compressed In Memory + Vorbis 0.7, all preloaded, sample rate preserved).
+- New `Assets/Data/Config/SfxConfig.asset`: every slot filled, volume 1; random pitch on the mp3s and
+  `sfx_ball_deselect`; `_startOffset` 0.05 on the mp3s; master 0.7, 10 voices.
+- `Assets/Resources/AppRoot.prefab`: `AudioService` added (`_config` → SfxConfig); `AppRoot._audio` → it.
+
+### Verification runs (no persistent changes)
+- Leading silence measured on every clip (first sample above 5 % of the peak): mp3s 52–116 ms, WAVs 7–8 ms. The two
+  compressed clips were switched to Decompress On Load for the measurement and switched back.
+- Console clean. EditMode tests: 1724 passed, 0 failed.
+- Play mode: the service played land / chime / invalid at the expected pitch, offset and volume, and Sound off stopped
+  and blocked them; level 5 V1 (test visit) traced sound by sound: select on lift, deselect only on a real drop-back,
+  invalid with the deselect, one land per ball 0.08 s apart rising with the slot, no sound on undo flights, chime with
+  the last landing rising with the chain, cork 0.16–0.18 s later.
+- Undos spent from the save were restored to 99.

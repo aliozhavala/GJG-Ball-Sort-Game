@@ -24,7 +24,7 @@ Read this when working on UI, scene flow, lives, tutorials, boosters, or player 
 | Level in progress | none | The level being played: set when it starts, cleared by a win or a confirmed Home / Give up. Still set at launch → the app was closed mid-level (Lives, below). |
 | Player name | `Player` | Set in Edit Profile; 1–16 characters, trimmed. |
 | Tutorials seen | none | Ids of the levels whose tutorial popup has been dismissed. |
-| Settings: Sound / Music / Haptics | on / on / on | Saved; no effect until audio/haptics exist. |
+| Settings: Sound / Music / Haptics | on / on / on | Saved. Sound mutes every sound effect (`AudioService`); Music and Haptics have no effect yet (no music, no haptics). |
 
 All numbers live in an `EconomyConfig` ScriptableObject, not in code, including the win reward of each tier, the lives maximum and the refill interval. Progress and rewards are saved **at the moment of the win**, before any celebration or panel.
 

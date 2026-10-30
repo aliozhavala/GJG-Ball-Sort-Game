@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using BallSort.Core.Levels;
 using BallSort.Core.Player;
 using BallSort.Core.Session;
+using BallSort.Game.Audio;
 using BallSort.Game.Input;
 using BallSort.Game.Services;
 using BallSort.Game.UI;
@@ -86,9 +87,10 @@ namespace BallSort.Game.Flow
         /// <param name="visit">Which level this is, and whether its win is recorded.</param>
         /// <param name="episodes">Gives the level's mascot frame and tells when a win unlocks an episode.</param>
         /// <param name="tutorials">The tutorial popups, keyed by level id.</param>
+        /// <param name="audio">Plays the board's sound effects.</param>
         public void Begin(
             LoadedLevel level, LevelVisit visit, PlayerData player, EconomyConfig economy, EpisodeConfig episodes,
-            TutorialConfig tutorials, SceneLoader sceneLoader)
+            TutorialConfig tutorials, SceneLoader sceneLoader, AudioService audio)
         {
             if (_session != null)
             {
@@ -105,6 +107,11 @@ namespace BallSort.Game.Flow
             _episodes = episodes != null ? episodes : throw new ArgumentNullException(nameof(episodes));
             _tutorials = tutorials != null ? tutorials : throw new ArgumentNullException(nameof(tutorials));
             _sceneLoader = sceneLoader ?? throw new ArgumentNullException(nameof(sceneLoader));
+            if (audio == null)
+            {
+                throw new ArgumentNullException(nameof(audio));
+            }
+
             _visit = visit;
 
             int variant = _visit.IsEditorTest ? _visit.Variant : player.BeginAttempt(_variantRandom);
@@ -112,7 +119,7 @@ namespace BallSort.Game.Flow
             _session = session;
 
             _boardView.Initialize(session);
-            _feedback.Initialize(session, _boardView);
+            _feedback.Initialize(session, _boardView, audio);
             _input.Initialize(session, () => _hud.IsPopupOpen);
             _hud.Initialize(visit.Label, player, episodes.GetEpisodeForLevel(visit.LevelNumber).MascotFrame);
 

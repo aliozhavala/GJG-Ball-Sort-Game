@@ -66,7 +66,7 @@ namespace BallSort.Game.Bootstrap
                 return;
             }
 
-            _flow.Begin(level, visit, _app.PlayerData, _app.Economy, _app.Episodes, _tutorials, _app.SceneLoader);
+            _flow.Begin(level, visit, _app.PlayerData, _app.Economy, _app.Episodes, _tutorials, _app.SceneLoader, _app.Audio);
         }
 
         /// <param name="editorFile">The level file to play when the visit is from a file; otherwise null.</param>

@@ -58,8 +58,8 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 
 ## 2. Animation hooks
 Rule: game logic never waits on animation. The model applies a move at once and raises events; views animate and must
-accept being interrupted (complete or kill a ball's tween before moving it again). Timings and eases already live in
-`AnimationConfig` (lift, fly, drop, stagger, reveal flip, invalid shake, cap drop, invalid flash, celebration).
+accept being interrupted (complete or kill a ball's tween before moving it again). Board moves 2.2–2.6 are built:
+values, rules and our deviations from product's document are in docs/animations.md, every number in `AnimationConfig`.
 
 | Animation | Hook (one place each) | Today |
 |---|---|---|
@@ -80,6 +80,10 @@ accept being interrupted (complete or kill a ball's tween before moving it again
 | Episode Unlocked | `HomeFlow.ShowEpisodeUnlocked`: input blocked → 0.7 s → `BackgroundImage.Show` (new episode) + `EpisodeUnlockedOverlay.Show` | snap after the delay |
 | Life comes back | `LivesDisplay.Refresh` (count changes) | text |
 | Scene transitions | `SceneLoader.Load` (`LoadSceneAsync`) | none |
+
+Sounds: `AudioService` (on `AppRoot`, passed `LevelBootstrap` → `LevelFlow` → `LevelFeedback`), `Play(Sfx, pitch)`;
+one slot per sound in `SfxConfig`. Hooked so far: select, deselect, land, invalid, completion chime, cork (from
+`LevelFeedback`, on `BoardView`'s presentation events). The other 16 slots are filled but not played yet.
 
 Event order within one operation (documented on `LevelSession`); animations must play in this order:
 - Move or undo: `MoveApplied` / `MoveUndone` → `BallRevealed` → `TubeCompleted` → each `TubeUnveiled` → each `KeyFound`
@@ -118,7 +122,8 @@ Deviations and decisions:
 TODOs:
 - Final tutorial texts (product) and optional pictures in `TutorialConfig`.
 - Missing art (full list for the artist in docs/art-inventory.md): booster icons (text labels), a standalone coin
-  ("●" in the Win reward and Play on price), popup panels, door / lock / key / cap, tier looks for the Level button.
+  ("●" in the Win reward and Play on price), popup panels, door / lock / key, tier looks for the Level button; for the
+  animations, cork, glow, shock faces and VFX sprites (docs/art-inventory.md, Pending for animations).
 - Leaderboard and Shop are placeholders; More Lives offers no way to get lives.
 - Consider adding "start position not stuck" to `LevelValidator` (today only `ShippedLevelTests` checks it).
 - Re-measure the stuck check and the shuffle search on a device.

@@ -1,12 +1,13 @@
 using BallSort.Core.Player;
+using BallSort.Game.Audio;
 using BallSort.Game.Services;
 using UnityEngine;
 
 namespace BallSort.Game.Bootstrap
 {
     /// <summary>
-    /// The persistent composition root: owns the player's data, saving and scene loading for the
-    /// whole session, across scene changes.
+    /// The persistent composition root: owns the player's data, saving, scene loading and sound for
+    /// the whole session, across scene changes.
     /// </summary>
     /// <remarks>
     /// The one agreed singleton-style exception (see CLAUDE.md). It is created from a prefab in
@@ -22,6 +23,7 @@ namespace BallSort.Game.Bootstrap
         [SerializeField] private EconomyConfig _economy;
         [SerializeField] private LevelDatabase _levelDatabase;
         [SerializeField] private EpisodeConfig _episodes;
+        [SerializeField] private AudioService _audio;
 
         private SaveService _saveService;
 
@@ -38,6 +40,9 @@ namespace BallSort.Game.Bootstrap
 
         /// <summary>The run's episodes; both scenes show the current one's background.</summary>
         public EpisodeConfig Episodes => _episodes;
+
+        /// <summary>Sound effects, muted by the player's Sound setting.</summary>
+        public AudioService Audio => _audio;
 
         // With domain reload disabled, statics survive between Play sessions; clear them explicitly.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -70,9 +75,9 @@ namespace BallSort.Game.Bootstrap
                 return;
             }
 
-            if (_economy == null || _levelDatabase == null || _episodes == null)
+            if (_economy == null || _levelDatabase == null || _episodes == null || _audio == null)
             {
-                Debug.LogError($"{name}: economy config, level database and episode config must be assigned.", this);
+                Debug.LogError($"{name}: economy config, level database, episode config and audio service must be assigned.", this);
                 enabled = false;
                 return;
             }
@@ -89,6 +94,7 @@ namespace BallSort.Game.Bootstrap
             // retry) before any scene reads the player.
             PlayerData.ResolveInterruptedAttempt();
             SceneLoader = new SceneLoader();
+            _audio.Initialize(PlayerData);
         }
 
         private void OnApplicationPause(bool paused)

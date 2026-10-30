@@ -220,3 +220,25 @@ One menu item makes delivered art ready; it can be run any time, files already t
 
 **New delivery:** copy the new PNG over the old file of the same name in `Assets/Art/Sprites/` (the `.meta` and every
 reference survive), run Prepare Sprites, check the screens. A new file name or folder needs a line in `SpriteRules`.
+
+## 6. Pending for animations (docs/animations.md, 2.2–2.6)
+
+Slots and placeholders already in place; final art drops in without code changes.
+
+**Sprites**
+| Needed | Slot | Placeholder now | Notes for the artist |
+|---|---|---|---|
+| Wooden cork for a completed tube | `TubeVisualConfig._capSprite` (9-sliced, tinted in the tube's colour × `_capTint`) | `Placeholder/Tube_9Sliced` | Light / neutral wood so the tint reads as the tube's colour; about the rim's width (180 px at the tube canvas scale); drops onto the rim and stays. |
+| Glow around a completed tube | `TubeVisualConfig._glowSprite` (9-sliced, pivot bottom centre, tinted in the tube's colour; `_glowPadding` past the tube on each side) | `Placeholder/Tube_Glow` (generated soft rounded outline) | White, soft halo following the tube's outline; drawn behind the tube, pulses in alpha. |
+| Shock face, one per colour (10) | `ColorPalette._entries[n]._shock` (`BallExpression.Shock`) | the colour's `Closed` face | Same canvas and centre as the other four faces; shown for 0.7 s on an invalid tap. |
+| Sparkle | `Prefabs/VFX/Vfx_TubeSparkles` particle texture sheet (Sprites mode) | `Placeholder/Vfx_Sparkle` (generated star) | White; tinted per particle (white, tube colour, gold). |
+| Shockwave ring | `Prefabs/VFX/Vfx_TubeRing` particle texture sheet | `Placeholder/Vfx_Ring` (generated) | White thin ring, soft edge; grows to ≈2.2 ball diameters. |
+| Confetti piece | `Prefabs/VFX/Vfx_Confetti` particle texture sheet | `Placeholder/Ball_Circle` (squashed) | White or pre-coloured; colours are set on the prefab. |
+| Droplet | `Prefabs/VFX/Vfx_Droplets` particle texture sheet | `Placeholder/Ball_Circle` | White; tinted with the ball's colour. |
+
+Effects on existing sprites (no new art): balls squash and stretch, the cork is tinted, the glow fades and pulses, the
+flight trail is drawn in the ball's colour (no texture).
+
+**Sounds**: none missing; all 22 delivered files are in `Assets/Audio/SFX/` with a slot each in `SfxConfig`. For audio:
+the mp3s carry about 50 ms of encoder padding before the first sound (skipped in the game with `_startOffset`);
+trimmed WAV exports would remove the need.

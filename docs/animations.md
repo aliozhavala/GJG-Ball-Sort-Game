@@ -70,6 +70,7 @@ The moved balls (top first, partial moves included) each fly three segments, bal
 - **Shake** `_invalidShakeDuration` **0.4 s**: x = sin(`_invalidShakeFrequency` 55·t) × `_invalidShakeAmount` **0.16 d** ×
   e^(−`_invalidShakeDamping` 9·t).
 - **Shock face** on its revealed balls for `_shockFaceDuration` **0.7 s**, then back to their resting face.
+- A covered tube shakes with its cover (the whole door for a lock) **(ours: the cover is a separate view, so the tube alone would peek out)**.
 - Replaces the old placeholder tube flash. Sound `invalid` (+ `deselect` if a ball was lifted).
 
 ## 2.6 Tube complete
@@ -88,6 +89,7 @@ Starts when the completed tube's **last ball lands** (move or undo). From there:
 - **Chain** = completed tubes on the board − 1 (a completion is never undone, so no rollback is needed).
 - Toggles: `_sparkles`, `_confetti`, `_dance`, `_glow`, `_chainEscalate` (sparkles and chime pitch grow with chain).
 - A tube rebuilt completed (restart, shuffle) shows cork, glow and laugh at rest, without the sequence.
+- No mask on the cork **(ours: there is no glass neck to sink into; add a SpriteMask only if the cork art needs it)**.
 
 ## Later beats in the same move (snaps until §3)
 Timed so the order reads right; §3 will replace the snaps with animations in the same places.
@@ -106,5 +108,16 @@ Timed so the order reads right; §3 will replace the snaps with animations in th
 | `tubeCompleteChime` | last ball lands in a completed tube | 2^(min(chain, 12) / 12) × random ±3 % |
 | `tubeCork` | cork seats | random ±3 % |
 
-Master volume `_sfxVolume` **0.7**; every clip plays at 1.0 into it. No voice limit (pooled sources, 10 voices). The
-Sound setting off mutes everything. Random pitch applies to the mp3 clips and `deselect` (SFX guide §2).
+Master volume `_sfxVolume` **0.7**; every clip plays at 1.0 into it. Sounds overlap freely on 10 pooled sources (the
+oldest is cut when all are busy). The Sound setting off mutes everything, including sounds already playing. Random
+pitch (`_randomPitchRange` ±3 %) applies to the mp3 clips and `deselect` (SFX guide §2). Land and chain pitches are
+`_landSemitones` and `_chainSemitones` / `_chainSemitoneCap` on `SfxConfig`.
+
+- **Files:** `Assets/Audio/SFX/<folder>/` as delivered (22 clips, all slots filled). Import (`SfxImportRules`, first
+  import only): short clips Decompress On Load + ADPCM, the fanfare and the reveal Compressed In Memory + Vorbis; all
+  preloaded; levels untouched.
+- **mp3 lead-in (ours):** every delivered mp3 imports 0.05–0.07 s longer than the guide lists and starts its first
+  sound 52–116 ms in (the WAVs at 7–8 ms): the padding mp3 encoding adds. Each mp3 slot skips `_startOffset`
+  **0.05 s**, so the land, chime and cork hit on their frame; the towel's and fanfare's later starts are part of the
+  clip and stay.
+- **Silent on purpose:** flights, undo landings (SFX guide §5).

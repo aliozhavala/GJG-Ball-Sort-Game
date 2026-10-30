@@ -93,6 +93,12 @@ namespace BallSort.Game.Views
             }
         }
 
+        /// <summary>The selected tube's top ball has started to lift.</summary>
+        public event Action BallLifted;
+
+        /// <summary>A lifted ball has started back into its slot (deselected, not moved).</summary>
+        public event Action BallLowered;
+
         /// <summary>A ball has landed in its slot (move or undo: see <see cref="BallView.IsUndoFlight"/>).</summary>
         public event Action<BallView> BallLanded;
 
@@ -129,15 +135,15 @@ namespace BallSort.Game.Views
         /// </summary>
         public void ShowSelection(int tubeIndex)
         {
-            if (_liftedTube >= 0 && _liftedTube < _tubes.Count)
+            if (_liftedTube >= 0 && _liftedTube < _tubes.Count && _tubes[_liftedTube].Lower())
             {
-                _tubes[_liftedTube].Lower();
+                BallLowered?.Invoke();
             }
 
             _liftedTube = tubeIndex;
-            if (tubeIndex >= 0)
+            if (tubeIndex >= 0 && _tubes[tubeIndex].Lift())
             {
-                _tubes[tubeIndex].Lift();
+                BallLifted?.Invoke();
             }
         }
 
