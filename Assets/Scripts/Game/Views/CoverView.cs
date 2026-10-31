@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BallSort.Core.Levels;
 using BallSort.Core.Model;
 using DG.Tweening;
 using UnityEngine;
@@ -62,7 +63,7 @@ namespace BallSort.Game.Views
 
         /// <summary>
         /// Fits the body to the covered tubes. A veil hangs from its tube's rim like the art, as wide as
-        /// drawn, its hem <see cref="TubeVisualConfig.VeilBottomGap"/> above the base. A door spans from
+        /// drawn, shortened by <see cref="TubeVisualConfig.VeilHeightScale"/>. A door spans from
         /// the left edge of the leftmost tube to the right edge of the rightmost, as tall as the
         /// tallest, standing on their base line.
         /// </summary>
@@ -101,22 +102,28 @@ namespace BallSort.Game.Views
         }
 
         /// <remarks>
-        /// Drawn at the tube art's scale, so its sliced top and hem keep their drawn size and only the
-        /// stripes between them stretch with the tube's height. The badge sits in the veil's middle.
+        /// Drawn at the tube art's scale, squashed vertically by the height scale, so on a capacity-4
+        /// tube its hem crosses the bottom ball and that ball's lower half shows. Its hem stays at that
+        /// height on taller tubes: only the stripes between the domed top and the hem stretch. The badge
+        /// sits in the veil's middle.
         /// </remarks>
         private void FitVeil(TubeVisualConfig config, float tubeHeight)
         {
-            float scale = config.ArtScale;
-            float veilHeight = Mathf.Max(tubeHeight - config.VeilBottomGap, 0.1f);
-            _body.transform.localScale = new Vector3(scale, scale, 1f);
+            float scaleX = config.ArtScale;
+            float scaleY = config.ArtScale * config.VeilHeightScale;
+            float artHeight = SpriteHeight(_body.sprite);
+            float hemHeight = config.TubeHeight(LevelLayout.NormalCapacity) - artHeight * scaleY;
+            float veilHeight = Mathf.Max(tubeHeight - hemHeight, 0.1f);
+            _body.transform.localScale = new Vector3(scaleX, scaleY, 1f);
             _body.transform.localPosition = new Vector3(0f, tubeHeight, 0f);
-            _body.size = new Vector2(SpriteWidth(_body.sprite), veilHeight / scale);
+            _body.size = new Vector2(SpriteWidth(_body.sprite), veilHeight / scaleY);
             _icon.transform.localPosition = new Vector3(0f, tubeHeight - veilHeight * 0.5f, 0f);
         }
 
         /// <summary>
         /// The single entry point for a cover's state: closed shows the cover and hides the covered
-        /// balls, open hides the cover and shows them again. Snaps for now.
+        /// balls (a veil leaves its tube's bottom ball showing under its hem; a door hides them all),
+        /// open hides the cover and shows them again. Snaps for now.
         /// </summary>
         public void SetOpen(bool open)
         {
@@ -125,12 +132,12 @@ namespace BallSort.Game.Views
             _icon.enabled = !open && _icon.sprite != null;
             foreach (TubeView tube in _tubes)
             {
-                tube.SetBallsVisible(open);
+                tube.SetCovered(!open, showBottomBall: Kind == CoverKind.Veil);
             }
         }
 
         /// <summary>
-        /// The invalid-move shake (docs/animations.md, 2.5) for a tap on a covered tube: the cover
+        /// The invalid-move shake (docs/animation-spec.md, 2.5) for a tap on a covered tube: the cover
         /// shakes with every tube under it, so nothing peeks out.
         /// </summary>
         public void Shake(AnimationConfig animation, float ballDiameter)
@@ -165,6 +172,8 @@ namespace BallSort.Game.Views
         private void ApplyOffset() => transform.localPosition = _home + new Vector3(_shakeX, 0f, 0f);
 
         private static float SpriteWidth(Sprite sprite) => sprite != null ? sprite.bounds.size.x : 1f;
+
+        private static float SpriteHeight(Sprite sprite) => sprite != null ? sprite.bounds.size.y : 1f;
 
         private void Awake()
         {

@@ -20,7 +20,7 @@ field (Inspector-tunable); sound rules are on `SfxConfig`. Choices that differ f
 
 | § | Hook | Trigger |
 |---|---|---|
-| 2.2 | `BoardView.ShowSelection` → `TubeView.Lift` / `Lower` → `BallView.MoveTo`, `SetRaised` | `TubeInput.SelectionChanged` |
+| 2.2 | `BoardView.ShowSelection` → `TubeView.Lift` / `Lower` → `BallView.MoveTo` | `TubeInput.SelectionChanged` |
 | 2.3 | `BoardView.Transfer` → `BallView.MoveTo` (flight) | `MoveApplied`; `MoveUndone` (reversed) |
 | 2.4 | `BallView` landing, `TubeView` bump | end of a flight |
 | 2.5 | `LevelFeedback.PlayInvalidMove` → `TubeView` shake, `BallView.SetExpression` | `TubeInput.InvalidMove` |
@@ -79,17 +79,21 @@ Starts when the completed tube's **last ball lands** (move or undo). From there:
 | t | Piece | Values |
 |---|---|---|
 | 0 | Chime sound | pitch by chain (below) |
-| 0 | Cork | `TubeVisualConfig` cap, tinted in the tube's colour, drops `_corkDropHeight` **1.2 d** onto the rim **(ours: the prototype's 90 px, about 2 d, starts inside the row above)** in `_corkDropDuration` **0.45 s**, `_corkEase` **OutBounce**; stays |
+| 0 | Cork | the colour's cork (`ColorPalette`; the plain `TubeVisualConfig` cork, tinted, for colours without one), drops `_corkDropHeight` **1.2 d** onto the rim **(ours: the prototype's 90 px, about 2 d, starts inside the row above)** in `_corkDropDuration` **0.45 s**, `_corkEase` **OutBounce**; stays |
 | 0 | Glow | tube outline in the ball colour, alpha 1 → `_glowIdleAlpha` **0.5** in `_glowFadeDuration` **0.6 s**, then ±`_glowPulse` **0.12**, period `_glowPulsePeriod` **1.6 s**; stays |
 | 0 | Sparkles + ring | pooled `TubeCompleteVfx`: 14 + 3 × chain sparkles (faster with chain), ring 2.2 d over 0.5 s (prefab values) |
 | 0 | Confetti | 26 pieces from the mouth, 1.4–2.2 s (prefab values) |
 | 0 | Dance | each ball does the hop bounce (2.4), `_danceStagger` **0.07 s** apart, bottom to top; balls laugh from here on **(ours: they stay laughing, not 1.6 s)** |
-| `_corkImpactTime` **0.16** | Cork seats | cork sound, hit-stop `_hitStopDuration` **0.06 s** at `_hitStopTimeScale` **0.06**, punch: board scale 1 → 1 + `_punchScale` **0.028** → 1, half sine over `_punchDuration` **0.3 s** **(SFX guide timing; animations.md starts them at 0)** |
+| `_corkImpactTime` **0.16** | Cork seats | cork sound, hit-stop `_hitStopDuration` **0.06 s** at `_hitStopTimeScale` **0.06**, punch: board scale 1 → 1 + `_punchScale` **0.028** → 1, half sine over `_punchDuration` **0.3 s** **(SFX guide timing; docs/design/animations.md starts them at 0)** |
 
 - **Chain** = completed tubes on the board − 1 (a completion is never undone, so no rollback is needed).
 - Toggles: `_sparkles`, `_confetti`, `_dance`, `_glow`, `_chainEscalate` (sparkles and chime pitch grow with chain).
 - A tube rebuilt completed (restart, shuffle) shows cork, glow and laugh at rest, without the sequence.
-- No mask on the cork **(ours: there is no glass neck to sink into; add a SpriteMask only if the cork art needs it)**.
+- No mask on the cork: it draws between the balls and the rim's front half, so it sinks into the neck by draw order.
+- Depth (ours; the prototype draws in DOM order): a ball inside its tube's mouth draws between the rim halves; from
+  the moment its bottom clears the mouth it is above every tube, through the whole arc, until its centre drops below
+  the target's clear height (`TubeView.ClearHeight`, mouth + half a ball). So a flight never passes behind a rim, and a
+  landing ball tucks behind the target's rim front.
 
 ## Later beats in the same move (snaps until §3)
 Timed so the order reads right; §3 will replace the snaps with animations in the same places.

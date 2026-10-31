@@ -18,86 +18,110 @@ MonoBehaviour:
     _halfOpen: {fileID: 21300000, guid: 550514ac1da5e504abd821ad5cc39f20, type: 3}
     _closed: {fileID: 21300000, guid: f236fe5d2a35c224384e1fbec98546f1, type: 3}
     _laugh: {fileID: 21300000, guid: a48582b25d3fb2e4081c86c6894eed21, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.816, g: 0.208, b: 0.145, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: 534d5e061dfda444ea2a5f41bb6d7da9, type: 3}
   - _open: {fileID: 21300000, guid: 558d5034658886f4c888cbf0fc82133b, type: 3}
     _halfOpen: {fileID: 21300000, guid: 8df0eb3f47611e747b9e6a7ca01476ec, type: 3}
     _closed: {fileID: 21300000, guid: 5cdee20174fd417479432cc3e888ea7d, type: 3}
     _laugh: {fileID: 21300000, guid: b3f6171e52e77994c8222662929bee6f, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.192, g: 0.349, b: 0.859, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: 7c676537f5e0eee43951939ccbe993a6, type: 3}
   - _open: {fileID: 21300000, guid: 59179362d60946d46b34b5dd9997e4e0, type: 3}
     _halfOpen: {fileID: 21300000, guid: bf5f0174e077e1f408a9b63b4a84e5ef, type: 3}
     _closed: {fileID: 21300000, guid: 8315fd5e386f1f04c8b7e5e147a0313f, type: 3}
     _laugh: {fileID: 21300000, guid: bf13874296582d34598daf0d490b673f, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.882, g: 0.714, b: 0.259, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: cdbd93d3a8798a247a40eaee70d3c9e2, type: 3}
   - _open: {fileID: 21300000, guid: 3142598f63fcc5f49bb6467843fb3bb2, type: 3}
     _halfOpen: {fileID: 21300000, guid: 84229ee9ac2ed5e409322bc0a6f33594, type: 3}
     _closed: {fileID: 21300000, guid: fec66339274dfd54982a1ed0545237d8, type: 3}
     _laugh: {fileID: 21300000, guid: 1b356e2e9a4f3944fbf3ad9cbefbc64f, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.361, g: 0.702, b: 0.224, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: d566fa3bc9bcc6f46ad3e0f7ed1d5a03, type: 3}
   - _open: {fileID: 21300000, guid: 13114e7ab9d271242b57db000f5059b5, type: 3}
     _halfOpen: {fileID: 21300000, guid: aa219d26cc23188458f18f9ca31417c7, type: 3}
     _closed: {fileID: 21300000, guid: da9eebdae6412ce449df4e2084265285, type: 3}
     _laugh: {fileID: 21300000, guid: 436bc820388eeba4fb47f340d478071f, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.553, g: 0.129, b: 0.804, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: e0b8dc3032651124bbe4b926fd0e2764, type: 3}
   - _open: {fileID: 21300000, guid: a0d9184b6491cc341a2625f7e1fb3031, type: 3}
     _halfOpen: {fileID: 21300000, guid: 4885c7cae7b5f414db58b26ab8537fe9, type: 3}
     _closed: {fileID: 21300000, guid: bcf169d6c0d13e345b6776d4ae6ad5a6, type: 3}
     _laugh: {fileID: 21300000, guid: 446f5e6bd4e9f9549967b3a421c281a3, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.902, g: 0.463, b: 0.196, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: 65b5addb64e342845b19188c31a082a1, type: 3}
   - _open: {fileID: 21300000, guid: d1816ab05ac116049b7f3485fd3c1e82, type: 3}
     _halfOpen: {fileID: 21300000, guid: 12f77b079b6348444b41c29aa3c47311, type: 3}
     _closed: {fileID: 21300000, guid: a65d452bba0b0784392a5b478cbb6dd3, type: 3}
     _laugh: {fileID: 21300000, guid: 252e858675c3727479718c84032800c5, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.378, g: 0.773, b: 0.757, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: 79a15f3bb03ff1249b7ea6ae6d0ff907, type: 3}
   - _open: {fileID: 21300000, guid: 2e8818ad35e234d46ad227fe21314e77, type: 3}
     _halfOpen: {fileID: 21300000, guid: fb2ceb0f648a3164e824babd44207dde, type: 3}
     _closed: {fileID: 21300000, guid: 4bc7767c68123274e9bd142071488874, type: 3}
     _laugh: {fileID: 21300000, guid: 815afc616e3e6d04bae23d2a250cb34c, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.886, g: 0.486, b: 0.573, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: 0433dd8c56a9a3d438704db5c62f8cbd, type: 3}
   - _open: {fileID: 21300000, guid: 3ced7f962cf4c6f4f9c937bdb8217eaa, type: 3}
     _halfOpen: {fileID: 21300000, guid: 84ad196f27575424a83cc8e86a39075e, type: 3}
     _closed: {fileID: 21300000, guid: 7c915cf99a584b242acdb45e4ed9afe1, type: 3}
     _laugh: {fileID: 21300000, guid: b5baf4f5e08305c46b773ef3c9481254, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.573, g: 0.463, b: 0.725, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: 654f20c0669c481438904da1cd851952, type: 3}
   - _open: {fileID: 21300000, guid: e951d105780db614e93f0a57049fded4, type: 3}
     _halfOpen: {fileID: 21300000, guid: 9835a1d74e26a2f45b22ffa1c1d6c1cd, type: 3}
     _closed: {fileID: 21300000, guid: 4b709406606c45a4a87530c8fede7bbe, type: 3}
     _laugh: {fileID: 21300000, guid: ede6b7f5a730c74429e125c369d56acf, type: 3}
+    _shock: {fileID: 0}
     _spriteTint: {r: 1, g: 1, b: 1, a: 1}
     _color: {r: 0.714, g: 0.412, b: 0.239, a: 1}
     _spriteSize: 1.4628571
+    _cork: {fileID: 21300000, guid: 66b5e4e5669a33343ba86be12e082101, type: 3}
   - _open: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
     _halfOpen: {fileID: 0}
     _closed: {fileID: 0}
     _laugh: {fileID: 0}
+    _shock: {fileID: 0}
     _spriteTint: {r: 0.15686275, g: 0.20784314, b: 0.5764706, a: 1}
     _color: {r: 0.15686275, g: 0.20784314, b: 0.5764706, a: 1}
     _spriteSize: 1
+    _cork: {fileID: 0}
   - _open: {fileID: 21300000, guid: ca3f289a8753a9c44b64511d1663aaec, type: 3}
     _halfOpen: {fileID: 0}
     _closed: {fileID: 0}
     _laugh: {fileID: 0}
+    _shock: {fileID: 0}
     _spriteTint: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     _color: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     _spriteSize: 1
+    _cork: {fileID: 0}
   _hiddenSprite: {fileID: 21300000, guid: 8af0dd0a8c72d3c439a6b44e4cd89c4c, type: 3}
   _hiddenTint: {r: 1, g: 1, b: 1, a: 1}
   _hiddenSpriteSize: 1.3128206

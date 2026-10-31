@@ -12,7 +12,7 @@ namespace BallSort.Core.Player
     public sealed class SaveData
     {
         /// <summary>The save format this build writes. Older versions are migrated on load.</summary>
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
 
         public int Version { get; set; }
         public int CurrentLevel { get; set; }
@@ -33,6 +33,9 @@ namespace BallSort.Core.Player
         public int LevelInProgress { get; set; }
 
         public string PlayerName { get; set; }
+
+        /// <summary>The picked avatar, 1 to <see cref="AvatarRules.Count"/>.</summary>
+        public int Avatar { get; set; }
 
         /// <summary>Ids of the levels whose tutorial popup has been dismissed, ascending.</summary>
         public int[] TutorialsSeen { get; set; }
@@ -58,6 +61,7 @@ namespace BallSort.Core.Player
                 LastVariant = 0,
                 LevelInProgress = 0,
                 PlayerName = PlayerNameRules.Default,
+                Avatar = AvatarRules.Default,
                 TutorialsSeen = new int[0],
                 SoundOn = true,
                 MusicOn = true,

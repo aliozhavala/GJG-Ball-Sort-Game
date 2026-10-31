@@ -1,7 +1,7 @@
-# Art inventory (step 6, first delivery)
+# Art inventory (step 6)
 
-What the artist delivered (82 PNGs, first delivery, 2026-10-30), where each file went, what is wrong with it, and what
-art is still missing. Measured on the delivered files: size, alpha, content bounds, and whether the parts can be
+What the artist delivered (82 PNGs in the first delivery, 2026-10-30; 20 in the second, 2026-10-31, section 7), where
+each file went, what is wrong with it, and what art is still missing. Measured on the delivered files: size, alpha, content bounds, and whether the parts can be
 stretched or tiled. The **Missing art** section is the list for the artist. The untouched originals are in git (commit
 "Art: first delivery from the artist…"); the files in `Assets/Art/Sprites/` are trimmed (section 5).
 
@@ -20,7 +20,7 @@ Names: `Kind_Variant[_State].png`, PascalCase, no spaces, hyphens or brackets.
 | `balls/monster_<colour>_03.png` | `Balls/Ball_<Colour>_Closed.png` | `ColorPalette` entry: blink frame (stored, used later) |
 | `balls/monster_<colour>_04.png` | `Balls/Ball_<Colour>_Laugh.png` | `ColorPalette` entry: balls in a completed tube |
 | `balls/monster_hidden.png` | `Balls/Ball_Hidden.png` | `ColorPalette._hiddenSprite` (already shows the "?") |
-| `tube/tube_up.png` | `Tubes/Tube_Top.png` | `TubeVisualConfig` top (fixed size) |
+| `tube/tube_up.png` | `Tubes/Tube_Top.png` → `Art/Unused/` | Was the top part; replaced by the rim's two halves (section 7) |
 | `tube/tube_mid.png` | `Tubes/Tube_Middle.png` | `TubeVisualConfig` middle (stretched to the tube's height) |
 | `tube/tube_down.png` | `Tubes/Tube_Bottom.png` | `TubeVisualConfig` bottom (fixed size) |
 | `tube/tube_full_default.png` | `Tubes/Tube_Full.png` | Invalid-tap flash silhouette (9-sliced) |
@@ -36,8 +36,8 @@ Colour ids (the placeholder tints decide the match; id 8 was lime, the closest d
 ### Level HUD and Home
 | Incoming | New path | Slot |
 |---|---|---|
-| `button/button_default.png` | `UI/Buttons/Button_Green.png` | Continue (Win), Home Level button, Confirm (Edit Profile Save) |
-| `button/button_red.png` | `UI/Buttons/Button_Red.png` | Give up, Are You Sure Confirm |
+| `button/button_default.png` | `UI/Buttons/Button_Green.png` | Continue (Win), Home Level button |
+| `button/button_red.png` | `UI/Buttons/Button_Red.png` | Give up, Are You Sure Confirm, Settings' Restart and Home |
 | `button/button_yellow.png` | `UI/Buttons/Button_Yellow.png` | Play on, shop item buttons |
 | `button/button_x.png` | `UI/Buttons/Button_Close.png` | Close (✕) on every popup |
 | `button/button_settings.png` | `UI/Buttons/Button_Settings.png` | Settings on Home and in the Level scene |
@@ -59,8 +59,9 @@ Colour ids (the placeholder tints decide the match; id 8 was lime, the closest d
 | `illustrations/mainmenu-background_space_ep5.png` | `Backgrounds/Home_Ep5_Space.png` | `EpisodeConfig` Home background, episode 5 |
 
 ### Not used (no slot)
-`frames/mainmenu_frame.png` (empty purple ring) is the Home avatar's placeholder frame, as
-`UI/Avatar/Avatar_Frame_Empty.png`, until a real avatar frame arrives.
+`frames/mainmenu_frame.png` (purple ring around a filled disc) is the avatar frame, as
+`UI/AvatarFrames/Avatar_Frame_Empty.png`: Home's avatar and every frame of the avatar menu (the picture is masked
+onto its disc). Its green version arrived later (section 7).
 
 `frames/ingame_frame_{lab,summer,ice,lava,space}.png` (empty episode rings), `menus/downmenu_{default,leader,shop}.png` (bars without icons), `tube/tube_full_ice.png` (tube + ice in one
 image; we draw them separately). They are in `Assets/Art/Unused/` (not referenced, so not built) until the artist says
@@ -153,15 +154,15 @@ trimmed to the content (no empty canvas), PNG with transparency, and keep swap s
 shared canvas size.
 
 **Board (Level scene)**
-- **Tube cap / cork** for a completed tube (sits on the rim, ≈ rim width).
 - **Lock door**: covers 1–3 adjacent tubes of the same height, so it must stretch in both directions (9-sliceable:
   plain middle, details in the corners/edges). Neutral colour (tinted per lock) or 4 coloured versions.
 - **Lock icon** on the door, and **key mark** on a ball carrying a key (both tinted per lock, so light/white art).
 - **Veil badge** (optional): the circle in the veil's colour we draw on the towel; ours stays meanwhile.
 - **Ball colours 11 and 12** (ids 10–11; optional: the levels use 10 colours).
-- **Clay ice at the tube's width**: the delivered ice is drawn 2.1× the tube's body, so the game scales it down to the
-  tube's drawn width (rim), which makes it small. Please redraw it no wider than the rim (180 px at the tube canvas's
-  scale), keeping its height, ideally with a see-through middle so the bottom ball stays visible (problem 5).
+- **Clay ice at the tube's width**: the delivered ice is drawn 2.1× the tube's body, so the game scales it to 1.1× the
+  tube's drawn width (rim, `_clayScale`), and draws it over the balls in the clay tube (they sit in the ice). Please
+  redraw it about the rim's width (180 px at the tube canvas's scale), keeping its height, ideally with a see-through
+  middle so the bottom ball stays readable (problem 5). Its melt on completion needs art or VFX too.
 - **Monster body sizes**: every PNG is 256×256, but the round bodies (without arms, feet, horns or antennae) differ
   between colours, roughly 170–190 px wide (lilac smallest, orange and turquoise largest), so some monsters look bigger
   in the tubes. Please draw every body at one size (e.g. 175 px) on the same centre; the game does not correct it.
@@ -180,10 +181,9 @@ shared canvas size.
 - **Win celebration** title ("Well done!").
 
 **Popups (Home and Level)**
-- **Popup panel** (9-sliceable): Settings, Win, Are You Sure, More Lives, Tutorial, Edit Profile.
+- **Popup panel** (9-sliceable): Settings, Win, Are You Sure, More Lives, Tutorial.
 - **Popup title ribbon** (optional).
 - **Toggle on/off** (or Sound / Music / Haptics icons with on/off states) for Settings.
-- **Text input field** (Edit Profile name).
 - **Standalone coin icon** (Win reward, Play on price) and **standalone heart** (More Lives) (problem 12).
 - **Episode Unlocked** banner/overlay art.
 - **Toast** background.
@@ -196,8 +196,8 @@ shared canvas size.
 - **Leaderboard page**: title/header and a row (rank, avatar, name, score).
 - **Shop item art** for the six frames of the shop panel (e.g. coin packs, booster packs) and a price tag; the bundle
   card's title (or we write it in text).
-- **Empty avatar frame** for Home's avatar (top left; the same in every episode, a player picture may go inside later).
-  The empty purple `mainmenu_frame` stands in meanwhile; if that is the intended one, just confirm.
+- **Avatar frame opening**: the frame's middle is a filled disc, so the picture is masked to a circle over it (74 % of
+  the frame's width, measured). A frame with a transparent opening, or a mask shape, would fit exactly.
 
 **Packaging**
 - **App icon** and **splash screen**.
@@ -205,13 +205,17 @@ shared canvas size.
 ## 5. How the art is prepared (Ball Sort ▸ Art ▸ Prepare Sprites)
 
 One menu item makes delivered art ready; it can be run any time, files already trimmed are left as they are.
-- **Trim each** (`UI/Buttons`, `UI/Displays`, `UI/Shop`, `UI/Avatar`): every file cut to its drawn pixels.
-- **Trim shared** (`UI/Home`, `Episodes`): a folder is one swap set, cut to one rectangle holding all its files'
-  content, so the bottom bar's versions and the five frames line up.
-- **Tube** (`Tubes/*`, `Mechanics/Clay_Ice`, `Mechanics/Veil_Towel`, while they still share the delivery canvas): the
-  parts are cut into bands that do not overlap (top 100, middle 420, bottom 88 px, all 180 px wide), and every piece
-  gets a pivot on the walls' centre line (top part and veil at the rim's top, middle at its bottom, bottom part, outline
-  and clay at the base), which is how `TubeView` and `CoverView` place them.
+- **Trim each** (`UI/Buttons`, `UI/Displays`, `UI/Shop`, `UI/Avatar`): every file cut to its drawn pixels. The avatar
+  pictures (`UI/Avatars`) are opaque squares and are not trimmed; they import at most 512 px, without alpha.
+- **Trim shared** (`UI/Home`, `UI/AvatarFrames`, `Episodes`): a folder is one swap set, cut to one rectangle holding
+  all its files' content, so the bottom bar's versions, the plain and selected avatar frames and the five mascot frames
+  line up.
+- **Tube** (`Tubes/*`, `Tubes/Corks/*`, `Mechanics/Clay_Ice`, `Mechanics/Veil_Towel`, while they still share the
+  delivery canvas): the parts are cut into bands that do not overlap (rim 100, middle 420, bottom 88 px, all 180 px
+  wide), and every piece gets a pivot on the walls' centre line (rim halves, veil and corks at the rim's top, middle at
+  its bottom, bottom part, outline and clay at the base), which is how `TubeView` and `CoverView` place them. The rim's
+  two halves are cut to one rectangle, and so are the corks. When only the rim and corks arrive on the tube canvas (the
+  second delivery), only they are cut, anchored to the rim drawn in them.
 - Sizes are padded to multiples of 4 (block compression), then the import settings are applied per folder
   (`SpriteRules`): Sprite, Single, 100 PPU, no mipmaps, clamp, bilinear; max size 256 (balls), 1024 (tube, mechanics,
   UI, frames), 2048 (backgrounds, no alpha); Android and iOS ASTC 4×4 (balls, tube, mechanics, buttons, displays) or
@@ -221,14 +225,13 @@ One menu item makes delivered art ready; it can be run any time, files already t
 **New delivery:** copy the new PNG over the old file of the same name in `Assets/Art/Sprites/` (the `.meta` and every
 reference survive), run Prepare Sprites, check the screens. A new file name or folder needs a line in `SpriteRules`.
 
-## 6. Pending for animations (docs/animations.md, 2.2–2.6)
+## 6. Pending for animations (docs/animation-spec.md, 2.2–2.6)
 
 Slots and placeholders already in place; final art drops in without code changes.
 
 **Sprites**
 | Needed | Slot | Placeholder now | Notes for the artist |
 |---|---|---|---|
-| Wooden cork for a completed tube | `TubeVisualConfig._capSprite` (9-sliced, tinted in the tube's colour × `_capTint`) | `Placeholder/Tube_9Sliced` | Light / neutral wood so the tint reads as the tube's colour; about the rim's width (180 px at the tube canvas scale); drops onto the rim and stays. |
 | Glow around a completed tube | `TubeVisualConfig._glowSprite` (9-sliced, pivot bottom centre, tinted in the tube's colour; `_glowPadding` past the tube on each side) | `Placeholder/Tube_Glow` (generated soft rounded outline) | White, soft halo following the tube's outline; drawn behind the tube, pulses in alpha. |
 | Shock face, one per colour (10) | `ColorPalette._entries[n]._shock` (`BallExpression.Shock`) | the colour's `Closed` face | Same canvas and centre as the other four faces; shown for 0.7 s on an invalid tap. |
 | Sparkle | `Prefabs/VFX/Vfx_TubeSparkles` particle texture sheet (Sprites mode) | `Placeholder/Vfx_Sparkle` (generated star) | White; tinted per particle (white, tube colour, gold). |
@@ -236,9 +239,50 @@ Slots and placeholders already in place; final art drops in without code changes
 | Confetti piece | `Prefabs/VFX/Vfx_Confetti` particle texture sheet | `Placeholder/Ball_Circle` (squashed) | White or pre-coloured; colours are set on the prefab. |
 | Droplet | `Prefabs/VFX/Vfx_Droplets` particle texture sheet | `Placeholder/Ball_Circle` | White; tinted with the ball's colour. |
 
-Effects on existing sprites (no new art): balls squash and stretch, the cork is tinted, the glow fades and pulses, the
+The corks arrived in the second delivery (section 7).
+
+Effects on existing sprites (no new art): balls squash and stretch, the glow fades and pulses, the
 flight trail is drawn in the ball's colour (no texture).
 
 **Sounds**: none missing; all 22 delivered files are in `Assets/Audio/SFX/` with a slot each in `SfxConfig`. For audio:
 the mp3s carry about 50 ms of encoder padding before the first sound (skipped in the game with `_startOffset`);
 trimmed WAV exports would remove the need.
+
+## 7. Second delivery (2026-10-31)
+
+20 PNGs, moved from `Assets/Art/Incoming/` with `AssetDatabase.MoveAsset` (`.meta` files and GUIDs kept) and prepared by
+**Prepare Sprites** (the rim and corks by `TubeArtTrim`, the panel and pen by Trim each).
+
+| Incoming | New path | Slot |
+|---|---|---|
+| `tube top/tube_up_back.png` | `Tubes/Tube_RimBack.png` | `TubeVisualConfig._rimBackSprite`: the rim's back lip, behind the balls (TubeBack) |
+| `tube top/tube_up_front.png` | `Tubes/Tube_RimFront.png` | `TubeVisualConfig._rimFrontSprite`: the rim and neck glass, over the balls and the cork (TubeFront 3) |
+| `corks/tube_cork_stopper_<colour>.png` | `Tubes/Corks/Cork_<Colour>.png` | `ColorPalette._entries[n]._cork`, ids 0–9 (`turq` → `Turquoise`); drawn untinted |
+| `corks/tube_cork_stopper.png` | `Tubes/Corks/Cork_Plain.png` | `TubeVisualConfig._capSprite`: the plain cork, tinted in the colour, for ids 10–11 |
+| `avatar/avatar_01…05.png` | `UI/Avatars/Avatar_01…05.png` | `AvatarConfig._pictures` (avatar ids 1–5) |
+| `avatar/avatar_menu.png` | `UI/Avatar/AvatarMenu_Panel.png` | `AvatarMenuPopup/Panel` |
+| `button/button_pen.png` | `UI/Buttons/Button_Pen.png` | `AvatarMenuPopup/Panel/Header/PenButton` |
+| `mainmenu_frame_selected.png` (later the same day) | `UI/AvatarFrames/Avatar_Frame_Selected.png` | `AvatarConfig._selectedFrame`: the green frame of the picked avatar in the avatar menu, swapped for the plain frame (`AvatarConfig._frame`) |
+
+**Measurements**
+
+| Group | Canvas | Content | Notes |
+|---|---|---|---|
+| Rim halves (2) | 320×640, the tube canvas | back x 80–255, y 77–102; front x 76–256, y 101–177 (from the top) | Cut together to 180×100, pivot at the rim's top. The rim sits 59 px lower on the canvas than the first delivery's top part; placement is by pivot, so it does not matter. The front's middle is translucent glass (alpha 0–90), its walls opaque. |
+| Corks (11) | 320×640, the tube canvas | 139×150 at x 96–235, y 5–155, identical bounds in every colour | Cut to 140×152 with the rim's pivot, so each sits where it was drawn: 72 px above the rim's top, 78 px into the neck. |
+| Avatars (5) | 1000×1000 | full, opaque | Imported at 512 (shown ≈ 120–150 px). |
+| Avatar menu panel | 1000×1000 | 577×947 → 580×948 | Top glass bar (x 42–537, y 96–231 of the trimmed art) with a lighter name field (x 214–487, y 138–194); big glass (x 52–529, y 296–884) holds the 3 × 3 grid. |
+| Pen button | 1000×1000 | 634×632 → 636×632 | Round, like the close and settings buttons. |
+| Selected frame | 1000×1000 | 770×770 at the plain frame's place (the plain one has 20 more rows of lip below) | The plain frame's untouched original was put back on its canvas and both cut to one rectangle, 772×792, the plain frame's size before, so nothing else moved. |
+
+**Problems found**
+1. **The cork covers the top ball's head**: drawn where the artist placed it, it reaches 78 px (≈ 0.6 ball) into the
+   neck, over the top ball of a full tube (the cork draws over the balls, under the rim front, as asked). The eyes of
+   the top monster stay partly visible (screenshot of a completed tube). A cork sitting higher, or a config offset, would
+   fix it; left as delivered for now.
+2. **The avatars are 1000×1000 opaque squares** with the subject anywhere in the picture; masked to a circle, some crop
+   tightly (the scientist's raised hand). Square art framed for a circle, around 256 px, would be lighter and safer.
+3. ~~No selection highlight~~: the green selected frame arrived the same day.
+4. **The bottom bar's ends differ per version**: the raised Shop and Leaderboard tabs round in 53 px (5.7 %) from the
+   art's edge, the Home version 12 px, so a full-width bar is drawn 112 % of the screen's width and crops a little of
+   every version's ends (docs/screens.md, Bottom nav). Bars drawn edge to edge (square ends) would avoid the crop.

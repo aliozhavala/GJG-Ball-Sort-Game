@@ -27,6 +27,13 @@ namespace BallSort.Game.Views
     /// slot above tuck behind that ball.
     /// </para>
     /// <para>
+    /// Where it draws follows from where it is (<see cref="SetMouth"/>): inside its tube, between the
+    /// rim's back and front halves (under the clay and the cork); above every tube from the moment its
+    /// bottom clears the mouth it is in, so a flight never passes behind another tube's rim. A flight
+    /// measures against the source's mouth while it rises, is above every tube through the arc, and
+    /// measures against the target's mouth as it drops in.
+    /// </para>
+    /// <para>
     /// The ball keeps its own copy of its key: by the time a reveal is announced the board has
     /// already found the key (docs/mechanics.md), so the mark must show on the reveal and only go
     /// when <see cref="RemoveKey"/> follows.
@@ -53,6 +60,12 @@ namespace BallSort.Game.Views
         private int _keySortingLayer;
         private int _keySortingOrder;
         private int _ordersPerBall = 1;
+        private int _raisedSortingLayer;
+        private int _raisedSortingOrder;
+
+        // The ball draws above every tube while its centre is at or above this height (parent space).
+        private float _clearHeight = float.PositiveInfinity;
+        private float _targetClearHeight;
 
         private AnimationConfig _animation;
         private ColorPalette _palette;
@@ -99,6 +112,7 @@ namespace BallSort.Game.Views
         private TweenCallback<float> _squashStep;
         private TweenCallback<float> _bobStep;
         private TweenCallback _onDeparted;
+        private TweenCallback _onArcEnded;
         private TweenCallback _onLanded;
         private TweenCallback _onFlightUpdate;
         private TweenCallback _restoreFace;
@@ -109,7 +123,7 @@ namespace BallSort.Game.Views
         /// <summary>Slot within that tube, 0 = bottom.</summary>
         public int Slot { get; private set; } = -1;
 
-        /// <summary>True while drawn above the tube's glass front (selected or in flight).</summary>
+        /// <summary>True while drawn above every tube: out of its tube's mouth (lifted or flying).</summary>
         public bool IsRaised { get; private set; }
 
         /// <summary>The ball's colour id (meaningful once revealed).</summary>
@@ -199,6 +213,20 @@ namespace BallSort.Game.Views
             Slot = slot;
         }
 
+        /// <summary>
+        /// The mouth of the tube holding the ball: above <paramref name="clearHeight"/> (its centre's
+        /// height, in the parent's space, once its bottom clears the rim) the ball draws above every tube
+        /// at <paramref name="raisedSortingOrder"/> on <paramref name="raisedSortingLayer"/>; below it,
+        /// inside the tube in slot order.
+        /// </summary>
+        public void SetMouth(float clearHeight, int raisedSortingLayer, int raisedSortingOrder)
+        {
+            _clearHeight = clearHeight;
+            _raisedSortingLayer = raisedSortingLayer;
+            _raisedSortingOrder = raisedSortingOrder;
+            UpdateDepth(force: true);
+        }
+
         /// <summary>Moves the ball under <paramref name="parent"/> without moving it on screen (a flight starts where it is).</summary>
         public void SetParentKeepingPlace(Transform parent)
         {
@@ -239,6 +267,9 @@ namespace BallSort.Game.Views
             _arcTo = flight.ArcEnd;
             _arcHeight = flight.ArcHeight;
             _screenWidth = Mathf.Max(flight.ScreenWidth, 0.001f);
+            _clearHeight = flight.SourceClearHeight;
+            _targetClearHeight = flight.TargetClearHeight;
+            UpdateDepth(force: true);
             _lastPosition = _position;
             _lastElapsed = 0f;
 
@@ -248,6 +279,7 @@ namespace BallSort.Game.Views
                     .SetEase(_animation.RiseEase))
                 .AppendCallback(_onDeparted)
                 .Append(DOVirtual.Float(0f, 1f, flight.ArcDuration, _arcStep).SetEase(_animation.ArcEase))
+                .AppendCallback(_onArcEnded)
                 .Append(DOTween.To(_getPosition, _setPosition, flight.Slot, _animation.DropDuration)
                     .SetEase(_animation.DropEase))
                 .OnUpdate(_onFlightUpdate)
@@ -315,28 +347,33 @@ namespace BallSort.Game.Views
             Apply();
         }
 
-        /// <summary>
-        /// Draws the ball above (<paramref name="raised"/>) or back inside its tube. A raised ball's
-        /// lowest part sorts at <paramref name="sortingOrder"/> on <paramref name="sortingLayer"/>.
-        /// </summary>
-        public void SetRaised(bool raised, int sortingLayer, int sortingOrder)
+        /// <summary>Draws the ball above every tube or inside its own, when that changes (or always when forced).</summary>
+        private void UpdateDepth(bool force = false)
         {
+            bool raised = _position.y >= _clearHeight;
+            if (raised == IsRaised && !force)
+            {
+                return;
+            }
+
             IsRaised = raised;
             int slotOrder = Mathf.Max(Slot, 0) * _ordersPerBall;
             if (raised)
             {
                 // Keep the parts' order: body, then the marks on top of it; the trail just behind.
-                int baseOrder = sortingOrder - Mathf.Min(_bodySortingOrder, Mathf.Min(_markSortingOrder, _keySortingOrder)) + slotOrder;
-                Apply(_body, sortingLayer, baseOrder + _bodySortingOrder);
-                Apply(_hiddenMark, sortingLayer, baseOrder + _markSortingOrder);
-                Apply(_keyMark, sortingLayer, baseOrder + _keySortingOrder);
-                Apply(_trail, sortingLayer, baseOrder + _bodySortingOrder - 1);
+                int baseOrder = _raisedSortingOrder -
+                    Mathf.Min(_bodySortingOrder, Mathf.Min(_markSortingOrder, _keySortingOrder)) + slotOrder;
+                Apply(_body, _raisedSortingLayer, baseOrder + _bodySortingOrder);
+                Apply(_hiddenMark, _raisedSortingLayer, baseOrder + _markSortingOrder);
+                Apply(_keyMark, _raisedSortingLayer, baseOrder + _keySortingOrder);
+                Apply(_trail, _raisedSortingLayer, baseOrder + _bodySortingOrder - 1);
             }
             else
             {
                 Apply(_body, _bodySortingLayer, _bodySortingOrder + slotOrder);
                 Apply(_hiddenMark, _markSortingLayer, _markSortingOrder + slotOrder);
                 Apply(_keyMark, _keySortingLayer, _keySortingOrder + slotOrder);
+                Apply(_trail, _bodySortingLayer, _bodySortingOrder + slotOrder - 1);
             }
         }
 
@@ -371,8 +408,11 @@ namespace BallSort.Game.Views
         private void UpdateKeyMark() =>
             _keyMark.enabled = _keyLockId != Ball.NoKey && !_isHidden && _keyMark.sprite != null;
 
-        private void Apply() =>
+        private void Apply()
+        {
             transform.localPosition = _position + new Vector3(0f, _hop + _bump + _bob, 0f);
+            UpdateDepth();
+        }
 
         private void SetPosition(Vector3 position)
         {
@@ -422,8 +462,18 @@ namespace BallSort.Game.Views
             }
 
             _hasDeparted = true;
+
+            // Between the mouths the ball is above every tube, whatever the arc's height.
+            _clearHeight = float.NegativeInfinity;
+            UpdateDepth();
             StartTrail();
             _departed?.Invoke(this);
+        }
+
+        private void OnArcEnded()
+        {
+            _clearHeight = _targetClearHeight;
+            UpdateDepth();
         }
 
         private void OnLanded()
@@ -433,8 +483,9 @@ namespace BallSort.Game.Views
                 return;
             }
 
-            // A flight finished early passes its departure on the way.
+            // A flight finished early passes its departure and the arc's end on the way.
             OnDeparted();
+            OnArcEnded();
             _hasLanded = true;
             _isFlight = false;
             ResetShape();
@@ -563,6 +614,7 @@ namespace BallSort.Game.Views
             _squashStep = SquashStep;
             _bobStep = BobStep;
             _onDeparted = OnDeparted;
+            _onArcEnded = OnArcEnded;
             _onLanded = OnLanded;
             _onFlightUpdate = OnFlightUpdate;
             _restoreFace = RestoreFace;

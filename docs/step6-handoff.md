@@ -19,12 +19,13 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 | `ColorPalette._hiddenSprite` (+ `_hiddenSpriteSize` 1.31) | Hidden ball, "?" drawn in | **Art** (`Ball_Hidden`) |
 | `ColorPalette._hiddenMarkSprite` | Separate "?" | empty (the art has it) |
 | `ColorPalette._keyMarkSprite` | Key on a keyed ball (tint from `LockPalette`) | `Key_Icon` |
-| `TubeVisualConfig._topSprite` / `_middleSprite` / `_bottomSprite` | Tube, middle stretched to the tube's height | **Art** (`Tubes/Tube_*`) |
+| `TubeVisualConfig._rimBackSprite` / `_rimFrontSprite` / `_middleSprite` / `_bottomSprite` | Tube: rim back behind the balls, rim front over them and the cork, middle stretched to the tube's height | **Art** (`Tubes/Tube_*`) |
 | `TubeVisualConfig._outlineSprite` | Whole tube, 9-sliced; the invalid-tap flash | **Art** (`Tube_Full`) |
 | `TubeVisualConfig._frontSprite` | Glass front over the balls (optional) | empty (missing art) |
-| `TubeVisualConfig._capSprite` | Cap on a completed tube | `Tube_9Sliced` |
-| `TubeVisualConfig._claySprite` | Clay (ice) at the base, behind the balls, at the tube's drawn width | **Art** (`Mechanics/Clay_Ice`) |
-| `TubeVisualConfig._veilSprite` / `_veilBadgeSprite` | Veil hanging from the rim / badge in the veil's colour | **Art** (`Mechanics/Veil_Towel`) / `Veil_Badge` |
+| `ColorPalette._entries[n]._cork` | Cork on a tube completed in colour n (untinted) | **Art** (`Tubes/Corks/Cork_<Colour>`, ids 0–9) |
+| `TubeVisualConfig._capSprite` | Plain cork, tinted in the colour, for colours without their own (ids 10–11) | **Art** (`Tubes/Corks/Cork_Plain`) |
+| `TubeVisualConfig._claySprite` (+ `_clayScale` 1.1) | Clay (ice) at the base, over the balls inside, 1.1× the tube's drawn width; gone on completion | **Art** (`Mechanics/Clay_Ice`) |
+| `TubeVisualConfig._veilSprite` (+ `_veilHeightScale` 0.92) / `_veilBadgeSprite` | Veil hanging from the rim, its hem across the bottom ball / badge in the veil's colour | **Art** (`Mechanics/Veil_Towel`) / `Veil_Badge` |
 | `TubeVisualConfig._doorSprite` / `_lockIconSprite` | Lock door / lock icon (tint from `LockPalette`) | `Tube_9Sliced` / `Lock_Icon` |
 | `LockPalette` | Lock colours (4, ids 0–3); colours only | — |
 | `EpisodeConfig._episodes[n]._levelBackground` → `Level.unity/Background` | Level background per episode | **Art** (`Backgrounds/Level_Ep<N>_*`) |
@@ -37,33 +38,33 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 | `BoosterBar/{Undo,Shuffle,AddTube}Button` + `/Badge` | Booster buttons and count badges | `UISprite` + text labels, `Knob` badge (missing art) |
 | `StuckPanel/Buttons/GiveUpButton` / `PlayOnButton` | Stuck bar buttons | **Art** (`Button_Red` / `Button_Yellow`) |
 | `Celebration` | Win celebration | text only |
-| Popups (`Prefabs/UI`) | Close buttons; Win Continue; Are You Sure Confirm | **Art** (`Button_Close`, `Button_Green`, `Button_Red`) |
-| Popups (`Prefabs/UI`) | Panels, toggles, Settings' Restart / Home, `MoreLivesPopup/Panel/Heart`, `Toast` | `UISprite`; heart = `Heart.png` tinted |
+| Popups (`Prefabs/UI`) | Close buttons; Win Continue; Are You Sure Confirm; Settings' Restart and Home | **Art** (`Button_Close`, `Button_Green`, `Button_Red`) |
+| Popups (`Prefabs/UI`) | Panels, toggles, `MoreLivesPopup/Panel/Heart`, `Toast` | `UISprite`; heart = `Heart.png` tinted |
 | `TutorialConfig._entries[i]._image` → `TutorialPopup/Panel/Picture` | Optional tutorial picture (hidden when empty) | none |
 
 ### Home (`HomeCanvas`)
 | Slot | For | Now |
 |---|---|---|
 | `EpisodeConfig._episodes[n]._homeBackground` → `Background` | Home background per episode | **Art** for 2 and 5; 1, 3, 4 use episode 2's |
-| `TopBar/AvatarButton` | Avatar frame, the same in every episode | `Avatar_Frame_Empty` (the delivered empty frame, standing in) |
+| `TopBar/AvatarButton` (+ `AvatarFrame`, `/Mask/Picture`) | The picked avatar (`AvatarConfig`) in its frame | **Art** (`AvatarConfig._frame` = `UI/AvatarFrames/Avatar_Frame_Empty`, `UI/Avatars/Avatar_0N`); mask `Placeholder/Ball_Circle` |
 | `TopBar/Lives`, `TopBar/Coins` | Displays, sliced; count on the heart / coin side, text on the pill | **Art** (`Display_Lives`, `Display_Coins`) |
 | `TopBar/SettingsButton` | Settings | **Art** (`Button_Settings`) |
 | `HomePage/LevelButton` + `/TierBadge` | Level button and tier badge (`LevelTierLook` tints are white until tier art exists) | **Art** (`Button_Green`); badge `UISprite` |
-| `BottomNav` (`HomeTabs._bar`, `_tabs[n]._barSprite`) | Bar in three versions, invisible tap areas over its sections | **Art** (`UI/Home/BottomBar_*`) |
+| `BottomNav` (`HomeTabs._bar`, `_tabs[n]._barSprite`; `BottomBar`) | Bar in three versions, full screen width; invisible tap areas (`/TapAreas`) over its sections, above the safe-area inset | **Art** (`UI/Home/BottomBar_*`) |
 | `ShopPage/Scroll/Viewport/Content` | Header, panel, three bundle cards | **Art** (`UI/Shop/*`) |
 | `LeaderboardPage/Panel`, `/RowN` | Placeholder page | `UISprite` |
-| `EditProfilePopup` Save / Close | Buttons | **Art** (`Button_Green`, `Button_Close`) |
-| Other Home popups (panels, `NameField`, `EpisodeUnlockedOverlay`, `SettingsPopup`, `Toast`) | Home popups | `UISprite`, `InputFieldBackground` |
+| `AvatarMenuPopup` (`Prefabs/UI`) | Panel, frames, pen, close | **Art** (`AvatarMenu_Panel`, `Button_Pen`, `Button_Close`; frames from `AvatarConfig`: `Avatar_Frame_Empty`, the picked one `Avatar_Frame_Selected`) |
+| Other Home popups (panels, `EpisodeUnlockedOverlay`, `SettingsPopup`, `Toast`) | Home popups | `UISprite` |
 | Every popup root | Dimmed full-screen background | black at 60 % (Episode Unlocked 75 %) |
 
 ## 2. Animation hooks
 Rule: game logic never waits on animation. The model applies a move at once and raises events; views animate and must
 accept being interrupted (complete or kill a ball's tween before moving it again). Board moves 2.2–2.6 are built:
-values, rules and our deviations from product's document are in docs/animations.md, every number in `AnimationConfig`.
+values, rules and our deviations from product's document are in docs/animation-spec.md, every number in `AnimationConfig`.
 
 | Animation | Hook (one place each) | Today |
 |---|---|---|
-| Select / deselect lift | `TubeView.Lift` / `Lower` → `BallView.MoveTo`, `SetRaised` | **animated** (docs/animations.md 2.2) |
+| Select / deselect lift | `TubeView.Lift` / `Lower` → `BallView.MoveTo` (depth from `BallView.SetMouth`) | **animated** (docs/animation-spec.md 2.2) |
 | Ball move (fly + drop, staggered), landing | `BoardView.Transfer` (on `MoveApplied`, `MoveUndone` reversed) → `BallView.MoveTo(BallFlight)`; landing in `BallView` / `TubeView.NotifyLanded` | **animated** (2.3, 2.4) |
 | Reveal flip | `BallView.Reveal` (on `BallRevealed`, once the moving balls have left the tube) | snap, timed |
 | Key mark leaves | `BallView.RemoveKey` → `UpdateKeyMark` (on `KeyFound`, after the landing) | snap, timed |
@@ -95,7 +96,8 @@ Event order within one operation (documented on `LevelSession`); animations must
 ## 3. UI structure
 - uGUI + TextMeshPro. One Screen Space Overlay canvas per scene (`HomeCanvas`, `LevelCanvas`), Canvas Scaler 1080×1920,
   match 0.5. Children in draw order: `Background` (full screen, outside the safe area) → `SafeArea` (screen content:
-  top bar, pages or HUD, bottom nav or booster bar) → `InputBlocker` (Home) → popup instances → `Toast` last.
+  top bar, pages or HUD, booster bar) → `BottomNav` (Home, outside the safe area so it spans the screen) →
+  `InputBlocker` (Home) → popup instances → `Toast` last.
 - Popups are prefabs in `Assets/Prefabs/UI/`: root = full-screen dim `Image` (blocks input) + `Popup` + the popup's
   component; child `Panel` (`VerticalLayoutGroup` + `ContentSizeFitter`, 820 wide) with TMP texts and buttons; a
   `CloseButton` top right (`LayoutElement.ignoreLayout`). Open = GameObject active, so `Popup.IsOpen` gates input.
@@ -123,7 +125,7 @@ TODOs:
 - Final tutorial texts (product) and optional pictures in `TutorialConfig`.
 - Missing art (full list for the artist in docs/art-inventory.md): booster icons (text labels), a standalone coin
   ("●" in the Win reward and Play on price), popup panels, door / lock / key, tier looks for the Level button; for the
-  animations, cork, glow, shock faces and VFX sprites (docs/art-inventory.md, Pending for animations).
+  animations, glow, shock faces and VFX sprites (docs/art-inventory.md, Pending for animations).
 - Leaderboard and Shop are placeholders; More Lives offers no way to get lives.
 - Consider adding "start position not stuck" to `LevelValidator` (today only `ShippedLevelTests` checks it).
 - Re-measure the stuck check and the shuffle search on a device.

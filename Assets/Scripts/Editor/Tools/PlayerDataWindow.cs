@@ -8,8 +8,8 @@ using UnityEngine;
 namespace BallSort.Editor.Tools
 {
     /// <summary>
-    /// Testing tool: sets the player's coins, lives (and the wait for the next one), booster counts and
-    /// name, moves progress to any level, and forgets the tutorials seen. Outside Play mode it edits the
+    /// Testing tool: sets the player's coins, lives (and the wait for the next one), booster counts,
+    /// name and avatar, moves progress to any level, and forgets the tutorials seen. Outside Play mode it edits the
     /// save on disk; in Play mode it edits the live player, so the HUD updates at once and the change is
     /// saved as usual.
     /// </summary>
@@ -20,6 +20,7 @@ namespace BallSort.Editor.Tools
         private int _maxLives;
         private float _minutesToNextLife;
         private string _playerName = string.Empty;
+        private int _avatar = AvatarRules.Default;
         private string _status = string.Empty;
         private int _level = 1;
         private int _undo;
@@ -61,6 +62,7 @@ namespace BallSort.Editor.Tools
             }
 
             _playerName = EditorGUILayout.TextField("Player name", _playerName);
+            _avatar = EditorGUILayout.IntSlider("Avatar", _avatar, 1, AvatarRules.Count);
             EditorGUILayout.Space();
             _undo = Mathf.Max(0, EditorGUILayout.IntField("Undo", _undo));
             _shuffle = Mathf.Max(0, EditorGUILayout.IntField("Shuffle", _shuffle));
@@ -114,6 +116,7 @@ namespace BallSort.Editor.Tools
             TimeSpan? untilNext = player.GetTimeUntilNextLife();
             _minutesToNextLife = untilNext.HasValue ? (float)untilNext.Value.TotalMinutes : 30f;
             _playerName = player.PlayerName;
+            _avatar = player.AvatarId;
             _level = player.CurrentLevel;
             _status = $"Level {player.CurrentLevel}, retries {player.RetryCount}, last variant V{player.LastVariant}, " +
                 $"level in progress {(player.LevelInProgress == 0 ? "none" : player.LevelInProgress.ToString())}, " +
@@ -138,6 +141,8 @@ namespace BallSort.Editor.Tools
             {
                 Debug.LogWarning($"Player Data: \"{_playerName}\" is not a valid name (1–{PlayerNameRules.MaxLength} characters); the name was kept.");
             }
+
+            player.TrySetAvatar(_avatar);
             SetBoosters(player.Boosters, BoosterType.Undo, _undo);
             SetBoosters(player.Boosters, BoosterType.Shuffle, _shuffle);
             SetBoosters(player.Boosters, BoosterType.AddTube, _addTube);

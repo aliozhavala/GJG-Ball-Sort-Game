@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace BallSort.Game.Views
 {
-    /// <summary>Helpers shared by the board's views: the board clock and the motion formulas of docs/animations.md.</summary>
+    /// <summary>Helpers shared by the board's views: the board clock and the motion formulas of docs/animation-spec.md.</summary>
     public static class BoardTweens
     {
         /// <summary>Runs <paramref name="tween"/> on the <see cref="BoardClock"/> instead of DOTween's own update.</summary>

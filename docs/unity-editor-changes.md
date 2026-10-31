@@ -574,7 +574,7 @@ All changes made through Unity MCP Editor commands.
   wallet untouched). Slot height changed to 1.2 on the asset in Play mode: the board re-laid out on the next frame
   (slot 1 at 1.79), then restored to 0.91 (1.50). Screenshots in `Screenshots/step6-art-2/`.
 
-## 2026-10-30 — Step 6b board animations (docs/animations.md 2.2–2.6)
+## 2026-10-30 — Step 6b board animations (docs/animation-spec.md 2.2–2.6)
 
 All changes made through Unity MCP Editor commands.
 
@@ -630,3 +630,76 @@ All changes made through Unity MCP Editor commands, except the copy of the sound
   invalid with the deselect, one land per ball 0.08 s apart rising with the slot, no sound on undo flights, chime with
   the last landing rising with the chain, cork 0.16–0.18 s later.
 - Undos spent from the save were restored to 99.
+
+## 2026-10-31 — Step 6c second art delivery: rims, corks, avatar menu, bottom bar, shop scrolling
+
+All changes made through Unity MCP Editor commands.
+
+### Assets
+- Moved (`AssetDatabase.MoveAsset`, `.meta` kept) from `Assets/Art/Incoming/` (folder then trashed):
+  `Tubes/Tube_RimBack.png`, `Tubes/Tube_RimFront.png`, `Tubes/Corks/Cork_{Plain,Red,Blue,Yellow,Green,Purple,Orange,
+  Turquoise,Pink,Lilac,Brown}.png` (new folder `Tubes/Corks`), `UI/Buttons/Button_Pen.png`,
+  `UI/Avatar/AvatarMenu_Panel.png`, `UI/Avatars/Avatar_01…05.png` (new folder `UI/Avatars`).
+  `Tubes/Tube_Top.png` moved to `Assets/Art/Unused/`.
+- **Ball Sort ▸ Art ▸ Prepare Sprites** run: rim halves cut to 180×100 and corks to 140×152 with pivots at the rim's
+  top; panel and pen trimmed; import settings applied (corks max 256 ASTC 4×4, avatars max 512 ASTC 6×6 without alpha).
+- `Assets/Prefabs/Tube.prefab`: `Top` renamed `RimBack` (TubeBack 0); new `RimFront` (copy of it, TubeFront 3);
+  `Clay` TubeBack 1 → TubeFront 1; `Cap` order 1 → 2, draw mode Simple; `TubeView._rimBack` / `_rimFront` assigned.
+- `Assets/Prefabs/Cover.prefab`: `Body` order 3 → 4, `Icon` 4 → 5 (above the rim front).
+- `Assets/Data/Config/TubeVisualConfig.asset`: `_rimBackSprite` → `Tube_RimBack`, `_rimFrontSprite` → `Tube_RimFront`,
+  `_capSprite` → `Cork_Plain`, `_capTint` white, `_clayScale` 1.1, `_veilHeightScale` 0.92 (hem at the bottom ball's
+  centre on a capacity-4 tube).
+- `Assets/Data/Config/ColorPalette.asset`: `_entries[0..9]._cork` → `Cork_<Colour>` (ids 10–11 left empty).
+- New `Assets/Data/Config/AvatarConfig.asset` (`_pictures` = `Avatar_01…05`).
+- `Assets/Prefabs/UI/SettingsPopup.prefab`: `RestartButton` and `HomeButton` → `Button_Red` (Sliced, ×2.34 pixels
+  per unit), white tint, Are You Sure Confirm's colours, label and height (140).
+- New `Assets/Prefabs/UI/AvatarMenuPopup.prefab`, built from `EditProfilePopup.prefab`: root dim + `Popup` (close
+  button kept) + `AvatarMenuPopup`; `Panel` = `AvatarMenu_Panel` (820×1340, no layout group); `Header` (over the art's
+  top bar) with `SelectedAvatar` (`AvatarFrame`: `Frame`, `Mask` circle → `Picture`), the old `NameField` (transparent,
+  no transition, auto-size 26–46, placeholder off) over the art's name field and `PenButton`; `Grid`
+  (`GridLayoutGroup` 3 columns, 180×185 cells) with `Slot1…9` (`AvatarFrame` + `Button`, `Highlight` gold
+  `Ball_Circle` behind the frame); `CloseButton` last.
+- Trashed `Assets/Prefabs/UI/EditProfilePopup.prefab` and `Assets/Scripts/Game/UI/EditProfilePopup.cs`.
+
+### Scenes
+- `Assets/Scenes/Home.unity`: `EditProfilePopup` instance replaced by an `AvatarMenuPopup` instance (same place in
+  the draw order); `SafeArea/TopBar/AvatarButton` gained `AvatarFrame` and `Mask` (circle, 13–87 % × 14.4–88.4 %) →
+  `Picture`; `BottomNav` moved out of `SafeArea` to right after it under `HomeCanvas`, `AspectRatioFitter` removed,
+  `BottomBar` added (`_art` = its image, `_tapAreas` = new child `TapAreas` holding the three tab buttons);
+  `HomePage` and `LeaderboardPage` gained `KeepAboveBar` (gap 8); `ShopPage/Scroll` gained `ScrollBehindBar`
+  (content = `Viewport/Content`'s layout group); `HomeScreen._avatarMenu`, `_avatar`, `_avatars` assigned.
+
+### Verification runs (no persistent changes)
+- Console clean after every compile and after Play mode. EditMode tests: 1732 passed, 0 failed.
+- Play mode, 1080×1920: real taps opened the avatar menu, picked avatar 3 (Home's avatar followed), an empty frame
+  ignored its tap; a tap on the name did not start an edit, the pen did; ending the edit saved "Lab Rat" trimmed, and
+  an empty name went back to it. Shop: a drag scrolled the content behind the bar; at the end the last bundle sits
+  above it. Editor test visits: level 34 V1 (veils), level 20 V1 (clay, then two completions with their corks, then a
+  flight from the top row across the board, the leading ball switching to inside the target's mouth at its clear
+  height).
+- The Editor save's avatar and name were restored (1, `Player`); lives and progress were not touched (test visits).
+
+## 2026-10-31 — Avatar menu: selected frame, name edit fix
+
+All changes made through Unity MCP Editor commands, except restoring the plain frame's original file.
+
+### Assets
+- `Assets/Art/Sprites/UI/Avatar/Avatar_Frame_Empty.png` overwritten with its untrimmed original (git `5884c0f`,
+  `Art/Unused/Frame_Purple_Empty.png`; GUID kept) and moved to the new swap-set folder `UI/AvatarFrames/`, with
+  `Assets/Art/Incoming/mainmenu_frame_selected.png` moved there as `Avatar_Frame_Selected.png` (`Incoming` trashed).
+  Prepare Sprites cut both to 772×792.
+- `Assets/Data/Config/AvatarConfig.asset`: `_frame` → `Avatar_Frame_Empty`, `_selectedFrame` → `Avatar_Frame_Selected`.
+- `Assets/Prefabs/UI/AvatarMenuPopup.prefab`: every `AvatarFrame._frame` → its `Frame` image; the nine `Highlight`
+  children removed; `NameField` gained a `CanvasGroup` (blocks raycasts off), left interactable;
+  `AvatarMenuPopup._nameTaps` → it.
+
+### Scenes
+- `Assets/Scenes/Home.unity`: `SafeArea/TopBar/AvatarButton`'s `AvatarFrame._frame` → its own image.
+
+### Verification runs
+- Play mode (Home): editing ended by deselecting to nothing and by selecting another object, no error, the name saved
+  trimmed; a tap on the read-only name reaches the panel behind it; picking avatar 4 showed the green frame on it only.
+  EditMode tests: 1732 passed. Console clean.
+- Stopping the user's Play session (it had lost `AppRoot` to a recompile) left a level-in-progress mark; clearing it
+  through `PlayerData.LeaveAttempt` also spent a life and counted a retry, so the save was written back to its values
+  before (lives 5, no timer, retries 3, no mark).

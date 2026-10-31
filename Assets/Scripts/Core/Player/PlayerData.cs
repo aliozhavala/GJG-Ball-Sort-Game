@@ -62,6 +62,9 @@ namespace BallSort.Core.Player
         /// <summary>The player's name, 1 to <see cref="PlayerNameRules.MaxLength"/> characters.</summary>
         public string PlayerName { get; private set; }
 
+        /// <summary>The picked avatar, 1 to <see cref="AvatarRules.Count"/>.</summary>
+        public int AvatarId { get; private set; }
+
         /// <summary>Raised after any persistent value changes.</summary>
         public event Action Changed;
 
@@ -95,6 +98,7 @@ namespace BallSort.Core.Player
             Wallet = new Wallet(save.Coins);
             Boosters = new BoosterInventory(save.UndoBoosters, save.ShuffleBoosters, save.AddTubeBoosters);
             PlayerName = PlayerNameRules.Validate(save.PlayerName) ?? PlayerNameRules.Default;
+            AvatarId = AvatarRules.IsValid(save.Avatar) ? save.Avatar : AvatarRules.Default;
             _tutorialsSeen = new SortedSet<int>(save.TutorialsSeen ?? Array.Empty<int>());
             _settings[(int)SettingType.Sound] = save.SoundOn;
             _settings[(int)SettingType.Music] = save.MusicOn;
@@ -244,7 +248,7 @@ namespace BallSort.Core.Player
             RaiseChanged();
         }
 
-        // --- Name and tutorials --------------------------------------------------------------------
+        // --- Name, avatar and tutorials -------------------------------------------------------------
 
         /// <summary>Renames the player; see <see cref="PlayerNameRules"/>.</summary>
         /// <returns>False, changing nothing, for an empty or too long name.</returns>
@@ -259,6 +263,24 @@ namespace BallSort.Core.Player
             if (valid != PlayerName)
             {
                 PlayerName = valid;
+                RaiseChanged();
+            }
+
+            return true;
+        }
+
+        /// <summary>Picks avatar <paramref name="avatarId"/>; see <see cref="AvatarRules"/>.</summary>
+        /// <returns>False, changing nothing, for an id without an avatar.</returns>
+        public bool TrySetAvatar(int avatarId)
+        {
+            if (!AvatarRules.IsValid(avatarId))
+            {
+                return false;
+            }
+
+            if (avatarId != AvatarId)
+            {
+                AvatarId = avatarId;
                 RaiseChanged();
             }
 
@@ -332,6 +354,7 @@ namespace BallSort.Core.Player
                 LastVariant = LastVariant,
                 LevelInProgress = LevelInProgress,
                 PlayerName = PlayerName,
+                Avatar = AvatarId,
                 TutorialsSeen = tutorialsSeen,
                 SoundOn = GetSetting(SettingType.Sound),
                 MusicOn = GetSetting(SettingType.Music),

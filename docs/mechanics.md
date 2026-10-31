@@ -11,6 +11,11 @@ Validation: for each color, its ball count must equal the capacity of some tube,
 A **covered** tube is neither a move source nor a target, and its contents are drawn covered (not visible). A tube has at most one cover. Any tube can be covered, large tubes included. When the cover is removed, the tube behaves normally and its balls follow their own `hidden` flags. Removing a cover is permanent (never undone).
 - Validation: a covered tube must not already hold a finished set (it would complete the moment its cover opened, and removing a cover never completes a tube).
 
+### Cover visuals
+- **Veil:** the towel hangs from the rim over the tube, shortened by scaling it vertically (`TubeVisualConfig._veilHeightScale`, 0.92) so its hem crosses the bottom ball: that ball's lower half shows below the hem, drawn as it would be uncovered ("?" if hidden, its key mark if revealed and keyed). Every other ball in the tube is hidden (not drawn, so the towel may be translucent). On taller tubes the hem stays at the same height and the stripes stretch.
+- **Lock:** the door hides every ball of every tube it covers.
+- Opening a cover shows all the tube's balls (`CoverView.SetOpen`, the single entry point). Showing the bottom ball changes no rule: a veiled tube is still neither a source nor a target.
+
 ### Veil
 - A veil has one color (`veil.color`, a ball color id). It opens **only** when a tube completes in **that color**, by a move or by an undo. Completing a tube of any other color does nothing to it, and neither does filling a tube with only some of the veil's color (that is not a completion).
 - Every veil of the completed color opens at once.
@@ -28,6 +33,7 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 ## Clay
 - A clay tube is **never a move source**; it is a normal target (empty, or top color matches).
 - Starts empty or with balls of **one color only**. No hidden balls and no keys in clay.
+- Drawn as ice at the tube's base, over the balls inside it and under balls in flight, 1.1× the rim's width (`TubeVisualConfig._clayScale`). It disappears when the tube completes (`TubeView.SetClayShown`; a snap until its animation exists).
 - Any capacity can be clay. Usual design (not a rule): a large clay tube with 1 starting ball of the color that will fill it.
 
 ## Large tubes

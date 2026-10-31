@@ -14,7 +14,7 @@ namespace BallSort.Game.Views
     /// <remarks>
     /// The board view's presentation events are followed here (a ball lifted or dropped back, landed,
     /// a completion started, a cork seated), so the feedback plays when the player sees it, not when the
-    /// model changed (docs/animations.md, Sounds). The
+    /// model changed (docs/animation-spec.md, Sounds). The
     /// level flow routes input's invalid taps to <see cref="PlayInvalidMove"/> and awaits
     /// <see cref="PlayCelebrationAsync"/>.
     /// </remarks>

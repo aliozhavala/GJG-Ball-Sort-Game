@@ -42,6 +42,7 @@ namespace BallSort.Tests.EditMode
             Assert.That(save.LastVariant, Is.EqualTo(4));
             Assert.That(save.LevelInProgress, Is.EqualTo(42));
             Assert.That(save.PlayerName, Is.EqualTo("Ada"));
+            Assert.That(save.Avatar, Is.EqualTo(3));
             Assert.That(save.TutorialsSeen, Is.EqualTo(new[] { 1, 7, 20 }));
             Assert.That(save.SoundOn, Is.False);
             Assert.That(save.MusicOn, Is.True);
@@ -60,6 +61,7 @@ namespace BallSort.Tests.EditMode
             player.BeginAttempt(new Random(1));
             player.LeaveAttempt();
             player.TrySetPlayerName("Ada");
+            player.TrySetAvatar(4);
             player.MarkTutorialSeen(7);
 
             SaveData save = SaveJsonCodec.Read(SaveJsonCodec.Write(player.ToSaveData()), Rules, LevelCount, out _);
@@ -76,6 +78,7 @@ namespace BallSort.Tests.EditMode
             Assert.That(reloaded.LastVariant, Is.EqualTo(1));
             Assert.That(reloaded.LevelInProgress, Is.EqualTo(0));
             Assert.That(reloaded.PlayerName, Is.EqualTo("Ada"));
+            Assert.That(reloaded.AvatarId, Is.EqualTo(4));
             Assert.That(reloaded.HasSeenTutorial(7), Is.True);
         }
 
@@ -94,9 +97,28 @@ namespace BallSort.Tests.EditMode
             Assert.That(save.LevelInProgress, Is.EqualTo(0));
             Assert.That(save.PlayerName, Is.EqualTo(PlayerNameRules.Default));
             Assert.That(save.TutorialsSeen, Is.Empty);
+            Assert.That(save.Avatar, Is.EqualTo(AvatarRules.Default));
             Assert.That(save.CurrentLevel, Is.EqualTo(42));
             Assert.That(save.Coins, Is.EqualTo(1234));
             Assert.That(save.Lives, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void Read_Version3_GetsTheDefaultAvatar_AndKeepsEverythingElse()
+        {
+            JObject json = JObject.Parse(SaveJsonCodec.Write(SampleSave()));
+            json[nameof(SaveData.Version)] = 3;
+            json.Remove(nameof(SaveData.Avatar));
+
+            SaveData save = SaveJsonCodec.Read(json.ToString(), Rules, LevelCount, out string warning);
+
+            Assert.That(warning, Is.Null);
+            Assert.That(save.Version, Is.EqualTo(SaveData.CurrentVersion));
+            Assert.That(save.Avatar, Is.EqualTo(AvatarRules.Default));
+            Assert.That(save.PlayerName, Is.EqualTo("Ada"));
+            Assert.That(save.RetryCount, Is.EqualTo(6));
+            Assert.That(save.LevelInProgress, Is.EqualTo(42));
+            Assert.That(save.TutorialsSeen, Is.EqualTo(new[] { 1, 7, 20 }));
         }
 
         [Test]
@@ -125,6 +147,7 @@ namespace BallSort.Tests.EditMode
             Assert.That(save.LastVariant, Is.EqualTo(0));
             Assert.That(save.PlayerName, Is.EqualTo(PlayerNameRules.Default));
             Assert.That(save.TutorialsSeen, Is.Empty);
+            Assert.That(save.Avatar, Is.EqualTo(AvatarRules.Default));
             Assert.That(save.CurrentLevel, Is.EqualTo(42));
             Assert.That(save.Coins, Is.EqualTo(1234));
         }
@@ -134,6 +157,7 @@ namespace BallSort.Tests.EditMode
         [TestCase(nameof(SaveData.LevelInProgress))]
         [TestCase(nameof(SaveData.PlayerName))]
         [TestCase(nameof(SaveData.TutorialsSeen))]
+        [TestCase(nameof(SaveData.Avatar))]
         public void Read_WithAMissingField_StartsANewPlayerWithAWarning(string field)
         {
             JObject json = JObject.Parse(SaveJsonCodec.Write(SampleSave()));
@@ -185,6 +209,7 @@ namespace BallSort.Tests.EditMode
             sample.LastVariant = 9;
             sample.LevelInProgress = 500;
             sample.PlayerName = "   ";
+            sample.Avatar = AvatarRules.Count + 1;
             sample.TutorialsSeen = new[] { 20, -1, 7, 0, 20, 1 };
 
             SaveData save = SaveJsonCodec.Read(SaveJsonCodec.Write(sample), Rules, LevelCount, out string warning);
@@ -201,6 +226,7 @@ namespace BallSort.Tests.EditMode
             Assert.That(save.LastVariant, Is.EqualTo(5));
             Assert.That(save.LevelInProgress, Is.EqualTo(0));
             Assert.That(save.PlayerName, Is.EqualTo(PlayerNameRules.Default));
+            Assert.That(save.Avatar, Is.EqualTo(AvatarRules.Default));
             Assert.That(save.TutorialsSeen, Is.EqualTo(new[] { 1, 7, 20 }));
         }
 
@@ -213,6 +239,7 @@ namespace BallSort.Tests.EditMode
             sample.LastVariant = -1;
             sample.LevelInProgress = -3;
             sample.PlayerName = new string('x', PlayerNameRules.MaxLength + 1);
+            sample.Avatar = 0;
 
             SaveData save = SaveJsonCodec.Read(SaveJsonCodec.Write(sample), Rules, LevelCount, out _);
 
@@ -221,6 +248,7 @@ namespace BallSort.Tests.EditMode
             Assert.That(save.LastVariant, Is.EqualTo(0));
             Assert.That(save.LevelInProgress, Is.EqualTo(0));
             Assert.That(save.PlayerName, Is.EqualTo(PlayerNameRules.Default));
+            Assert.That(save.Avatar, Is.EqualTo(AvatarRules.Default));
         }
 
         private static SaveData SampleSave() =>
@@ -239,13 +267,14 @@ namespace BallSort.Tests.EditMode
                 LastVariant = 4,
                 LevelInProgress = 42,
                 PlayerName = "Ada",
+                Avatar = 3,
                 TutorialsSeen = new[] { 1, 7, 20 },
                 SoundOn = false,
                 MusicOn = true,
                 HapticsOn = false,
             };
 
-        /// <summary>The sample as version 2 wrote it: tries instead of retries, none of the version 3 fields.</summary>
+        /// <summary>The sample as version 2 wrote it: tries instead of retries, none of the version 3 or 4 fields.</summary>
         private static JObject Version2Save()
         {
             JObject json = JObject.Parse(SaveJsonCodec.Write(SampleSave()));
@@ -256,6 +285,7 @@ namespace BallSort.Tests.EditMode
             json.Remove(nameof(SaveData.LevelInProgress));
             json.Remove(nameof(SaveData.PlayerName));
             json.Remove(nameof(SaveData.TutorialsSeen));
+            json.Remove(nameof(SaveData.Avatar));
             return json;
         }
 
@@ -275,6 +305,7 @@ namespace BallSort.Tests.EditMode
             Assert.That(save.LevelInProgress, Is.EqualTo(0));
             Assert.That(save.PlayerName, Is.EqualTo(PlayerNameRules.Default));
             Assert.That(save.TutorialsSeen, Is.Empty);
+            Assert.That(save.Avatar, Is.EqualTo(AvatarRules.Default));
             Assert.That(save.SoundOn && save.MusicOn && save.HapticsOn, Is.True);
         }
     }

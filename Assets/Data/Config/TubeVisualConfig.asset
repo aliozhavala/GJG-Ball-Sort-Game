@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1be1ed538f2329f4e8e4301753230128, type: 3}
   m_Name: TubeVisualConfig
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Views.TubeVisualConfig
-  _topSprite: {fileID: 21300000, guid: 4ae68e8c3fd5fa045b193409ea64e5e0, type: 3}
+  _rimBackSprite: {fileID: 21300000, guid: 403d5b915ddd5094581966637f0a6dfc, type: 3}
+  _rimFrontSprite: {fileID: 21300000, guid: 9f996729a648ac044bc741d1e2a5a4d2, type: 3}
   _middleSprite: {fileID: 21300000, guid: fdf45e4318faea54983706d2be4f66ce, type: 3}
   _bottomSprite: {fileID: 21300000, guid: bc8d55ddbfa4bbc40a7c912c539fa17a, type: 3}
   _tubeTint: {r: 1, g: 1, b: 1, a: 1}
@@ -20,8 +21,8 @@ MonoBehaviour:
   _outlineSprite: {fileID: 21300000, guid: 313ecffe9b9a55442832754ff06ec30f, type: 3}
   _frontSprite: {fileID: 0}
   _frontTint: {r: 1, g: 1, b: 1, a: 0.12}
-  _capSprite: {fileID: 21300000, guid: 7770bd4a35ee54144b430d61cd7331c0, type: 3}
-  _capTint: {r: 0.85, g: 0.75, b: 0.55, a: 1}
+  _capSprite: {fileID: 21300000, guid: c46762f5b13abe14688358aeb2a923de, type: 3}
+  _capTint: {r: 1, g: 1, b: 1, a: 1}
   _glowSprite: {fileID: 21300000, guid: a574a4ebfb6c7584ead8af867ff46fed, type: 3}
   _glowTint: {r: 1, g: 1, b: 1, a: 1}
   _glowPadding: 0.12
@@ -30,11 +31,10 @@ MonoBehaviour:
   _bottomOffset: 0.59
   _topPadding: 0.15
   _ballDiameter: 0.9
-  _capHeight: 0.5
   _horizontalSpacing: 0.45
   _veilSprite: {fileID: 21300000, guid: d28c1bb3d10027d45bfd3c81e57016c1, type: 3}
   _veilTint: {r: 1, g: 1, b: 1, a: 1}
-  _veilBottomGap: 1
+  _veilHeightScale: 0.92
   _veilBadgeSprite: {fileID: 21300000, guid: 83b96e5eb5e915a4aaa53cf1d752d237, type: 3}
   _veilBadgeSize: 0.8
   _doorSprite: {fileID: 21300000, guid: 7770bd4a35ee54144b430d61cd7331c0, type: 3}
@@ -43,3 +43,4 @@ MonoBehaviour:
   _lockIconSize: 1
   _claySprite: {fileID: 21300000, guid: 1685ddd8ef66c334faa10e004b5b6ab7, type: 3}
   _clayTint: {r: 1, g: 1, b: 1, a: 1}
+  _clayScale: 1.1

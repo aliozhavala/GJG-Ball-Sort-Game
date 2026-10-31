@@ -32,19 +32,25 @@ namespace BallSort.Editor.Art
         public static readonly string[] TrimShared =
         {
             Root + "/UI/Home",
+            Root + "/UI/AvatarFrames",
             Root + "/Episodes",
         };
 
         /// <summary>
-        /// The tube's parts, its full outline, the clay and the veil, delivered on one shared canvas
-        /// with each piece in place (<see cref="TubeArtTrim"/>).
+        /// The tube's parts, its full outline, the clay, the veil and the corks, delivered on one shared
+        /// canvas with each piece in place (<see cref="TubeArtTrim"/>). The rim is two halves: the back
+        /// draws behind the balls, the front over them.
         /// </summary>
-        public const string TubeTop = Root + "/Tubes/Tube_Top.png";
+        public const string TubeRimBack = Root + "/Tubes/Tube_RimBack.png";
+        public const string TubeRimFront = Root + "/Tubes/Tube_RimFront.png";
         public const string TubeMiddle = Root + "/Tubes/Tube_Middle.png";
         public const string TubeBottom = Root + "/Tubes/Tube_Bottom.png";
         public const string TubeFull = Root + "/Tubes/Tube_Full.png";
         public const string Clay = Root + "/Mechanics/Clay_Ice.png";
         public const string Veil = Root + "/Mechanics/Veil_Towel.png";
+
+        /// <summary>One cork per ball colour (<c>Cork_&lt;Colour&gt;</c>) and a plain one for colours without art.</summary>
+        public const string Corks = Root + "/Tubes/Corks";
 
         public static readonly FolderImport[] Imports =
         {
@@ -53,12 +59,16 @@ namespace BallSort.Editor.Art
             new FolderImport(Root + "/Balls", 256, TextureImporterFormat.ASTC_4x4,
                 tightMesh: true, pivot: new Vector2(130f / 256f, 1f - 148f / 256f)),
             new FolderImport(Root + "/Tubes", 1024, TextureImporterFormat.ASTC_4x4),
+            new FolderImport(Corks, 256, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/Mechanics", 1024, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/UI/Buttons", 1024, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/UI/Displays", 1024, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/UI/Home", 1024, TextureImporterFormat.ASTC_6x6),
             new FolderImport(Root + "/UI/Shop", 1024, TextureImporterFormat.ASTC_6x6),
             new FolderImport(Root + "/UI/Avatar", 1024, TextureImporterFormat.ASTC_6x6),
+            new FolderImport(Root + "/UI/AvatarFrames", 1024, TextureImporterFormat.ASTC_6x6),
+            // Player pictures: opaque squares shown at most ≈300 px (masked to a circle in their frame).
+            new FolderImport(Root + "/UI/Avatars", 512, TextureImporterFormat.ASTC_6x6, opaque: true),
             new FolderImport(Root + "/Episodes", 1024, TextureImporterFormat.ASTC_6x6),
             new FolderImport(Root + "/Backgrounds", 2048, TextureImporterFormat.ASTC_6x6, opaque: true),
         };

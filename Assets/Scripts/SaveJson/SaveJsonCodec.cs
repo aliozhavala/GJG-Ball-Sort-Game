@@ -83,6 +83,12 @@ namespace BallSort.SaveJson
                 if (version == 2)
                 {
                     MigrateFromVersion2(root);
+                    version = 3;
+                }
+
+                if (version == 3)
+                {
+                    MigrateFromVersion3(root);
                 }
 
                 save = root.ToObject<SaveData>(JsonSerializer.Create(ReadSettings));
@@ -126,6 +132,13 @@ namespace BallSort.SaveJson
             save[nameof(SaveData.Version)] = 3;
         }
 
+        /// <summary>Version 4 added the picked avatar; an older save gets the default one.</summary>
+        private static void MigrateFromVersion3(JObject save)
+        {
+            save[nameof(SaveData.Avatar)] = AvatarRules.Default;
+            save[nameof(SaveData.Version)] = 4;
+        }
+
         /// <summary>Clamps values a hand-edited or stale save could have pushed out of range.</summary>
         private static SaveData Sanitize(SaveData save, PlayerRules rules, int levelCount)
         {
@@ -144,6 +157,11 @@ namespace BallSort.SaveJson
             }
 
             save.PlayerName = PlayerNameRules.Validate(save.PlayerName) ?? PlayerNameRules.Default;
+            if (!AvatarRules.IsValid(save.Avatar))
+            {
+                save.Avatar = AvatarRules.Default;
+            }
+
             save.TutorialsSeen = save.TutorialsSeen.Where(id => id > 0).Distinct().OrderBy(id => id).ToArray();
             return save;
         }

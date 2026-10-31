@@ -22,16 +22,17 @@ Read this when working on UI, scene flow, lives, tutorials, boosters, or player 
 | Boosters: Undo / Shuffle / AddTube | 99 / 99 / 99 | Global totals, spent in any level, no refills. |
 | Retry count / last variant | 0 / none | Attempts at the current level that cost a life since it was last won, and the variant the latest attempt played (docs/levels.md, Variants and retries). Reset by a win. |
 | Level in progress | none | The level being played: set when it starts, cleared by a win or a confirmed Home / Give up. Still set at launch → the app was closed mid-level (Lives, below). |
-| Player name | `Player` | Set in Edit Profile; 1–16 characters, trimmed. |
+| Player name | `Player` | Set in the avatar menu; 1–16 characters, trimmed. |
+| Avatar | 1 | Picked in the avatar menu; ids 1–5 (`AvatarRules`), pictures in `AvatarConfig`. |
 | Tutorials seen | none | Ids of the levels whose tutorial popup has been dismissed. |
 | Settings: Sound / Music / Haptics | on / on / on | Saved. Sound mutes every sound effect (`AudioService`); Music and Haptics have no effect yet (no music, no haptics). |
 
 All numbers live in an `EconomyConfig` ScriptableObject, not in code, including the win reward of each tier, the lives maximum and the refill interval. Progress and rewards are saved **at the moment of the win**, before any celebration or panel.
 
-**Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveData.CurrentVersion` and add a migration to `SaveJsonCodec` when the shape changes (version 2 added the try fields; a version 1 save migrates with try 0 and no last variant. Version 3 adds the life timer, the level-in-progress mark, the player name and the tutorials seen, and turns the try count into the retry count: a version 2 save keeps its count as retries, starts the life timer at load if lives are below the maximum, and gets no mark, the name `Player` and no tutorials seen). Editor tools: **Ball Sort ▸ Reset Save** (disabled in Play mode) and **Ball Sort ▸ Player Data…** (set coins, lives, the time to the next life, booster counts and the player name, jump to any level (retries cleared), and clear the tutorials seen; it also shows the level, retries, last variant, level in progress and tutorials seen; edits the save in Edit mode, the live player in Play mode).
+**Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveData.CurrentVersion` and add a migration to `SaveJsonCodec` when the shape changes (version 2 added the try fields; a version 1 save migrates with try 0 and no last variant. Version 3 adds the life timer, the level-in-progress mark, the player name and the tutorials seen, and turns the try count into the retry count: a version 2 save keeps its count as retries, starts the life timer at load if lives are below the maximum, and gets no mark, the name `Player` and no tutorials seen. Version 4 adds the avatar: an older save gets avatar 1; an id without an avatar is replaced by 1 on load). Editor tools: **Ball Sort ▸ Reset Save** (disabled in Play mode) and **Ball Sort ▸ Player Data…** (set coins, lives, the time to the next life, booster counts, the player name and the avatar, jump to any level (retries cleared), and clear the tutorials seen; it also shows the level, retries, last variant, level in progress and tutorials seen; edits the save in Edit mode, the live player in Play mode).
 
 ## Home screen
-- **Top bar:** avatar (top-left: an empty frame, the same in every episode; mascot frames are a Level scene thing), lives (the count on the art's heart, the time to
+- **Top bar:** avatar (top-left: the picked avatar in its frame, the same in every episode; mascot frames are a Level scene thing), lives (the count on the art's heart, the time to
   the next life on its pill) and coins (the count on the pill next to the art's coin, on one line: it shrinks to fit and
   is abbreviated, e.g. 125K or 1.2M, only once it would get too small, `AmountLabel`) between the corners, settings
   button (top-right).
@@ -43,12 +44,24 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - **Bottom nav:** Shop · Home · Leaderboard, the order of the bar art. One bar image in three versions, each with its
   tab raised; selecting a tab swaps the bar to its version. Three invisible tap areas match the drawn sections
   (41 / 19 / 41 % of the bar's width). Home is selected on arriving. Every tab stays interactable (`HomeTabs` enforces it).
+  The bar spans the full screen width on any aspect ratio (`BottomBar`): it sits outside the safe area on the screen's
+  bottom edge, scaled uniformly to 112 % of the screen's width (the raised Shop and Leaderboard tabs round in 5.7 % per
+  side, so every version's ends are off-screen) and sunk 3.5 % of its height below the edge (its rounded bottom
+  corners). The art may reach into the bottom safe-area inset; the tap areas start above it, clear of the home
+  gesture. Its height follows the screen's width, so the Home page keeps its bottom 8 units above the bar
+  (`KeepAboveBar`).
   Leaderboard and Shop swap the center for their page; Home brings the Level button back. The top bar stays on every tab.
-  - **Shop page:** a vertical scroll view: the shop header ("Shop"), the shop panel (six empty item frames until item
+  - **Shop page:** a vertical scroll view that runs down behind the bar to the screen's bottom edge, so items
+    scroll out from behind it (hold and swipe); its content's bottom padding is the bar's height plus 40, so the last
+    item scrolls fully into view (`ScrollBehindBar`; the Leaderboard page can use the same structure): the shop header ("Shop"), the shop panel (six empty item frames until item
     art arrives) and three copies of the bundle card with a name and a price. All static: nothing in it does anything.
   - **Leaderboard page:** placeholder (a title and five empty rows).
-- **Avatar** → **Edit Profile** popup: the player name in an input field, prefilled with the saved name. **Save** stores
-  it (trimmed, 1–16 characters; disabled while empty) and closes; **Close** (✕) closes without saving.
+- **Avatar** → **avatar menu** (`AvatarMenuPopup`, the `AvatarMenu_Panel` art): top, the picked avatar in its frame,
+  the name to its right and the pen button to the right of the name. The name is read-only and takes no taps until
+  the pen is tapped, then editable in place (no popup); Enter or a tap anywhere else ends the edit and saves it (trimmed, 1–16 characters;
+  a refused name goes back to the saved one). Bottom, a 3 × 3 grid of frames: the first five hold avatars 1–5, a tap
+  picks one (saved at once, shown on Home's avatar), the picked one in the green selected frame; the other four show the empty
+  frame and cannot be picked. **Close** (✕) closes.
 - Settings popup (Home): Sound, Music, Haptics toggles.
 
 ## Level screen
@@ -147,12 +160,12 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 ## Shared UI pieces
 - **Toast:** short message, auto-hides, never blocks input. A new message replaces the current one instead of queueing.
 - **Popup:** modal with dimmed background; blocks input beneath it. Open = GameObject active. Draw order is hierarchy order: screen content, then popups, then the toast last. Popups can stack: Are You Sure and More Lives open over the settings popup, and only the topmost takes input. The tutorial popup and the Episode Unlocked overlay close on a tap anywhere; the others have buttons.
-- Buttons (art, 9-sliced so they stretch to any width): green for Continue, the Level button and Save (Edit Profile);
-  red for Give up and Are You Sure's Confirm; yellow for Play on and the shop's prices; the round ✕ closes every popup;
-  the round gear is both settings buttons. Settings' Restart and Home and the booster buttons keep placeholders.
+- Buttons (art, 9-sliced so they stretch to any width): green for Continue and the Level button; red for Give up, Are
+  You Sure's Confirm and Settings' Restart and Home; yellow for Play on and the shop's prices; the round ✕ closes every
+  popup; the round gear is both settings buttons; the round pen edits the name. The booster buttons keep placeholders.
 - Canvas Scaler 1080×1920, match 0.5; `SafeArea` on root panels.
-- **Art slots:** per-episode art (Home and Level backgrounds, mascot frame) is in `EpisodeConfig`, the tutorial image in
-  `TutorialConfig`, the bottom bar's three versions on `HomeTabs`, and everything else is an `Image` on its screen or
+- **Art slots:** per-episode art (Home and Level backgrounds, mascot frame) is in `EpisodeConfig`, the avatar pictures in
+  `AvatarConfig`, the tutorial image in `TutorialConfig`, the bottom bar's three versions on `HomeTabs`, and everything else is an `Image` on its screen or
   popup object. Which slots hold final art and which still hold placeholders (Unity's built-in UI sprites, tinted, and
   the generated heart in `Art/Sprites/Placeholder/UI/`) is listed in docs/art-inventory.md. Home backgrounds exist for
   episodes 2 and 5; episodes 1, 3 and 4 use episode 2's until theirs arrive.

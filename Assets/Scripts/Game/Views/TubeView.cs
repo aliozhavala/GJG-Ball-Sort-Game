@@ -7,13 +7,18 @@ using UnityEngine.Serialization;
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// One tube on screen: the tube drawn behind the balls from a top, a stretched middle and a bottom
-    /// part, the balls, an optional glass front, the cork and glow of a completed tube and the clay at
-    /// the base of clay tubes. The transform's origin is the tube's base centre.
+    /// One tube on screen: the tube drawn behind the balls from the rim's back half, a stretched middle
+    /// and a bottom part, the balls, then the clay (ice) of clay tubes, the cork of a completed tube and
+    /// the rim's front half over them; an optional glass front and the glow of a completed tube. The
+    /// transform's origin is the tube's base centre.
     /// </summary>
     /// <remarks>
+    /// A ball inside the tube draws between the rim's halves; once it clears the mouth it draws above
+    /// every tube (<see cref="BallView.SetMouth"/>), so a flying ball never passes behind a rim.
+    /// <para>
     /// Covers are not part of the tube: a <see cref="CoverView"/> may span several tubes, and hides
-    /// their balls through <see cref="SetBallsVisible"/>.
+    /// their balls through <see cref="SetCovered"/>.
+    /// </para>
     /// <para>
     /// The layout sets the tube's home (<see cref="Place"/>); the bump and shake are offsets on top of
     /// it, so a re-layout mid-animation never leaves the tube out of place. The tube also counts the
@@ -25,7 +30,11 @@ namespace BallSort.Game.Views
     [RequireComponent(typeof(BoxCollider2D))]
     public sealed class TubeView : MonoBehaviour
     {
-        [SerializeField] private SpriteRenderer _top;
+        [Tooltip("The rim's back half, behind the balls.")]
+        [FormerlySerializedAs("_top")]
+        [SerializeField] private SpriteRenderer _rimBack;
+        [Tooltip("The rim's front half, over the balls inside the tube and the cork.")]
+        [SerializeField] private SpriteRenderer _rimFront;
         [SerializeField] private SpriteRenderer _middle;
         [FormerlySerializedAs("_back")]
         [SerializeField] private SpriteRenderer _bottom;
@@ -33,7 +42,7 @@ namespace BallSort.Game.Views
         [SerializeField] private SpriteRenderer _front;
         [Tooltip("The cork on a completed tube.")]
         [SerializeField] private SpriteRenderer _cap;
-        [Tooltip("Clay at the base of a clay tube, behind the balls.")]
+        [Tooltip("Clay (ice) at the base of a clay tube, over the balls inside it.")]
         [SerializeField] private SpriteRenderer _clay;
         [Tooltip("Glow around a completed tube, in its colour, behind the tube.")]
         [FormerlySerializedAs("_flash")]
@@ -41,7 +50,8 @@ namespace BallSort.Game.Views
         [Tooltip("Parent for this tube's balls.")]
         [SerializeField] private Transform _ballRoot;
         [SerializeField] private BoxCollider2D _tapTarget;
-        [Tooltip("Sorting order of a lifted run on the glass front's layer: above the glass, cap, clay and covers.")]
+        [Tooltip("Sorting order of a ball out of its tube's mouth (lifted or flying), on the glass front's layer: " +
+            "above every tube's glass, clay, cork, rim front and covers.")]
         [SerializeField] private int _raisedSortingOrder = 10;
 
         private readonly List<BallView> _balls = new List<BallView>();
@@ -51,6 +61,7 @@ namespace BallSort.Game.Views
         private TubeVisualConfig _config;
         private AnimationConfig _animation;
         private int _liftedCount;
+        private bool _isClay;
         private int _departures;
         private int _arrivals;
 
@@ -87,6 +98,12 @@ namespace BallSort.Game.Views
         /// <summary>The space the balls live in.</summary>
         public Transform BallSpace => _ballRoot;
 
+        /// <summary>
+        /// The height in ball space above which a ball's centre is out of the tube: its bottom has cleared
+        /// the mouth, so it draws above every tube.
+        /// </summary>
+        public float ClearHeight => BodyHeight + _config.BallDiameter * 0.5f;
+
         /// <summary>Where a lifted ball's centre sits, in ball space: above the mouth by the lift height.</summary>
         public Vector3 LiftPoint => new Vector3(0f, BodyHeight + _animation.LiftHeight * _config.BallDiameter, 0f);
 
@@ -97,7 +114,7 @@ namespace BallSort.Game.Views
         /// Sizes the tube for <paramref name="capacity"/> balls. The tap target also covers the lift
         /// area above the rim, so a tap on a lifted ball still hits its tube.
         /// </summary>
-        /// <param name="isClay">Shows the clay overlay; clay is permanent, so it is set only here.</param>
+        /// <param name="isClay">Shows the clay (ice) until the tube completes (<see cref="SetClayShown"/>).</param>
         public void Setup(int tubeIndex, int capacity, bool isClay, TubeVisualConfig config, AnimationConfig animation)
         {
             StopMotion();
@@ -105,31 +122,34 @@ namespace BallSort.Game.Views
             _config = config;
             _animation = animation;
             _liftedCount = 0;
+            _isClay = isClay;
 
             float height = config.TubeHeight(capacity);
             BodyHeight = height;
             float scale = config.ArtScale;
 
-            // The bottom stands on the base and the top hangs from the rim, both at the art's size;
-            // the middle stretches over the gap between them.
+            // The bottom stands on the base and the rim hangs from the mouth, both at the art's size;
+            // the middle stretches over the gap between them. The rim's halves share one rectangle.
             float middleBottom = HeightAbovePivot(config.BottomSprite) * scale;
-            float middleTop = height - HeightBelowPivot(config.TopSprite) * scale;
+            float middleTop = height - HeightBelowPivot(config.RimBackSprite) * scale;
             float middleScale = Mathf.Max(0f, middleTop - middleBottom) /
                 Mathf.Max(SpriteHeight(config.MiddleSprite), 0.001f);
             ApplyPart(_bottom, config.BottomSprite, config.TubeTint, 0f, new Vector3(scale, scale, 1f));
             ApplyPart(_middle, config.MiddleSprite, config.TubeTint, middleBottom, new Vector3(scale, middleScale, 1f));
-            ApplyPart(_top, config.TopSprite, config.TubeTint, height, new Vector3(scale, scale, 1f));
+            ApplyPart(_rimBack, config.RimBackSprite, config.TubeTint, height, new Vector3(scale, scale, 1f));
+            ApplyPart(_rimFront, config.RimFrontSprite, config.TubeTint, height, new Vector3(scale, scale, 1f));
 
             ApplyOutline(_front, config.FrontSprite, config.FrontTint, scale, height);
-            ApplySprite(_cap, config.CapSprite, config.CapTint,
-                new Vector2(config.TubeWidth, config.CapHeight), new Vector3(0f, height, 0f));
+
+            // The cork's sprite is picked by colour on completion; like the rim it hangs from the mouth.
+            ApplyPart(_cap, config.CapSprite, config.CapTint, height, new Vector3(scale, scale, 1f));
             _cap.enabled = false;
 
-            // Clay is as wide as the tube is drawn (its rim), so it never reaches the next tube.
-            float tubeDrawnWidth = SpriteWidth(config.TopSprite) * scale;
-            float clayScale = tubeDrawnWidth / Mathf.Max(SpriteWidth(config.ClaySprite), 0.001f);
+            // Clay is sized from the tube's drawn width (its rim), so it keeps its place next to the tubes.
+            float tubeDrawnWidth = SpriteWidth(config.RimBackSprite) * scale;
+            float clayScale = config.ClayScale * tubeDrawnWidth / Mathf.Max(SpriteWidth(config.ClaySprite), 0.001f);
             ApplyPart(_clay, config.ClaySprite, config.ClayTint, 0f, new Vector3(clayScale, clayScale, 1f));
-            _clay.enabled = isClay && _clay.sprite != null;
+            SetClayShown(isClay);
 
             // The glow is the tube's size plus its padding all round, sliced so its soft edge keeps its width.
             float padding = config.GlowPadding;
@@ -138,7 +158,7 @@ namespace BallSort.Game.Views
             _glow.enabled = false;
 
             // A pooled view may come back from a covered tube.
-            SetBallsVisible(true);
+            SetCovered(false, false);
 
             float tapHeight = height + _animation.LiftHeight * config.BallDiameter + config.BallDiameter * 0.5f;
             _tapTarget.size = new Vector2(config.TubeWidth + config.HorizontalSpacing, tapHeight);
@@ -162,14 +182,15 @@ namespace BallSort.Game.Views
             int slot = _balls.Count;
             ball.transform.SetParent(_ballRoot, false);
             ball.AssignSlot(TubeIndex, slot);
-            ball.SetRaised(false, _front.sortingLayerID, _raisedSortingOrder);
+            ball.SetMouth(ClearHeight, _front.sortingLayerID, _raisedSortingOrder);
             ball.MoveTo(SlotPosition(slot));
             _balls.Add(ball);
         }
 
         /// <summary>
-        /// Takes <paramref name="ball"/> into the next free slot, keeping it where it is on screen and
-        /// drawn raised; the caller flies it in. Counts it as arriving until <see cref="NotifyLanded"/>.
+        /// Takes <paramref name="ball"/> into the next free slot, keeping it where it is on screen; the
+        /// caller flies it in (the flight says where the ball draws). Counts it as arriving until
+        /// <see cref="NotifyLanded"/>.
         /// </summary>
         /// <returns>The slot's position in ball space.</returns>
         public Vector3 ReceiveBall(BallView ball)
@@ -178,7 +199,6 @@ namespace BallSort.Game.Views
             int slot = _balls.Count;
             ball.SetParentKeepingPlace(_ballRoot);
             ball.AssignSlot(TubeIndex, slot);
-            ball.SetRaised(true, _front.sortingLayerID, _raisedSortingOrder);
             _balls.Add(ball);
             _arrivals++;
             return SlotPosition(slot);
@@ -223,7 +243,6 @@ namespace BallSort.Game.Views
 
             _liftedCount = 1;
             BallView top = _balls[_balls.Count - 1];
-            top.SetRaised(true, _front.sortingLayerID, _raisedSortingOrder);
             top.MoveTo(LiftPoint, _animation.LiftDuration, _animation.LiftEase);
             top.SetBobbing(true);
             return true;
@@ -244,7 +263,6 @@ namespace BallSort.Game.Views
             int slot = _balls.Count - 1;
             top.SetBobbing(false);
             top.MoveTo(SlotPosition(slot), _animation.LiftDuration, _animation.LiftEase);
-            top.SetRaised(false, _front.sortingLayerID, _raisedSortingOrder);
             return true;
         }
 
@@ -264,12 +282,11 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
-        /// <paramref name="ball"/> has landed in its slot here: it goes back inside the tube, the balls
-        /// below bump in a ripple and the tube bumps.
+        /// <paramref name="ball"/> has landed in its slot here: the balls below bump in a ripple and the
+        /// tube bumps.
         /// </summary>
         public void NotifyLanded(BallView ball)
         {
-            ball.SetRaised(false, _front.sortingLayerID, _raisedSortingOrder);
             for (int slot = 0; slot < ball.Slot && slot < _balls.Count; slot++)
             {
                 _balls[slot].Bump((ball.Slot - slot) * _animation.BumpRippleDelay);
@@ -332,7 +349,7 @@ namespace BallSort.Game.Views
             }
         }
 
-        /// <summary>The invalid-move shake (docs/animations.md, 2.5).</summary>
+        /// <summary>The invalid-move shake (docs/animation-spec.md, 2.5).</summary>
         public void Shake()
         {
             BoardTweens.KillIfActive(_shakeTween);
@@ -351,15 +368,20 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
-        /// Shows the tube completed in <paramref name="colour"/>: cork, glow, laughing balls. Animated
-        /// (docs/animations.md, 2.6), the cork drops, the glow fades to its idle pulse and the balls hop
-        /// in turn; otherwise all of it shows at rest.
+        /// Shows the tube completed in <paramref name="colorId"/>: the colour's cork, glow, laughing
+        /// balls, and the clay gone. Animated (docs/animation-spec.md, 2.6), the cork drops, the glow
+        /// fades to its idle pulse and the balls hop in turn; otherwise all of it shows at rest.
         /// </summary>
-        public void ShowCompleted(Color colour, ColorPalette palette, bool animate)
+        public void ShowCompleted(int colorId, ColorPalette palette, bool animate)
         {
             SetBallExpression(BallExpression.Laugh, palette);
+            SetClayShown(false);
 
-            Color capTint = _config.CapTint * colour;
+            // A colour's own cork is drawn as is; the plain cork is tinted in the colour.
+            Color colour = palette.GetColor(colorId);
+            Sprite cork = palette.GetCork(colorId);
+            Color capTint = cork != null ? Color.white : _config.CapTint * colour;
+            _cap.sprite = cork != null ? cork : _config.CapSprite;
             _cap.color = new Color(capTint.r, capTint.g, capTint.b, _config.CapTint.a);
             _cap.enabled = _cap.sprite != null;
             Vector3 seated = new Vector3(0f, BodyHeight, 0f);
@@ -393,8 +415,25 @@ namespace BallSort.Game.Views
             }
         }
 
-        /// <summary>Hides or shows every ball in the tube; driven by <see cref="CoverView.SetOpen"/>.</summary>
-        public void SetBallsVisible(bool visible) => _ballRoot.gameObject.SetActive(visible);
+        /// <summary>
+        /// Hides the balls of a covered tube, except the bottom one when <paramref name="showBottomBall"/>
+        /// (a veil leaves it showing, hidden "?" or key mark and all), or shows them all again; driven by
+        /// <see cref="CoverView.SetOpen"/>. A covered tube's balls never move, so this holds until the
+        /// cover opens.
+        /// </summary>
+        public void SetCovered(bool covered, bool showBottomBall)
+        {
+            for (int slot = 0; slot < _balls.Count; slot++)
+            {
+                _balls[slot].gameObject.SetActive(!covered || (showBottomBall && slot == 0));
+            }
+        }
+
+        /// <summary>
+        /// The single entry point for the clay (ice): shown on a clay tube until it completes. Snaps for
+        /// now; its melt comes with the animations.
+        /// </summary>
+        public void SetClayShown(bool shown) => _clay.enabled = shown && _isClay && _clay.sprite != null;
 
         /// <summary>Hands every ball back to the caller (for pooling) and empties the tube.</summary>
         public void TakeAllBalls(List<BallView> into)
@@ -584,11 +623,12 @@ namespace BallSort.Game.Views
 
         private void Awake()
         {
-            if (_top == null || _middle == null || _bottom == null || _front == null || _cap == null ||
-                _clay == null || _glow == null || _ballRoot == null || _tapTarget == null)
+            if (_rimBack == null || _rimFront == null || _middle == null || _bottom == null || _front == null ||
+                _cap == null || _clay == null || _glow == null || _ballRoot == null || _tapTarget == null)
             {
                 Debug.LogError(
-                    $"{name}: top, middle, bottom, front, cap, clay, glow, ball root and tap target must be assigned.", this);
+                    $"{name}: rim back and front, middle, bottom, front, cap, clay, glow, ball root and tap target " +
+                    "must be assigned.", this);
             }
 
             _shakeStep = ShakeStep;

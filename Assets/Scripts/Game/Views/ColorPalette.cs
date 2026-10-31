@@ -5,8 +5,8 @@ using UnityEngine.Serialization;
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// Maps ball colour ids to their sprites (one per <see cref="BallExpression"/>), sprite tint and
-    /// colour. The single place art swaps ball visuals.
+    /// Maps ball colour ids to their sprites (one per <see cref="BallExpression"/>), sprite tint,
+    /// colour and the cork of a tube completed in it. The single place art swaps ball visuals.
     /// </summary>
     [CreateAssetMenu(fileName = "ColorPalette", menuName = "Ball Sort/Color Palette")]
     public sealed class ColorPalette : ScriptableObject
@@ -32,8 +32,12 @@ namespace BallSort.Game.Views
             [SerializeField] private Color _color;
             [Tooltip("Sprite width in ball diameters: how much wider the art is than the ball's round body. 0 = 1.")]
             [SerializeField, Min(0f)] private float _spriteSize;
+            [Tooltip("Cork of a tube completed in this colour, cut on the tube art's canvas (pivot at the rim's top). " +
+                "Empty = TubeVisualConfig's plain cork, tinted.")]
+            [SerializeField] private Sprite _cork;
 
             public Color SpriteTint => _spriteTint;
+            public Sprite Cork => _cork;
             public Color Color => _color;
             public float SpriteSize => _spriteSize > 0f ? _spriteSize : 1f;
 
@@ -104,6 +108,9 @@ namespace BallSort.Game.Views
 
         /// <summary>The colour itself, for things that show it without a ball (the veil's badge).</summary>
         public Color GetColor(int colorId) => IsInRange(colorId) ? _entries[colorId].Color : Color.magenta;
+
+        /// <summary>The cork drawn on a tube completed in <paramref name="colorId"/>; null when the colour has none.</summary>
+        public Sprite GetCork(int colorId) => IsInRange(colorId) ? _entries[colorId].Cork : null;
 
         /// <summary>Width of <paramref name="colorId"/>'s sprite in ball diameters.</summary>
         public float GetSpriteSize(int colorId) =>

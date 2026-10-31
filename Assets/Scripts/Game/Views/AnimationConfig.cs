@@ -5,7 +5,7 @@ namespace BallSort.Game.Views
 {
     /// <summary>
     /// Board motion: timings, eases and amounts of the select, flight, landing, invalid-move and
-    /// tube-complete animations (docs/animations.md, which names each field). Distances are in ball
+    /// tube-complete animations (docs/animation-spec.md, which names each field). Distances are in ball
     /// diameters (d), times in seconds at <see cref="Speed"/> 1.
     /// </summary>
     /// <remarks>

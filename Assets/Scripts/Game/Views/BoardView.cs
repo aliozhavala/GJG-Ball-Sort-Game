@@ -27,7 +27,7 @@ namespace BallSort.Game.Views
     /// tubes. They are refitted after every layout change.
     /// </para>
     /// <para>
-    /// Moves and undos fly their balls (docs/animations.md). The session's later events in the same
+    /// Moves and undos fly their balls (docs/animation-spec.md). The session's later events in the same
     /// operation play in their order, timed off the flights: the source's new top is revealed once the
     /// last moving ball has left it, a completion plays when the tube's last ball lands, and veils,
     /// keys and doors follow the landing. The model is never waited on: only the views lag behind
@@ -148,7 +148,7 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
-        /// The invalid-move feedback on the board (docs/animations.md, 2.5): the tube shakes and its
+        /// The invalid-move feedback on the board (docs/animation-spec.md, 2.5): the tube shakes and its
         /// balls look shocked; a covered tube shakes with its cover.
         /// </summary>
         public void ShowInvalid(int tubeIndex)
@@ -218,7 +218,7 @@ namespace BallSort.Game.Views
 
                 if (board.IsCompleted(t))
                 {
-                    tubeView.ShowCompleted(_palette.GetColor(tube.Top.ColorId), _palette, animate: false);
+                    tubeView.ShowCompleted(tube.Top.ColorId, _palette, animate: false);
                 }
 
                 if (tube.IsCovered)
@@ -319,7 +319,7 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
-        /// Flies the top <paramref name="count"/> balls from one tube to another (docs/animations.md,
+        /// Flies the top <paramref name="count"/> balls from one tube to another (docs/animation-spec.md,
         /// 2.3): each rises above the source's mouth, arcs to above the target's and drops into its
         /// slot, one chain delay after the ball above it. The views hold the balls in their new tubes
         /// at once; only the drawing travels.
@@ -333,6 +333,8 @@ namespace BallSort.Game.Views
             // The flight is drawn in the target's ball space: board space, shifted.
             Vector3 rise = target.BallSpace.InverseTransformPoint(source.BallSpace.TransformPoint(source.LiftPoint));
             Vector3 arcEnd = target.LiftPoint;
+            float sourceClear = target.BallSpace.InverseTransformPoint(
+                source.BallSpace.TransformPoint(new Vector3(0f, source.ClearHeight, 0f))).y;
             float distance = Mathf.Abs(arcEnd.x - rise.x) + Mathf.Abs(arcEnd.y - rise.y);
             float screenWidth = _layout.ScreenWidthInBoardUnits;
             float arcDuration = _animation.ArcBaseDuration + _animation.ArcDurationPerScreenWidth * distance / screenWidth;
@@ -343,7 +345,8 @@ namespace BallSort.Game.Views
                 BallView ball = _ballBuffer[i];
                 Vector3 slot = target.ReceiveBall(ball);
                 ball.MoveTo(new BallFlight(
-                    fromIndex, isUndo, i * _animation.ChainDelay, rise, arcEnd, slot, arcDuration, arcHeight, screenWidth));
+                    fromIndex, isUndo, i * _animation.ChainDelay, rise, arcEnd, slot, arcDuration, arcHeight, screenWidth,
+                    sourceClear, target.ClearHeight));
             }
 
             _ballBuffer.Clear();
@@ -400,7 +403,7 @@ namespace BallSort.Game.Views
 
         private void PlayCompletion(TubeView tube, int colorId, int chain)
         {
-            tube.ShowCompleted(_palette.GetColor(colorId), _palette, animate: true);
+            tube.ShowCompleted(colorId, _palette, animate: true);
             CompletionStarted?.Invoke(tube, colorId, chain);
             tube.AddBeat(DOVirtual.DelayedCall(_animation.CorkImpactTime, () => CorkSeated?.Invoke(tube), false)
                 .OnBoardClock());
