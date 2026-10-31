@@ -5,9 +5,9 @@ Read this when working on UI, scene flow, lives, tutorials, boosters, or player 
 ## Scenes & flow
 - `Home` (build index 0) → tap Level button → `Level` (build index 1). At 0 lives the Level button opens the More Lives popup instead (Lives, below).
 - `Level` → win → celebration → Win panel → **Continue** → `Home`, with the Episode Unlocked overlay if the win moved the player into a new episode (Episodes, below).
-- `Level` → stuck → **Give up** → Are You Sure → **Confirm** → −1 life → `Home` (no progress, no reward).
-- `Level` → settings → **Home** → Are You Sure → **Confirm** → −1 life → `Home` (same as giving up).
-- `Level` → settings → **Restart** → Are You Sure → **Confirm** → −1 life → the level reloads in its next variant. At 0 lives, Restart opens the More Lives popup instead.
+- `Level` → stuck → **Give up** → Are You Sure → **Quit** → −1 life → `Home` (no progress, no reward).
+- `Level` → settings → **Home** → Are You Sure → **Quit** → −1 life → `Home` (same as giving up).
+- `Level` → settings → **Restart** → Are You Sure → **Restart** → −1 life → the level reloads in its next variant. At 0 lives, Restart opens the More Lives popup instead.
 - `Level` → the level file fails to load → `Home` with the toast "Level N could not be loaded" (the error is logged). It costs no life and counts no retry: the player did not leave.
 - The Level scene always loads `PlayerData.CurrentLevel`, in the variant its retry count picks (docs/levels.md, Variants and retries). Editor-only level jump for testing: **Ball Sort ▸ Play Level…** (or Play on a Validate Levels row) opens the Level scene on any level, or on a level file outside the run (test and draft levels in `Assets/Data/TestLevels/`), in a chosen variant, for one visit; the next visit uses the save again. Such a visit is a test: every attempt (Restart included) plays the chosen variant, the title names it (e.g. "Level 6 · V5", or the file name for a level file), winning pays no reward (the Win panel shows none) and moves no progress, and lives are neither checked nor spent (no retry counted, no level-in-progress mark). Its popups still show so they can be tested: Are You Sure before leaving, and the tutorial on every visit, never saved as seen.
 - Pressing Play in either scene in the Editor must work (persistent services auto-create).
@@ -124,7 +124,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - Stuck = nothing meaningful left to do: no legal move, or only moves that go round in a loop (rule in docs/mechanics.md, Win and stuck).
 - Show **"No more useful moves"** above the board (`StuckPanel._bannerText`, the one place to change it; does not cover or block the tubes).
 - Booster bar hidden (no booster, count, green plus or Buy works while stuck); tubes can still be selected.
-- Two buttons side by side in the booster bar's place: **Give up** (behind Are You Sure; it costs a life) and **Play on — 900 ●**.
+- Two buttons side by side in the booster bar's place: **Give up** (behind Are You Sure; it costs a life) and **Play on ● 900** (the coin before the price, `StuckPanel._playOnFormat`).
   - Play on: spend 900 coins, add one empty capacity-4 tube, leave the stuck state. It continues the same attempt and costs no life.
   - Play on is disabled (still showing its price) if coins < 900 or every row already has 8 cells. Give up is then the only choice.
 
@@ -159,7 +159,9 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   exit also counts one retry (docs/levels.md, Variants and retries); at 0 lives it still counts the retry, and lives
   stay at 0.
 - **Are You Sure popup:** settings → Home, settings → Restart and stuck → Give up each open it first: "Are you sure?", a
-  broken heart (`Icon_HeartBroken`) and "You will lose a life." (the heart and the line are left out at 0 lives). **Confirm** → lives −1, then the action. **Close** (✕) →
+  broken heart (`Icon_HeartBroken`) and "You will lose 1 life!" (the heart and the line are left out at 0 lives). The
+  confirm button is named for the action: **Quit** for Home and Give up, **Restart** for Restart
+  (`AreYouSurePopup._quitText` / `_restartText`); it spends the life, then does the action. **Close** (✕) →
   back to where it came from: the settings popup (still open) or the stuck bar. Nothing is spent before Confirm.
 - **Closing the app mid-level:** when a level starts, the save gets a level-in-progress mark naming the level. A win or a
   confirmed Home / Give up clears it in the same save that records them; a confirmed Restart keeps it for the new
@@ -171,7 +173,8 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   - Level (lives reach 0 there when Restart spends the last one): **Restart** opens the More Lives popup instead of
     restarting, with no Are You Sure first; its Close goes back to the settings popup. **Home** and **Give up** still
     work, through Are You Sure as usual, and lives stay at 0. Once a life comes back, Restart works again.
-- **More Lives popup:** a heart (`Icon_Heart`) with the lives count on it, and "Next life in 12:34", both refreshed every second, and **Close** (✕)
+- **More Lives popup:** a heart (`Icon_Heart`) with the lives count on it, and under it two lines, "Time to next life"
+  and the wait on its own (`12:34`), or "Your lives are full!" at the maximum, both refreshed every second, and **Close** (✕)
   → back to Home or the settings popup. There is no way to get lives faster yet.
 - **Home display:** `♥ N` and the time to the next life as `mm:ss`, or `Full` at the maximum, refreshed every second.
 
@@ -199,8 +202,11 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   boosters, settings) is blocked.
 - "Seen" is saved per level id when the popup is dismissed, so it never shows again for that level (Restart, later
   attempts, replays). Closing the app before dismissing it shows it again on the next entry.
-- `TutorialConfig` has an entry for each tutorial level (1, 7, 20, 30, 55, 80) with placeholder text on the mechanic it
-  introduces; product writes the final text in the asset, with no code change. A tutorial level without an entry shows
+- `TutorialConfig` has an entry for each tutorial level (1, 7, 20, 30, 55, 80) with product's text
+  (docs/design/TEXT_CHANGES.md, section 3): level 1 one line; each mechanic a main line with its key word in capitals
+  and highlighted (`<color=#FFD23A>`), then a hint line at 75 % size. A non-breaking space keeps the key word with the
+  word before it, so it never wraps onto a line alone. The richer New Item card (name, "New Item Unlocked!", picture) is
+  not built. Product edits the text in the asset, with no code change. A tutorial level without an entry shows
   no popup and logs a warning; `TutorialConfig.OnValidate` warns about duplicate level ids and empty texts.
 - Editor test visits show the popup on every visit and never save it as seen.
 
@@ -221,6 +227,17 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   You Sure's Confirm and Settings' Restart and Home; yellow for Play on, Buy and the shop's prices; the round ✕ closes every
   popup; the round gear is both settings buttons; the round pen edits the name. The booster buttons keep placeholders.
 - Canvas Scaler 1080×1920, match 0.5; `SafeArea` on root panels.
+- **Text:** every label is Baloo 2 (docs/design/FONTS.md): `Baloo2-ExtraBold SDF`, the TMP default, everywhere except
+  the toast, which uses `Baloo2-Bold SDF`. Both are static atlases (docs/art-inventory.md, section 9); a typed name's
+  other characters come from the device's system fonts (`SystemFontFallback` on `AppRoot`).
+- **Text fit:** no label may leave its button, panel or field at any aspect ratio. Every label in fixed space
+  auto-sizes, from its design size down to about 60 % of it (single-line labels don't wrap; the toast and the
+  tutorial text wrap, and the tutorial popup grows with its text). Single-line titles keep 4–6 units of side margin,
+  because Baloo's heavy glyphs reach past their advance and TMP's auto-size doesn't count that. On the 9-sliced button
+  art (green, red, yellow), the bottom lip is part of the rect, so each label (or the Buy button's coin-and-price row)
+  has a bottom inset of 10 % of the button's height, which centres it on the face. Checked at 9:16, 9:20, 9:21 and 3:4
+  with the longest values: `Level 100`, "All levels complete", a 16-character `W` name, 999 boosters, the longest toast
+  and every tutorial text.
 - **Art slots:** per-episode art (Home and Level backgrounds, mascot frame) is in `EpisodeConfig`, the avatar pictures in
   `AvatarConfig`, the tutorial image in `TutorialConfig`, the bottom bar's three versions on `HomeTabs`, the tier
   buttons on `LevelTierLook`, the switch knobs on each `SettingSwitch`, the leaderboard rows on `LeaderboardPage`, the

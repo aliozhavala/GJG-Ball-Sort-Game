@@ -7,16 +7,17 @@ namespace BallSort.Game.UI
 {
     /// <summary>
     /// "Are you sure?" before leaving a level unwon (settings → Home, settings → Restart, stuck → Give
-    /// up), with the life it costs. Confirm closes it and raises <see cref="Confirmed"/>; Close (the
-    /// popup's close button) goes back to whatever is beneath it, with nothing spent.
+    /// up), with the life it costs. Confirm, labelled with the action ("Quit" or "Restart"), closes it
+    /// and raises <see cref="Confirmed"/>; Close (the popup's close button) goes back to whatever is
+    /// beneath it, with nothing spent.
     /// </summary>
-    /// <remarks>It knows nothing about the exit asked about: the level flow remembers that.</remarks>
+    /// <remarks>It knows only whether the exit restarts: the level flow remembers which exit it was.</remarks>
     [RequireComponent(typeof(Popup))]
     public sealed class AreYouSurePopup : MonoBehaviour
     {
         [SerializeField] private Popup _popup;
 
-        [Tooltip("\"You will lose a life.\" Hidden when no life would be spent (at 0 lives).")]
+        [Tooltip("\"You will lose 1 life!\" Hidden when no life would be spent (at 0 lives).")]
         [SerializeField] private TMP_Text _lifeCostLine;
 
         [Tooltip("The broken heart above the life line; shown and hidden with it.")]
@@ -24,14 +25,24 @@ namespace BallSort.Game.UI
 
         [SerializeField] private Button _confirmButton;
 
+        [SerializeField] private TMP_Text _confirmLabel;
+
+        [Tooltip("Confirm's label when the exit leaves the level (Home, Give up).")]
+        [SerializeField] private string _quitText = "Quit";
+
+        [Tooltip("Confirm's label when the exit restarts the level.")]
+        [SerializeField] private string _restartText = "Restart";
+
         /// <summary>The player confirmed. The popup has already closed.</summary>
         public event Action Confirmed;
 
         public Popup Popup => _popup;
 
         /// <param name="costsALife">Whether confirming spends a life; false hides the life line.</param>
-        public void Ask(bool costsALife)
+        /// <param name="restarts">Whether confirming restarts the level rather than leaving it; names Confirm.</param>
+        public void Ask(bool costsALife, bool restarts)
         {
+            _confirmLabel.text = restarts ? _restartText : _quitText;
             _lifeCostLine.gameObject.SetActive(costsALife);
             if (_lifeCostIcon != null)
             {
@@ -48,7 +59,7 @@ namespace BallSort.Game.UI
 
         private void Awake()
         {
-            if (_popup == null || _lifeCostLine == null || _confirmButton == null)
+            if (_popup == null || _lifeCostLine == null || _confirmButton == null || _confirmLabel == null)
             {
                 Debug.LogError($"{name}: every reference must be assigned.", this);
                 return;

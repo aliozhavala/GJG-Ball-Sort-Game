@@ -356,7 +356,7 @@ namespace BallSort.Game.Flow
             // A test visit spends nothing, so it leaves out the life line, as 0 lives does.
             _pendingExit = exit;
             _player.RefreshLives();
-            _hud.AreYouSure.Ask(costsALife: !_visit.IsEditorTest && _player.LifeCount > 0);
+            _hud.AreYouSure.Ask(costsALife: !_visit.IsEditorTest && _player.LifeCount > 0, restarts: exit == Exit.Restart);
         }
 
         private void OnExitConfirmed()

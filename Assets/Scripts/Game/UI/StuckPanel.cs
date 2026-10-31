@@ -23,7 +23,8 @@ namespace BallSort.Game.UI
         [SerializeField] private Button _giveUpButton;
         [SerializeField] private Button _playOnButton;
         [SerializeField] private TMP_Text _playOnLabel;
-        [SerializeField] private string _playOnFormat = "Play on — {0} <sprite name=\"Icon_Coin\">";
+        [Tooltip("Play on's label, {0} = the price; the coin comes before it.")]
+        [SerializeField] private string _playOnFormat = "Play on <sprite name=\"Icon_Coin\"> {0}";
 
         private int _shownPrice = -1;
 

@@ -338,3 +338,39 @@ trimmed each (the two toggle knobs as one swap set). `Assets/Art/Incoming/` was 
 4. **The two leaderboard rows differ in shape** (the player's drips): the row's background hangs from the row's top
    and takes its height from the art (`LeaderboardRow`), so the drips hang into the gap below; the next row covers
    their tips.
+
+## 9. Fonts (2026-10-31)
+
+One family, **Baloo 2** (SIL Open Font License, free to ship; docs/design/FONTS.md), two static cuts from the design
+team (`Reference/Fonts/`), copied to `Assets/Art/Fonts/`:
+
+| File | TMP asset | Used for |
+|---|---|---|
+| `Baloo2-ExtraBold.ttf` | `Baloo2-ExtraBold SDF` (the TMP default) | every label except the toast |
+| `Baloo2-Bold.ttf` | `Baloo2-Bold SDF` | the toast |
+
+FONTS.md lists other Bold places (Restore Purchase, the locked leaderboard, the New Item hint), but none exist in the
+game. The `.ttf` files are only the source for the atlases: a static font asset doesn't reference them in a build.
+
+**Atlases.** Static, so text never writes to them and they never change in git: SDFAA, 1024 × 1024, sampling 80 pt,
+padding 11 (14 %, room for stage 2's outline and shadow), 208 glyphs each:
+- ASCII 0x20–0x7E (letters, digits, `TL`, punctuation);
+- Latin-1 0xA0–0xFF (non-breaking space, `·`, `×`, `Ç ç Ö ö Ü ü`, `â î û` and Western European accents);
+- the other Turkish letters `Ğ ğ İ ı Ş ş`;
+- `– — ‘ ’ “ ” … • € ₺`, and the zero-width space the input field writes.
+
+Baloo 2 has no `≡ ● ♥ ✕`. They appear only in leftover labels that are switched off (the old "×" close and "≡"
+settings labels, replaced by art). The coin in text is the `Icon_Coin` sprite (`Icon_Coin_TMP`), not a glyph. The
+character list is saved in each asset's creation settings: to add a character, open **Window ▸ TextMeshPro ▸ Font Asset
+Creator** on the asset, append it to the custom characters and regenerate at the same size and padding. Sampling 90
+no longer fits 1024², and 80 leaves no room for more scripts (Latin Extended-A alone would need a 2048 atlas).
+
+**Typed names: system font fallback.** A name can hold any character. `SystemFontFallback` (on `AppRoot`) builds TMP
+**dynamic** font assets at launch from the device's own fonts (a serialized family list covering Android, iOS and the
+Editor: Roboto, Noto Sans CJK JP, Noto Sans, Helvetica Neue, PingFang SC, Apple SD Gothic Neo, Segoe UI, Microsoft
+YaHei, Malgun Gothic; families the device lacks are skipped). It puts them on TMP's global fallback list for the session
+and restores the list on quit. They live only in memory, so the glyphs they add never touch a project file, and the
+TMP Settings asset is left as it was. Checked in the Editor with "Łukasz 日本 Ağaç": Ł from Segoe UI, 日本 from
+Microsoft YaHei, ğ and ç from Baloo. Colour emoji can't be drawn as SDF and show TMP's missing-glyph box. On a device
+the fallback glyphs are a different typeface from Baloo (thinner); that is the price of not shipping a font for every
+script.

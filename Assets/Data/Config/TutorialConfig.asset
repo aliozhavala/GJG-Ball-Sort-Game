@@ -14,27 +14,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Services.TutorialConfig
   _entries:
   - _levelId: 1
-    _text: Tap a tube to pick up its top ball, then tap another tube to drop it.
-      A ball can go into an empty tube or onto a ball of the same color. Sort each
-      color into its own tube to win.
+    _text: Tap a tube, then tap the target. Put same-color monsters together!
     _image: {fileID: 0}
   - _levelId: 7
-    _text: Some balls are hidden (?). A hidden ball shows its color when the ball
-      above it is moved away.
+    _text: "Move the top monster to <color=#FFD23A>REVEAL</color> the one\_below!\n<size=75%>A
+      \"?\" shows its color once it is on top.</size>"
     _image: {fileID: 0}
   - _levelId: 20
-    _text: You can drop balls into a clay tube, but you can't take any out. This
-      big tube holds more than four, and fills when it has every ball of its color.
+    _text: "Gather one color in the\_<color=#FFD23A>BIG\_TUBE</color>!\n<size=75%>It
+      only takes its own color.</size>"
     _image: {fileID: 0}
   - _levelId: 30
-    _text: A veiled tube can't be used until you complete a tube in the color on
-      its badge.
+    _text: "Complete the badge color to lift the\_<color=#FFD23A>TOWEL</color>!\n<size=75%>The
+      tube under it opens up.</size>"
     _image: {fileID: 0}
   - _levelId: 55
-    _text: Clay tubes come in normal size too. Drop balls in, but you can't take
-      them out, so plan ahead.
+    _text: "Fill the tube to break the\_<color=#FFD23A>ICE</color>!\n<size=75%>You
+      can pour in, but never out.</size>"
     _image: {fileID: 0}
   - _levelId: 80
-    _text: A locked tube can't be used until you find its key. Clear the balls above
-      the key to open the door.
+    _text: "Find the <color=#FFD23A>KEY</color> to open the\_<color=#FFD23A>BOX</color>!\n<size=75%>Dig
+      out the monster carrying it.</size>"
     _image: {fileID: 0}

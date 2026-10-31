@@ -6,8 +6,8 @@ using UnityEngine;
 namespace BallSort.Game.Bootstrap
 {
     /// <summary>
-    /// The persistent composition root: owns the player's data, saving, scene loading and sound for
-    /// the whole session, across scene changes.
+    /// The persistent composition root: owns the player's data, saving, scene loading, sound and the
+    /// system font fallback for the whole session, across scene changes.
     /// </summary>
     /// <remarks>
     /// The one agreed singleton-style exception (see CLAUDE.md). It is created from a prefab in
@@ -24,6 +24,7 @@ namespace BallSort.Game.Bootstrap
         [SerializeField] private LevelDatabase _levelDatabase;
         [SerializeField] private EpisodeConfig _episodes;
         [SerializeField] private AudioService _audio;
+        [SerializeField] private SystemFontFallback _fontFallback;
 
         private SaveService _saveService;
 
@@ -75,9 +76,9 @@ namespace BallSort.Game.Bootstrap
                 return;
             }
 
-            if (_economy == null || _levelDatabase == null || _episodes == null || _audio == null)
+            if (_economy == null || _levelDatabase == null || _episodes == null || _audio == null || _fontFallback == null)
             {
-                Debug.LogError($"{name}: economy config, level database, episode config and audio service must be assigned.", this);
+                Debug.LogError($"{name}: economy config, level database, episode config, audio service and font fallback must be assigned.", this);
                 enabled = false;
                 return;
             }
@@ -85,6 +86,7 @@ namespace BallSort.Game.Bootstrap
             Instance = this;
             DontDestroyOnLoad(gameObject);
             Application.targetFrameRate = 60;
+            _fontFallback.Attach();
 
             _saveService = new SaveService(_economy, _levelDatabase.Count, new SystemClock());
             PlayerData = _saveService.Load();
@@ -115,6 +117,7 @@ namespace BallSort.Game.Bootstrap
             }
 
             PlayerData.Changed -= Save;
+            _fontFallback.Detach();
             Instance = null;
         }
 

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5714175176818250762}
   - component: {fileID: 2811931250909961880}
   - component: {fileID: 6001716900764628682}
+  - component: {fileID: 7493366796206011309}
   m_Layer: 0
   m_Name: AppRoot
   m_TagString: Untagged
@@ -49,6 +50,7 @@ MonoBehaviour:
   _levelDatabase: {fileID: 11400000, guid: 60ff1a896de21754e9fe94f62808a7af, type: 2}
   _episodes: {fileID: 11400000, guid: 621039004b4432d4c92ce5e6e436eaed, type: 2}
   _audio: {fileID: 6001716900764628682}
+  _fontFallback: {fileID: 7493366796206011309}
 --- !u!114 &6001716900764628682
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -62,3 +64,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Audio.AudioService
   _config: {fileID: 11400000, guid: 653169ecc90a736498f508eaf187f4c2, type: 2}
+--- !u!114 &7493366796206011309
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4631727978014717358}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5aaef38851e6b44bb47455f73fd2100, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Services.SystemFontFallback
+  _familyNames:
+  - Roboto
+  - Noto Sans CJK JP
+  - Noto Sans
+  - Helvetica Neue
+  - PingFang SC
+  - Apple SD Gothic Neo
+  - Segoe UI
+  - Microsoft YaHei
+  - Malgun Gothic
+  _styleName: Regular

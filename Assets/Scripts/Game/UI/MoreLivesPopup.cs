@@ -17,8 +17,12 @@ namespace BallSort.Game.UI
         [SerializeField] private Popup _popup;
         [SerializeField] private TMP_Text _livesLabel;
         [SerializeField] private TMP_Text _timerLabel;
-        [SerializeField] private string _timerFormat = "Next life in {0}";
-        [SerializeField] private string _fullText = "Lives full";
+        [Tooltip("The wait for the next life, {0} = mm:ss: a label line, then the timer on its own line.")]
+        [TextArea(2, 3)]
+        [SerializeField] private string _timerFormat = "Time to next life\n<size=140%>{0}</size>";
+
+        [Tooltip("Shown in the timer's place while lives are full.")]
+        [SerializeField] private string _fullText = "Your lives are full!";
 
         private readonly WaitForSecondsRealtime _oneSecond = new WaitForSecondsRealtime(1f);
 

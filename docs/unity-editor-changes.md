@@ -828,3 +828,61 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
   it and spent 300 (the popup's balance read 10,420); Settings → Restart opened Are You Sure with the broken heart;
   the Win reward and Play on show the coin inline.
 - The Editor save was backed up before Play mode and written back afterwards.
+
+## 2026-10-31 — Fonts, text changes and text fit (stage 1)
+
+### Fonts
+- Created `Assets/Art/Fonts/`; copied `Reference/Fonts/Baloo2-ExtraBold.ttf` and `Baloo2-Bold.ttf` into it (default
+  font import settings).
+- Created `Assets/Art/Fonts/Baloo2-ExtraBold SDF.asset` and `Baloo2-Bold SDF.asset` (`TMP_FontAsset.CreateFontAsset`,
+  then saved with their atlas texture and material as sub-assets and switched to **Static**): SDFAA, 1024 × 1024,
+  sampling 80, padding 11, 208 glyphs (character list in docs/art-inventory.md, section 9, and in each asset's creation
+  settings, custom characters). Shader `TextMeshPro/Mobile/Distance Field`.
+- `Assets/TextMesh Pro/Resources/TMP Settings.asset`: default font asset → `Baloo2-ExtraBold SDF` (Unity also rewrote
+  `m_ActiveFontFeatures` as `kern` and unwrapped two long lines; same values).
+- Every `TMP_Text` in `Home.unity`, `Level.unity` and `Prefabs/UI/*.prefab` → `Baloo2-ExtraBold SDF` and its material,
+  except `Toast.prefab`'s `Label` → `Baloo2-Bold SDF`. Scene instances of the popup prefabs inherit the prefab's font
+  (any font override reverted). `AvatarMenuPopup` `NameField` (`TMP_InputField`) global font asset → ExtraBold.
+- `Assets/Resources/AppRoot.prefab`: added `SystemFontFallback` (default family list, style `Regular`) and assigned it to
+  `AppRoot._fontFallback`.
+
+### Text changes (docs/design/TEXT_CHANGES.md, section 2)
+- `AreYouSurePopup.prefab`: `LifeCost` "You will lose 1 life!"; `ConfirmButton/Label` "Quit"; `AreYouSurePopup`
+  `_confirmLabel` → that label, `_quitText` "Quit", `_restartText` "Restart".
+- `MoreLivesPopup.prefab`: `_timerFormat` "Time to next life\n<size=140%>{0}</size>", `_fullText` "Your lives are
+  full!", `Timer` placeholder text to match, `Timer` `LayoutElement` preferred height 90 → 170.
+- `EpisodeUnlockedOverlay.prefab`, `TutorialPopup.prefab`: `Hint` "Tap to Continue".
+- `Level.unity` `StuckPanel._playOnFormat` → `Play on <sprite name="Icon_Coin"> {0}` (label placeholder text to match).
+  `_bannerText` kept ("No more useful moves").
+- `Assets/Data/Config/TutorialConfig.asset`: the six texts → product's lines (level 1 one line; 7, 20, 30, 55, 80 main
+  line with the key word in `<color=#FFD23A>`, then the hint in `<size=75%>`; non-breaking spaces keep each key word
+  with the word before it).
+
+### Text fit (auto-size min–max, wrap off unless noted)
+- Prefabs: `AreYouSurePopup` Title 40–64, LifeCost 32–52, ConfirmButton/Label 32–56; `BuyPopup` Title 40–64;
+  `MoreLivesPopup` Title 40–64, Heart/Count 48–88, Timer 28–52; `WinPopup` Title 40–64, Reward 48–80,
+  ContinueButton/Label 32–56; `TutorialPopup` Hint 24–36; `EpisodeUnlockedOverlay` Title 40–64, Hint 24–36; `Toast`
+  Label 28–46 (wraps); `AvatarMenuPopup` name field Text and Placeholder 22–46.
+- `Home.unity`: `TopBar/Lives/Timer` 24–40, `Lives/Heart/Count` 28–46, `HomePage/LevelButton/Label` 36–80 (no wrap),
+  Shop header `Title` 60–110.
+- `Level.unity`: booster `Label`s 22–34, booster `Badge/Count` 14–26, `StuckPanel` `GiveUpButton/Label` and
+  `PlayOnButton/Label` 28–44, banner `Label` minimum 30 → 24, `Celebration` 60–120.
+- Side margins (TMP margin left/right): 6 on the popup `Title`s (Are You Sure, Buy, More Lives, Win, Episode
+  Unlocked), the Level HUD `LevelTitle` and the Leaderboard header `Title`; 4 on the Shop card `Name`s and the stuck
+  banner.
+- Button labels raised off the art's bottom lip (rect `offsetMin.y` = 10 % of the button height): Home
+  `LevelButton/Label` 23; `AreYouSurePopup` ConfirmButton/Label 14, `WinPopup` ContinueButton/Label 14, `BuyPopup`
+  BuyButton/Content 14; `SettingsPopup` RestartButton/Label and HomeButton/Label 11; Level `GiveUpButton/Label` and
+  `PlayOnButton/Label` 13.
+- `AvatarMenuPopup` `NameField/Text Area` right offset −12 → −29: the pen button covers the field's last 17 units, so a
+  long name ran under it.
+
+### Verification runs (no persistent changes)
+- Fit check in Play mode at 1080×1920, 1080×2400, 1080×2520 and 1536×2048 (`PlayModeWindow.SetCustomRenderingResolution`),
+  Home (main, both tiers, Shop, Leaderboard, Settings, avatar menu, More Lives, Refill hearts, Episode Unlocked, toast)
+  and Level (editor test visit to level 7: all six tutorial texts, HUD, buy badges, Stuck, Settings, Are You Sure ×3,
+  More Lives, Buy booster, Win, celebration, toast), with the longest values. After the fixes nothing leaves its rect,
+  container or the screen. The only remaining flag, the editor-only Win title "Level 100 · V5 complete" overhanging by
+  2 units per side, is fixed by the title margins added afterwards.
+- EditMode tests: 1774 passed, 0 failed. Console: no errors or warnings.
+- The Game view was put back to 1080×1920 afterwards. Test visits spend nothing (no lives, coins or boosters).
