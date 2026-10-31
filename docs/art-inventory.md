@@ -346,14 +346,17 @@ team (`Reference/Fonts/`), copied to `Assets/Art/Fonts/`:
 
 | File | TMP asset | Used for |
 |---|---|---|
-| `Baloo2-ExtraBold.ttf` | `Baloo2-ExtraBold SDF` (the TMP default) | every label except the toast |
-| `Baloo2-Bold.ttf` | `Baloo2-Bold SDF` | the toast |
+| `Baloo2-Bold.ttf` | `Baloo2-Bold SDF` (the TMP default) | every label |
+| `Baloo2-ExtraBold.ttf` | `Baloo2-ExtraBold SDF` | nothing (kept, unreferenced) |
 
-FONTS.md lists other Bold places (Restore Purchase, the locked leaderboard, the New Item hint), but none exist in the
-game. The `.ttf` files are only the source for the atlases: a static font asset doesn't reference them in a build.
+**Deviation from FONTS.md:** FONTS.md makes ExtraBold the default and Bold a few secondary lines. In the game,
+ExtraBold under an outline read too heavy (the holes of e, a and o closed up), so every label uses Bold (decided
+2026-11-01). Unreferenced assets are left out of builds, and the `.ttf` files are only the source for the atlases: a
+static font asset doesn't reference them in a build.
 
-**Atlases.** Static, so text never writes to them and they never change in git: SDFAA, 1024 × 1024, sampling 80 pt,
-padding 11 (14 %, room for stage 2's outline and shadow), 208 glyphs each:
+**Atlases.** Static, so text never writes to them and they never change in git: SDFAA, 1024 × 1024, 208 glyphs each,
+sampled at 64 pt with padding 15 (0.23 em: an outline and a drop shadow can reach only as far as the padding, and TMP
+silently shrinks any effect that would go further). Characters:
 - ASCII 0x20–0x7E (letters, digits, `TL`, punctuation);
 - Latin-1 0xA0–0xFF (non-breaking space, `·`, `×`, `Ç ç Ö ö Ü ü`, `â î û` and Western European accents);
 - the other Turkish letters `Ğ ğ İ ı Ş ş`;
@@ -362,8 +365,33 @@ padding 11 (14 %, room for stage 2's outline and shadow), 208 glyphs each:
 Baloo 2 has no `≡ ● ♥ ✕`. They appear only in leftover labels that are switched off (the old "×" close and "≡"
 settings labels, replaced by art). The coin in text is the `Icon_Coin` sprite (`Icon_Coin_TMP`), not a glyph. The
 character list is saved in each asset's creation settings: to add a character, open **Window ▸ TextMeshPro ▸ Font Asset
-Creator** on the asset, append it to the custom characters and regenerate at the same size and padding. Sampling 90
-no longer fits 1024², and 80 leaves no room for more scripts (Latin Extended-A alone would need a 2048 atlas).
+Creator** on the asset, append it to the custom characters and regenerate at the same size and padding. There is
+little room left in 1024²: Latin Extended-A alone would need a 2048 atlas.
+
+**Look (FONTS.md): material presets.** White fill, a solid outline and a solid shadow straight down in the same colour,
+as TMP material presets next to the font (`Baloo2-Bold SDF <Name>.mat`, all on the mobile SDF shader, sharing the
+atlas). TMP centres the outline on the glyph's (dilated) edge, so half of it eats into the fill and half shows outside;
+face dilate thickens the fill. Keep the dilate small: dilate = outline width (the first try) fattened the letters until
+the holes of e, a and o filled up. The shadow is the outlined shape (underlay dilate ≈ dilate + outline), offset down,
+softness 0.
+
+| Preset | Colour | Dilate / outline / underlay dilate | Shadow offset | Used on |
+|---|---|---|---|---|
+| Title | `#24106E` deep purple | 0.06 / 0.22 / 0.30 | −0.40 | popup titles, Win reward, Level HUD title, Shop / Leaderboard headers, stuck banner, celebration |
+| Body | `#24106E` | 0.03 / 0.16 / 0.20 | −0.25 | popup body lines and hints, tutorial text, Settings rows, booster labels, leaderboard rows, shop card text |
+| Green | `#1F5C14` | 0.06 / 0.22 / 0.30 | −0.40 | green buttons (Continue, regular Level button), green pills (lives timer, coins), booster badges |
+| Red | `#7A0C22` | 0.06 / 0.22 / 0.30 | −0.40 | red buttons (Quit / Restart, Settings Restart / Home, Give up, hard Level button), hearts' counts, the x3/x5 tag |
+| Yellow | `#8A4A0A` brown | 0.06 / 0.22 / 0.30 | −0.40 | yellow buttons (Buy price, Play on) |
+
+Units are TMP's (fractions of the 15 px padding at 64 pt; the shadow offset of the gradient scale, 16 px), so −0.40 ≈
+0.1 em down.
+
+The colours are the art's own darker edges (the buttons' lips and outlines). Labels that were dark on light (the Shop
+and Leaderboard plate titles, Play on) are white now; the hint lines keep their muted blue-grey (`#9EA8C7`) under a Body
+outline, a step below the main text. The Level button's label swaps Green / Red with its art (`LevelTierLook`). The
+celebration ("Well done!") also has FONTS.md's gradient, `#FFF6C2` → `#FF9500` top to bottom (TMP vertex gradient;
+two stops, so the middle yellow is approximated). Toast and the avatar menu's name field stay plain (dark backgrounds
+of their own).
 
 **Typed names: system font fallback.** A name can hold any character. `SystemFontFallback` (on `AppRoot`) builds TMP
 **dynamic** font assets at launch from the device's own fonts (a serialized family list covering Android, iOS and the

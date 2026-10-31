@@ -227,13 +227,17 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   You Sure's Confirm and Settings' Restart and Home; yellow for Play on, Buy and the shop's prices; the round ✕ closes every
   popup; the round gear is both settings buttons; the round pen edits the name. The booster buttons keep placeholders.
 - Canvas Scaler 1080×1920, match 0.5; `SafeArea` on root panels.
-- **Text:** every label is Baloo 2 (docs/design/FONTS.md): `Baloo2-ExtraBold SDF`, the TMP default, everywhere except
-  the toast, which uses `Baloo2-Bold SDF`. Both are static atlases (docs/art-inventory.md, section 9); a typed name's
-  other characters come from the device's system fonts (`SystemFontFallback` on `AppRoot`).
+- **Text:** every label is Baloo 2 Bold (`Baloo2-Bold SDF`, the TMP default; FONTS.md's ExtraBold read too heavy under
+  an outline), a static atlas (docs/art-inventory.md, section 9); a typed name's other characters come from the
+  device's system fonts (`SystemFontFallback` on `AppRoot`).
+- **Text look:** FONTS.md's style through TMP material presets (docs/art-inventory.md, section 9): white fill, a dark
+  outline and a solid shadow straight down, deep purple on panels and backgrounds, the art's own darker colour on
+  green, red and yellow buttons and pills. Pick the preset by what the label sits on; never edit a label's material
+  directly (that makes a per-label copy).
 - **Text fit:** no label may leave its button, panel or field at any aspect ratio. Every label in fixed space
   auto-sizes, from its design size down to about 60 % of it (single-line labels don't wrap; the toast and the
-  tutorial text wrap, and the tutorial popup grows with its text). Single-line titles keep 4–6 units of side margin,
-  because Baloo's heavy glyphs reach past their advance and TMP's auto-size doesn't count that. On the 9-sliced button
+  tutorial text wrap, and the tutorial popup grows with its text). Single-line auto-sized labels keep side margins (4–12 units) wide
+  enough for the outline, because TMP's auto-size measures the glyphs only, not their outline or Baloo's overhang. On the 9-sliced button
   art (green, red, yellow), the bottom lip is part of the rect, so each label (or the Buy button's coin-and-price row)
   has a bottom inset of 10 % of the button's height, which centres it on the face. Checked at 9:16, 9:20, 9:21 and 3:4
   with the longest values: `Level 100`, "All levels complete", a 16-character `W` name, 999 boosters, the longest toast

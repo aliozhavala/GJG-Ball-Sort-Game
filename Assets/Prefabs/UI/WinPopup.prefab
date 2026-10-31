@@ -439,8 +439,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: +20 <sprite name="Icon_Coin">
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b3e7ead0705d9ec4e922fc0f18bc079c, type: 2}
-  m_sharedMaterial: {fileID: 6867202192030540062, guid: b3e7ead0705d9ec4e922fc0f18bc079c, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a0d0691ada3feb34190a4f122da1e968, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 9a01d0ef9987fcb448c08c0e80558312, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -596,8 +596,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Level 1 complete
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b3e7ead0705d9ec4e922fc0f18bc079c, type: 2}
-  m_sharedMaterial: {fileID: 6867202192030540062, guid: b3e7ead0705d9ec4e922fc0f18bc079c, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a0d0691ada3feb34190a4f122da1e968, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 9a01d0ef9987fcb448c08c0e80558312, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -752,8 +752,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Continue
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b3e7ead0705d9ec4e922fc0f18bc079c, type: 2}
-  m_sharedMaterial: {fileID: 6867202192030540062, guid: b3e7ead0705d9ec4e922fc0f18bc079c, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a0d0691ada3feb34190a4f122da1e968, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 973c0cd1db9cf5e48818a0e4bc116dd2, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

@@ -886,3 +886,55 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
   2 units per side, is fixed by the title margins added afterwards.
 - EditMode tests: 1774 passed, 0 failed. Console: no errors or warnings.
 - The Game view was put back to 1080×1920 afterwards. Test visits spend nothing (no lives, coins or boosters).
+
+## 2026-11-01 — Text look: outline and shadow (stage 2)
+
+### Font atlas
+- `Assets/Art/Fonts/Baloo2-ExtraBold SDF.asset` rebuilt in place (same GUID, references unchanged): sampling 80 → 64 pt,
+  padding 11 → 15 (0.23 em, room for the outline plus the shadow), same 208 characters, still 1024² and static;
+  material `_GradientScale` 16. `Baloo2-Bold SDF` unchanged (the toast stays plain).
+
+### Material presets (new, `Assets/Art/Fonts/`)
+- `Baloo2-ExtraBold SDF Title.mat`, `Body.mat`, `Green.mat`, `Red.mat`, `Yellow.mat`: copies of the font material
+  (TextMeshPro/Mobile/Distance Field) with `OUTLINE_ON` and `UNDERLAY_ON`; face dilate = outline width (0.19, Body
+  0.12), underlay dilate = 2 × width, underlay offset Y −0.40 (Body −0.25), softness 0; outline and underlay colour
+  `#24106E` (Title, Body), `#1F5C14` (Green), `#7A0C22` (Red), `#8A4A0A` (Yellow).
+
+### Labels
+- Prefabs: `AreYouSurePopup` Title → Title, LifeCost → Body, ConfirmButton/Label → Red; `BuyPopup` Title → Title,
+  Coins/Pill/Label → Green, BuyButton/Content/Price → Yellow; `MoreLivesPopup` Title → Title, Heart/Count → Red, Timer →
+  Body; `WinPopup` Title and Reward → Title, ContinueButton/Label → Green; `TutorialPopup` Text and Hint → Body;
+  `EpisodeUnlockedOverlay` Title → Title, Hint → Body; `SettingsPopup` Title → Title, Sound/Music/Haptics labels → Body,
+  Restart/Home labels → Red. Scene instances inherit (material and colour overrides reverted).
+- `Home.unity`: Lives/Timer and Coins/Label → Green, Lives/Heart/Count → Red, LevelButton/Label → Green,
+  TierArt/Multiplier → Red, Shop and Leaderboard header Titles → Title (fill `#2E334C` → white), leaderboard
+  RowTemplate Rank/Name, Shop Panel/Bundle1–6/Coins and card Bundle1–3/Name → Body. `LevelTierLook`: `_label` →
+  LevelButton/Label, `_regularLabelMaterial` → Green, `_tierLabelMaterial` → Red. Side margins: Lives/Timer 5,
+  Leaderboard header Title 6 → 12.
+- `Level.unity`: LevelTitle → Title (side margins 6 → 10), booster Labels → Body, booster Badge/Count → Green (side
+  margins 4), StuckPanel Banner/Label → Title (keeps its fill), GiveUp → Red, PlayOn → Yellow (fill `#5C3300` → white),
+  Celebration → Title, fill white with vertex gradient `#FFF6C2` → `#FF9500`.
+
+### Verification runs (no persistent changes)
+- Fit check counting each material's outline and shadow, at 1080×1920, 1080×2400, 1080×2520 and 1536×2048, Home and
+  Level (editor test visit to level 7), all screens and popups with the longest values: nothing leaves its button,
+  panel, field or the screen. The one remaining flag, the Buy price "900" whose outline reaches 2 units left of its
+  left-aligned rect, is still well inside the button.
+- EditMode tests: 1774 passed, 0 failed. Console: no errors or warnings. Game view put back to 1080×1920.
+
+## 2026-11-01 — Every label to Baloo 2 Bold, lighter outline
+
+- `Assets/Art/Fonts/Baloo2-Bold SDF.asset` rebuilt in place (same GUID): sampling 80 → 64 pt, padding 11 → 15, same
+  208 characters, 1024², static; material `_GradientScale` 16.
+- Material presets renamed (`AssetDatabase.MoveAsset`, GUIDs kept) `Baloo2-ExtraBold SDF {Title,Body,Green,Red,Yellow}.mat`
+  → `Baloo2-Bold SDF {…}.mat`, pointed at the Bold atlas (`_MainTex`, texture size, gradient scale 16), and lightened:
+  Title / Green / Red / Yellow face dilate 0.19 → 0.06, outline 0.19 → 0.22, underlay dilate 0.38 → 0.30 (offset
+  −0.40 kept); Body dilate 0.12 → 0.03, outline 0.12 → 0.16, underlay dilate 0.24 → 0.20 (offset −0.25 kept).
+- Every `TMP_Text` on `Baloo2-ExtraBold SDF` in `Home.unity`, `Level.unity` and `Prefabs/UI/*.prefab` → `Baloo2-Bold SDF`
+  (presets kept; labels on the plain ExtraBold material → the Bold material): 29 in Home, 12 in Level, 29 in the
+  prefabs. `AvatarMenuPopup` name field's global font → Bold. TMP Settings default font → `Baloo2-Bold SDF`.
+  `Baloo2-ExtraBold SDF` and its `.ttf` are now unreferenced (left in place).
+- Verified: fit check (outline and shadow counted) and screenshots of every screen and popup at 1080×1920 and
+  1080×2400, Home and Level (editor test visit to level 7): nothing leaves its button, panel, field or the screen
+  (Bold is narrower than ExtraBold and the effects reach less far, so the 9:21 and 3:4 results only improve).
+  EditMode tests 1774/1774, console clean.
