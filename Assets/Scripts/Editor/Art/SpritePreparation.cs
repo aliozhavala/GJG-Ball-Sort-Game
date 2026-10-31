@@ -27,6 +27,8 @@ namespace BallSort.Editor.Art
             var pivots = new Dictionary<string, Vector2>();
             var borders = new Dictionary<string, Vector4>();
 
+            MoveDeliveries(report);
+
             foreach (string folder in SpriteRules.TrimEach)
             {
                 SpriteTrim.TrimEach(folder, report);
@@ -41,6 +43,45 @@ namespace BallSort.Editor.Art
             int count = ApplyImportSettings(pivots, borders);
             report.AppendLine($"Import settings applied to {count} sprites.");
             Debug.Log(report.ToString());
+        }
+
+        /// <summary>
+        /// Moves each delivered file still in <see cref="SpriteRules.Incoming"/> to its place, through the
+        /// AssetDatabase so its <c>.meta</c> and GUID come along. A destination that already exists is
+        /// left alone and reported: replacing art goes by overwriting the file (docs/art-inventory.md).
+        /// </summary>
+        private static void MoveDeliveries(StringBuilder report)
+        {
+            foreach ((string from, string to) in SpriteRules.Deliveries)
+            {
+                string source = $"{SpriteRules.Incoming}/{from}";
+                if (!File.Exists(source))
+                {
+                    continue;
+                }
+
+                if (File.Exists(to))
+                {
+                    report.AppendLine($"{source}: {to} already exists; not moved.");
+                    continue;
+                }
+
+                EnsureFolder(Path.GetDirectoryName(to)?.Replace('\\', '/'));
+                string error = AssetDatabase.MoveAsset(source, to);
+                report.AppendLine(string.IsNullOrEmpty(error) ? $"Moved {source} → {to}" : $"{source}: {error}");
+            }
+        }
+
+        private static void EnsureFolder(string folder)
+        {
+            if (string.IsNullOrEmpty(folder) || AssetDatabase.IsValidFolder(folder))
+            {
+                return;
+            }
+
+            string parent = Path.GetDirectoryName(folder)?.Replace('\\', '/');
+            EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent, Path.GetFileName(folder));
         }
 
         /// <param name="pivots">Pivots worked out while trimming, by asset path; they win over the rules.</param>

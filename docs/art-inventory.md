@@ -1,6 +1,7 @@
 # Art inventory (step 6)
 
-What the artist delivered (82 PNGs in the first delivery, 2026-10-30; 20 in the second, 2026-10-31, section 7), where
+What the artist delivered (82 PNGs in the first delivery, 2026-10-30; 20 in the second, 2026-10-31, section 7; 24 in
+the third, the same day, section 8), where
 each file went, what is wrong with it, and what art is still missing. Measured on the delivered files: size, alpha, content bounds, and whether the parts can be
 stretched or tiled. The **Missing art** section is the list for the artist. The untouched originals are in git (commit
 "Art: first delivery from the artist…"); the files in `Assets/Art/Sprites/` are trimmed (section 5).
@@ -134,7 +135,8 @@ Stretch and tile tests:
 11. **The bottom bar's order is Shop · Home · Leaderboard** (basket left, door centre, test-tube chart right), the
     reverse of the old Leaderboard · Home · Shop (the game now follows the art). Its **sections are 41 / 19 / 41 %**, not thirds.
 12. **The coin and heart are drawn into the display pills**, so there is no standalone coin for the Win reward
-    (`+20 ●`) and the Play on price (`900 ●`), and no standalone heart for More Lives.
+    (`+20 ●`) and the Play on price (`900 ●`), and no standalone heart for More Lives. *Solved by the third delivery's
+    icons (section 8).*
 13. **The shop does not fit one screen**: header 440 + panel 900 + bundle 256 px at art scale is ≈1,600 px tall at
     1080 wide, with the top bar and the bottom bar still to fit in 1920. The panel's six frames are empty (no item
     art), and the header and bundle have no text (we add it).
@@ -174,33 +176,26 @@ shared canvas size.
 - **VFX** (step 6 animations): tube-complete sparkle, win celebration, invalid-move effect.
 
 **Level HUD**
-- **Booster icons**: Undo, Shuffle, Add tube, a **count badge** (the buttons show text today) and the **buy badge**
-  shown at 0 (green plus; placeholder `Placeholder/UI/Plus_Green.png` on `BoosterBar/*Button/BuyBadge`).
+- **Booster icons**: Undo, Shuffle, Add tube, and a **count badge** (the buttons show text today). The same icons
+  (or bigger pictures) fill the Buy popup's picture: `BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture`,
+  generated placeholders `Placeholder/UI/Booster_*.png` today. The buy badge at 0 is `Icon_Plus` (section 8).
 - **Booster bar background** (bottom strip of the Level scene).
 - **Level title plate** behind "Level N" (optional).
 - **Stuck banner** ("No more useful moves") background.
 - **Win celebration** title ("Well done!").
 
 **Popups (Home and Level)**
-- **Popup panel** (9-sliceable): Settings, Win, Are You Sure, More Lives, Tutorial.
+- ~~Popup panel, toggles, standalone coin and heart, green plus~~: arrived in the third delivery (section 8).
 - **Popup title ribbon** (optional).
-- **Toggle on/off** (or Sound / Music / Haptics icons with on/off states) for Settings.
-- **Standalone coin icon** (Win reward, Play on price; the Buy popup's button and the shop bundles use the placeholder
-  `Placeholder/UI/Coin.png` today) and **standalone heart** (More Lives) (problem 12).
-- **Green plus** on the lives and coins pills (Home) and on a booster at 0 (placeholder `Placeholder/UI/Plus_Green.png`).
-- **Buy popup** panel (it reuses the placeholder popup panel and the yellow button).
-- **Episode Unlocked** banner/overlay art.
+- **Episode Unlocked** banner/overlay art (it uses the popup panel today).
 - **Toast** background.
 
 **Home**
 - **Home backgrounds for episodes 1, 3 and 4** (Lab, Ice, Lava).
-- **Level button tier looks**: the green button is regular; hard and super hard need their own look (another button
-  colour or a badge), since tinting a coloured sprite only darkens it *(code: `LevelTierLook` swaps sprites instead of
-  tints)*.
-- **Leaderboard page**: title/header and a row (rank, avatar, name, score).
-- **Coin bundle art** for the six frames of the shop panel (1,000 to 100,000 coins: `ShopPage/.../Panel/Bundle<N>/Picture`,
-  placeholder coin today); the price tag uses the yellow button. The three bundle cards below the panel stay static;
-  their title is still missing (or we write it in text).
+- **Hard tier button**: only the super hard button arrived (section 8), so hard levels use it too, with "x3" on its
+  tag. A hard version (e.g. orange or yellow, same canvas and tag) drops into `LevelTierLook._hardSprite`.
+- ~~Leaderboard page, coin bundle art~~: arrived in the third delivery (section 8). The three bundle cards below the
+  shop panel still have no title art (we write it in text).
 - **Avatar frame opening**: the frame's middle is a filled disc, so the picture is masked to a circle over it (74 % of
   the frame's width, measured). A frame with a transparent opening, or a mask shape, would fit exactly.
 
@@ -210,9 +205,14 @@ shared canvas size.
 ## 5. How the art is prepared (Ball Sort ▸ Art ▸ Prepare Sprites)
 
 One menu item makes delivered art ready; it can be run any time, files already trimmed are left as they are.
-- **Trim each** (`UI/Buttons`, `UI/Displays`, `UI/Shop`, `UI/Avatar`): every file cut to its drawn pixels. The avatar
+- **Move deliveries** (`SpriteRules.Deliveries`): each delivered file still in `Assets/Art/Incoming/` is moved to its
+  place under its project name through `AssetDatabase.MoveAsset` (`.meta` and GUID kept), folders created as needed. A
+  destination that already exists is not overwritten (reported instead). Files kept for later go to `Assets/Art/Unused/`,
+  which no rule touches.
+- **Trim each** (`UI/Buttons`, `UI/Displays`, `UI/Shop`, `UI/Avatar`, `UI/Icons`, `UI/Popups`, `UI/Leaderboard`): every
+  file cut to its drawn pixels. The avatar
   pictures (`UI/Avatars`) are opaque squares and are not trimmed; they import at most 512 px, without alpha.
-- **Trim shared** (`UI/Home`, `UI/AvatarFrames`, `Episodes`): a folder is one swap set, cut to one rectangle holding
+- **Trim shared** (`UI/Home`, `UI/AvatarFrames`, `UI/Settings`, `Episodes`): a folder is one swap set, cut to one rectangle holding
   all its files' content, so the bottom bar's versions, the plain and selected avatar frames and the five mascot frames
   line up.
 - **Tube** (`Tubes/*`, `Tubes/Corks/*`, `Mechanics/Clay_Ice`, `Mechanics/Veil_Towel`, while they still share the
@@ -227,8 +227,10 @@ One menu item makes delivered art ready; it can be run any time, files already t
   6×6 (bar, shop, frames, backgrounds). Ball pivots sit on the body's centre; 9-slice borders for the pills, displays
   and veil are in `SpriteRules.Borders`.
 
-**New delivery:** copy the new PNG over the old file of the same name in `Assets/Art/Sprites/` (the `.meta` and every
-reference survive), run Prepare Sprites, check the screens. A new file name or folder needs a line in `SpriteRules`.
+**New delivery:** a replacement: copy the new PNG over the old file of the same name in `Assets/Art/Sprites/` (the
+`.meta` and every reference survive), run Prepare Sprites, check the screens. New files: drop them in
+`Assets/Art/Incoming/`, add a line per file to `SpriteRules.Deliveries` (and a folder rule or borders if new), run
+Prepare Sprites.
 
 ## 6. Pending for animations (docs/animation-spec.md, 2.2–2.6)
 
@@ -291,3 +293,48 @@ trimmed WAV exports would remove the need.
 4. **The bottom bar's ends differ per version**: the raised Shop and Leaderboard tabs round in 53 px (5.7 %) from the
    art's edge, the Home version 12 px, so a full-width bar is drawn 112 % of the screen's width and crops a little of
    every version's ends (docs/screens.md, Bottom nav). Bars drawn edge to edge (square ends) would avoid the crop.
+
+## 8. Third delivery (2026-10-31)
+
+24 PNGs, moved out of `Assets/Art/Incoming/` by **Prepare Sprites** itself (`SpriteRules.Deliveries`, section 5) and
+trimmed each (the two toggle knobs as one swap set). `Assets/Art/Incoming/` was empty afterwards and was removed.
+
+| Incoming | New path | Slot |
+|---|---|---|
+| `button/button_superhard.png` | `UI/Buttons/Button_SuperHard.png` | `LevelTierLook._superHardSprite` **and** `_hardSprite` (no hard version yet), on `LevelButton/TierArt`; "x5" / "x3" on its tag |
+| `button/button_settings_off.png` / `_on.png` | `UI/Settings/Toggle_Off.png` / `Toggle_On.png` | `SettingSwitch._offSprite` / `_onSprite`: the knob of each setting's switch |
+| `icons/icon_coin.png` | `UI/Icons/Icon_Coin.png` | Shop bundle 1 and card 1; the Buy popup's price button; inline in the Win reward and the Play on price (TMP sprite asset `Art/Atlases/Icon_Coin_TMP.asset`, `<sprite name="Icon_Coin">`) |
+| `icons/icon_coin2…6.png` | `UI/Icons/Icon_CoinPouch`, `Icon_CoinChest`, `Icon_CoinChestFull`, `Icon_CoinTank`, `Icon_CoinTankFull` | Shop bundles 2–6 (`Panel/Bundle<N>/Picture`); cards 2 and 3 use `Icon_CoinChest` and `Icon_CoinTank` |
+| `icons/icon_heart.png` | `UI/Icons/Icon_Heart.png` | More Lives (count on it), Refill hearts popup (`HomeScreen._heartPicture`) |
+| `icons/icon_heart_broken.png` | `UI/Icons/Icon_HeartBroken.png` | Are You Sure, above "You will lose a life." (`AreYouSurePopup._lifeCostIcon`) |
+| `icons/icon_noads.png` | `UI/Icons/Icon_NoAds.png` | Left of each shop card's name |
+| `icons/icon_plus.png` | `UI/Icons/Icon_Plus.png` | Buy badge on the lives and coins pills (Home) and on a booster at 0 |
+| `leaderboard/leaderboard_title.png` | `UI/Leaderboard/Leaderboard_Header.png` | Leaderboard page header ("Leaderboard" written on the plate) |
+| `leaderboard/leaderboard_menu.png` | `UI/Leaderboard/Leaderboard_Panel.png` | Leaderboard panel, 9-sliced vertically; top 3 avatars on the tubes' discs |
+| `leaderboard/leaderboard_player_default.png` / `_me.png` | `UI/Leaderboard/Leaderboard_Row.png` / `Leaderboard_RowMe.png` | `LeaderboardPage._otherRowSprite` / `_playerRowSprite` |
+| `pop-up menus/ingame3_menu.png` | `UI/Popups/Popup_Panel.png` | Panel of Win, Are You Sure, More Lives, Tutorial, Buy, Episode Unlocked (9-sliced) |
+| `pop-up menus/settings_menu.png` | `UI/Popups/Settings_Panel.png` | Settings popup panel (both scenes), fixed art |
+| `icons/icon_clock.png` | `Art/Unused/Icon_Clock.png` | For later |
+| `pop-up menus/ingame_menu.png`, `ingame2_menu.png`, `ingame4_menu.png`, `ingame5_menu.png` | `Art/Unused/Popup_Panel_Header_Cream.png`, `Popup_Panel_Header.png`, `Popup_Panel_Wide_Cream.png`, `Popup_Panel_Cream.png` | For later (headed and cream-filled panel variants) |
+
+**Measurements** (trimmed sizes; every file came on a 1000×1000 canvas)
+
+| File | Trimmed | Notes |
+|---|---|---|
+| Button_SuperHard | 884×480 | Pill x 2–827, y 50–478 (from the top); tag at the top right, tilted ≈ 25° clockwise, centre (735, 112). 9-slice borders 150 / 0 / 320 / 0: only the plain middle (columns 150–564) stretches, so the pill takes the green button's width; drawn at 230 / 428 scale so the pill matches the button's height, the tag reaching past its top right. |
+| Toggle_Off / Toggle_On | 772×792 (shared) | Round knobs; drawn 94×96 in the art's tracks. |
+| Icons | 568–616 × 552–824 | Imported at most 512. The coin is 584×560, so it imports at 512×491. |
+| Popup_Panel | 812×848 | Rows and columns 60–760 are flat: borders 100 / 110 / 100 / 100. |
+| Settings_Panel | 644×900 | Three bars at rows 160–265, 350–455, 540–645 (x 88–395, icon to x 175), tracks x 420–556; empty strip at rows 710–810 (Restart and Home in the Level scene); header lip rows 0–88 (the title). |
+| Leaderboard_Header | 860×480 | No text in the art: we write "Leaderboard" on the plate. |
+| Leaderboard_Panel | 640×940 | Tubes and the top frame in rows 0–470, plain box rows 470–800: borders 0 / 130 / 0 / 470, drawn at 920 / 640. Disc centres (321, 61) middle, (137, 100) left, (511, 136) right, ≈ 118 px wide. |
+| Leaderboard_Row / RowMe | 756×184 / 780×240 | Rank circle centre ≈ x 80 / 90, avatar ring ≈ x 220 / 235 (opening ≈ 112 px). The player's row has slime drips below the bar (≈ 50 px). |
+
+**Problems found**
+1. **No hard tier button**: hard levels use the super hard art with "x3" (section 4).
+2. **The popup panel, leaderboard header and shop cards have no text**: titles are TMP text over them, as before.
+3. **The bundle icons differ in shape** (the coin is round and wide, the tanks tall), so at one frame size the coin
+   reads bigger than the tanks. Fine for now; a common canvas per set would make them line up.
+4. **The two leaderboard rows differ in shape** (the player's drips): the row's background hangs from the row's top
+   and takes its height from the art (`LeaderboardRow`), so the drips hang into the gap below; the next row covers
+   their tips.

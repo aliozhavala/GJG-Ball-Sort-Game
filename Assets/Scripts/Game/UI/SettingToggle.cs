@@ -4,12 +4,18 @@ using UnityEngine.UI;
 
 namespace BallSort.Game.UI
 {
-    /// <summary>Two-way binding between a uGUI <see cref="Toggle"/> and one saved player setting.</summary>
+    /// <summary>
+    /// Two-way binding between a uGUI <see cref="Toggle"/> and one saved player setting, drawn by an
+    /// optional <see cref="SettingSwitch"/> (it slides on a tap and snaps when the setting is synced).
+    /// </summary>
     [RequireComponent(typeof(Toggle))]
     public sealed class SettingToggle : MonoBehaviour
     {
         [SerializeField] private SettingType _setting;
         [SerializeField] private Toggle _toggle;
+
+        [Tooltip("Optional: the switch art that shows the toggle's state.")]
+        [SerializeField] private SettingSwitch _switch;
 
         private PlayerData _player;
         private bool _subscribed;
@@ -18,7 +24,7 @@ namespace BallSort.Game.UI
         {
             Unbind();
             _player = player;
-            _toggle.SetIsOnWithoutNotify(player.GetSetting(_setting));
+            ShowWithoutNotify(player.GetSetting(_setting));
             _toggle.onValueChanged.AddListener(OnToggled);
             if (isActiveAndEnabled)
             {
@@ -26,13 +32,31 @@ namespace BallSort.Game.UI
             }
         }
 
-        private void OnToggled(bool isOn) => _player.SetSetting(_setting, isOn);
+        private void OnToggled(bool isOn)
+        {
+            if (_switch != null)
+            {
+                _switch.Slide(isOn);
+            }
+
+            _player.SetSetting(_setting, isOn);
+        }
+
+        private void ShowWithoutNotify(bool isOn)
+        {
+            _toggle.SetIsOnWithoutNotify(isOn);
+            if (_switch != null)
+            {
+                _switch.Snap(isOn);
+            }
+        }
 
         private void OnSettingChanged(SettingType setting, bool isOn)
         {
-            if (setting == _setting)
+            // The setting already changed by this toggle's own tap is already shown (and sliding).
+            if (setting == _setting && _toggle.isOn != isOn)
             {
-                _toggle.SetIsOnWithoutNotify(isOn);
+                ShowWithoutNotify(isOn);
             }
         }
 
@@ -55,7 +79,7 @@ namespace BallSort.Game.UI
                 return;
             }
 
-            _toggle.SetIsOnWithoutNotify(_player.GetSetting(_setting));
+            ShowWithoutNotify(_player.GetSetting(_setting));
             _player.SettingChanged += OnSettingChanged;
             _subscribed = true;
         }

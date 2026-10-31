@@ -601,7 +601,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: a9ba87add59c7474a8a8fa2ccedac894, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 59586bd43da7a204b83b551a7551f0ad, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -1058,7 +1058,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: a9ba87add59c7474a8a8fa2ccedac894, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 59586bd43da7a204b83b551a7551f0ad, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -1374,7 +1374,7 @@ MonoBehaviour:
     bottomLeft: {r: 1, g: 1, b: 1, a: 1}
     bottomRight: {r: 1, g: 1, b: 1, a: 1}
   m_fontColorGradientPreset: {fileID: 0}
-  m_spriteAsset: {fileID: 0}
+  m_spriteAsset: {fileID: 11400000, guid: f58766299ce538e45b4f48ef761f9a50, type: 2}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
   m_TextStyleHashCode: 0
@@ -2581,7 +2581,7 @@ MonoBehaviour:
   _giveUpButton: {fileID: 977156318}
   _playOnButton: {fileID: 827920345}
   _playOnLabel: {fileID: 769540256}
-  _playOnFormat: "Play on \u2014 {0} \u25CF"
+  _playOnFormat: "Play on \u2014 {0} <sprite name=\"Icon_Coin\">"
 --- !u!224 &1051701643
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4072,7 +4072,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: a9ba87add59c7474a8a8fa2ccedac894, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 59586bd43da7a204b83b551a7551f0ad, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -4301,6 +4301,9 @@ MonoBehaviour:
   _undoName: Undo
   _shuffleName: Shuffle
   _addTubeName: Add tube
+  _undoPicture: {fileID: 21300000, guid: b0a75d97905b1d14b8ba59780ea77efe, type: 3}
+  _shufflePicture: {fileID: 21300000, guid: 7d7d22d9fd6a69443830a41c43660222, type: 3}
+  _addTubePicture: {fileID: 21300000, guid: 5523b7e72ff76244d92cb8521795d902, type: 3}
   _nothingToUndo: Nothing to undo
   _undoSealed: Can't undo past a completed tube
   _noRoomForTubes: No room for more tubes

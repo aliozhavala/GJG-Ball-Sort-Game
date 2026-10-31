@@ -41,6 +41,7 @@ namespace BallSort.Game.UI
         [Tooltip("Index of the Shop tab in the tabs' list.")]
         [SerializeField, Min(0)] private int _shopTab;
         [SerializeField] private ShopPage _shopPage;
+        [SerializeField] private LeaderboardPage _leaderboardPage;
 
         [Header("Popups and shared pieces")]
         [SerializeField] private SettingsPopup _settingsPopup;
@@ -56,12 +57,14 @@ namespace BallSort.Game.UI
 
         [Header("Art")]
         [SerializeField] private AvatarConfig _avatars;
+        [Tooltip("The heart in the Refill hearts popup.")]
+        [SerializeField] private Sprite _heartPicture;
 
         [Header("Text")]
         [SerializeField] private string _levelFormat = "Level {0}";
         [SerializeField] private string _allCompleteText = "All levels complete";
-        [Tooltip("What Buy hearts buys, as in \"Buy hearts\".")]
-        [SerializeField] private string _heartsName = "hearts";
+        [Tooltip("Title of the popup that refills the lives for coins.")]
+        [SerializeField] private string _refillHeartsTitle = "Refill hearts";
         [SerializeField] private string _livesFullText = "Lives are already full";
         [Tooltip("Toast after a coin bundle is taken; {0} is the coins.")]
         [SerializeField] private string _bundleBoughtFormat = "+{0} coins";
@@ -86,6 +89,7 @@ namespace BallSort.Game.UI
 
             _settingsPopup.Initialize(player, showLevelActions: false);
             _avatarMenu.Initialize(player, _avatars);
+            _leaderboardPage.Initialize(player, _avatars);
             _moreLivesPopup.Initialize(player);
             _lives.Bind(player);
             _tabs.Initialize();
@@ -133,7 +137,7 @@ namespace BallSort.Game.UI
 
         private void OnCoinsBuyClicked() => _tabs.Select(_shopTab);
 
-        private void OnBuyLivesClicked() => _buyPopup.Show(_heartsName, _economy.LivesRefillPrice, TryBuyLives);
+        private void OnBuyLivesClicked() => _buyPopup.Show(_refillHeartsTitle, _heartPicture, _economy.LivesRefillPrice, TryBuyLives);
 
         /// <returns>True when the popup should close: bought, or nothing left to buy.</returns>
         private bool TryBuyLives()
@@ -170,7 +174,7 @@ namespace BallSort.Game.UI
         {
             if (_avatarButton == null || _avatar == null || _avatars == null || _lives == null || _coins == null || _settingsButton == null ||
                 _coinsBuyButton == null || _levelButton == null || _levelLabel == null || _levelTierLook == null || _tabs == null ||
-                _shopPage == null || _settingsPopup == null || _avatarMenu == null || _moreLivesPopup == null || _buyPopup == null ||
+                _shopPage == null || _leaderboardPage == null || _settingsPopup == null || _avatarMenu == null || _moreLivesPopup == null || _buyPopup == null ||
                 _episodeUnlockedOverlay == null || _inputBlocker == null || _toast == null)
             {
                 Debug.LogError($"{name}: every reference must be assigned.", this);

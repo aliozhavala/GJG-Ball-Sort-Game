@@ -27,6 +27,11 @@ namespace BallSort.Game.UI
         [SerializeField] private string _shuffleName = "Shuffle";
         [SerializeField] private string _addTubeName = "Add tube";
 
+        [Header("Pictures (Buy popup)")]
+        [SerializeField] private Sprite _undoPicture;
+        [SerializeField] private Sprite _shufflePicture;
+        [SerializeField] private Sprite _addTubePicture;
+
         [Header("Refusal messages")]
         [SerializeField] private string _nothingToUndo = "Nothing to undo";
         [SerializeField] private string _undoSealed = "Can't undo past a completed tube";
@@ -54,6 +59,16 @@ namespace BallSort.Game.UI
                 BoosterType.Undo => _undoName,
                 BoosterType.Shuffle => _shuffleName,
                 BoosterType.AddTube => _addTubeName,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown booster type."),
+            };
+
+        /// <summary>The booster's picture in the Buy popup; null when it has none.</summary>
+        public Sprite GetPicture(BoosterType type) =>
+            type switch
+            {
+                BoosterType.Undo => _undoPicture,
+                BoosterType.Shuffle => _shufflePicture,
+                BoosterType.AddTube => _addTubePicture,
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown booster type."),
             };
 

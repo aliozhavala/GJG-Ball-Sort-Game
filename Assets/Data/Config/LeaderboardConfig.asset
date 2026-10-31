@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc92033d31f14474ca0cfefeeb9ba38f, type: 3}
+  m_Name: LeaderboardConfig
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.LeaderboardConfig
+  _bots:
+  - _name: Bubbles
+    _avatarId: 1
+  - _name: Captain Fizz
+    _avatarId: 2
+  - _name: Luna Star
+    _avatarId: 5
+  - _name: Pip Pepper
+    _avatarId: 5
+  - _name: Mochi
+    _avatarId: 5
+  - _name: Ziggy Zap
+    _avatarId: 1
+  - _name: Sunny Sprout
+    _avatarId: 4
+  - _name: Professor Plum
+    _avatarId: 5
+  - _name: Nova
+    _avatarId: 4
+  - _name: Tilly Tumble
+    _avatarId: 2

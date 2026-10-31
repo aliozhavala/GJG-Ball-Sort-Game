@@ -128,6 +128,7 @@ namespace BallSort.Game.Flow
             _session.LevelCompleted += OnLevelCompleted;
             _player.Boosters.Changed += OnBoostersChanged;
             _player.Wallet.Changed += OnCoinsChanged;
+            _hud.Buy.ShowCoins(_player.Wallet);
 
             _hud.Boosters.UndoClicked += OnUndoClicked;
             _hud.Boosters.ShuffleClicked += OnShuffleClicked;
@@ -299,7 +300,9 @@ namespace BallSort.Game.Flow
                 return false;
             }
 
-            _hud.Buy.Show(_hud.Boosters.GetDisplayName(type), _economy.GetBoosterPrice(type), () => TryBuyBooster(type));
+            _hud.Buy.Show(
+                _hud.Buy.BuyTitle(_hud.Boosters.GetDisplayName(type)), _hud.Boosters.GetPicture(type),
+                _economy.GetBoosterPrice(type), () => TryBuyBooster(type));
             return true;
         }
 

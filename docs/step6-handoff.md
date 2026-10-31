@@ -1,7 +1,8 @@
 # Step 6 handoff: art integration and animations
 
 State at the end of roadmap 7c (2026-10-30), updated after the first art delivery (6a, same day) and the second
-(6c, 2026-10-31: rim halves, corks, avatars and the avatar menu; docs/art-inventory.md §7). Every sprite below has
+(6c, 2026-10-31: rim halves, corks, avatars and the avatar menu; docs/art-inventory.md §7) and the third (6d, same
+day: icons, popup panels, settings switches, tier button, leaderboard; §8). Every sprite below has
 a slot; final art drops in without code changes unless a row says otherwise. Delivered art lives in
 `Assets/Art/Sprites/` (prepared with **Ball Sort ▸ Art ▸ Prepare Sprites**; inventory, problems and missing art in
 docs/art-inventory.md). Placeholders: Unity's built-in UI skin (`UISprite`, `Knob`, `Background`, `Checkmark`,
@@ -37,10 +38,14 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 | `EpisodeConfig._episodes[n]._mascotFrame` → `TopBar/MascotFrame` | Scientist in a frame, top left (255×255) | **Art** (`Episodes/MascotFrame_Ep<N>_*`) |
 | `TopBar/SettingsButton` | Settings button, top right | **Art** (`Button_Settings`) |
 | `BoosterBar/{Undo,Shuffle,AddTube}Button` + `/Badge` | Booster buttons and count badges | `UISprite` + text labels, `Knob` badge (missing art) |
+| `BoosterBar/*Button/BuyBadge` | Buy badge at 0 | **Art** (`Icon_Plus`) |
+| `BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture` | Booster picture in the Buy popup | generated `Placeholder/UI/Booster_*` |
 | `StuckPanel/Buttons/GiveUpButton` / `PlayOnButton` | Stuck bar buttons | **Art** (`Button_Red` / `Button_Yellow`) |
 | `Celebration` | Win celebration | text only |
 | Popups (`Prefabs/UI`) | Close buttons; Win Continue; Are You Sure Confirm; Settings' Restart and Home | **Art** (`Button_Close`, `Button_Green`, `Button_Red`) |
-| Popups (`Prefabs/UI`) | Panels, toggles, `MoreLivesPopup/Panel/Heart`, `Toast` | `UISprite`; heart = `Heart.png` tinted |
+| Popups (`Prefabs/UI`) | Panels (`Popup_Panel`; Settings `Settings_Panel`), switch knobs (`SettingSwitch`), More Lives heart, Are You Sure broken heart, Buy popup coin and balance pill | **Art** (docs/art-inventory.md §8) |
+| `Toast` | Toast background | `UISprite` |
+| `WinPopup/Panel/Reward`, `StuckPanel` Play on label | Coin after the amount | **Art** (`Icon_Coin` through the TMP sprite asset `Art/Atlases/Icon_Coin_TMP`) |
 | `TutorialConfig._entries[i]._image` → `TutorialPopup/Panel/Picture` | Optional tutorial picture (hidden when empty) | none |
 
 ### Home (`HomeCanvas`)
@@ -50,12 +55,13 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 | `TopBar/AvatarButton` (+ `AvatarFrame`, `/Mask/Picture`) | The picked avatar (`AvatarConfig`) in its frame | **Art** (`AvatarConfig._frame` = `UI/AvatarFrames/Avatar_Frame_Empty`, `UI/Avatars/Avatar_0N`); mask `Placeholder/Ball_Circle` |
 | `TopBar/Lives`, `TopBar/Coins` | Displays, sliced; count on the heart / coin side, text on the pill | **Art** (`Display_Lives`, `Display_Coins`) |
 | `TopBar/SettingsButton` | Settings | **Art** (`Button_Settings`) |
-| `HomePage/LevelButton` + `/TierBadge` | Level button and tier badge (`LevelTierLook` tints are white until tier art exists) | **Art** (`Button_Green`); badge `UISprite` |
+| `HomePage/LevelButton` + `/TierArt` | Level button; hard / super hard art with the multiplier on its tag (`LevelTierLook`) | **Art** (`Button_Green`; `Button_SuperHard` for both hard tiers until a hard version arrives) |
 | `BottomNav` (`HomeTabs._bar`, `_tabs[n]._barSprite`; `BottomBar`) | Bar in three versions, full screen width; invisible tap areas (`/TapAreas`) over its sections, above the safe-area inset | **Art** (`UI/Home/BottomBar_*`) |
 | `ShopPage/Scroll/Viewport/Content` | Header, panel, three bundle cards | **Art** (`UI/Shop/*`) |
-| `LeaderboardPage/Panel`, `/RowN` | Placeholder page | `UISprite` |
+| `LeaderboardPage` (`Scroll/.../Header`, `Panel`, rows from `RowTemplate`, `Podium1–3`) | Leaderboard page; bots in `LeaderboardConfig` | **Art** (`UI/Leaderboard/*`) |
+| `TopBar/Lives/Heart` | Heart under the lives count | `Heart.png` tinted (placeholder; `Icon_Heart` would fit) |
 | `AvatarMenuPopup` (`Prefabs/UI`) | Panel, frames, pen, close | **Art** (`AvatarMenu_Panel`, `Button_Pen`, `Button_Close`; frames from `AvatarConfig`: `Avatar_Frame_Empty`, the picked one `Avatar_Frame_Selected`) |
-| Other Home popups (panels, `EpisodeUnlockedOverlay`, `SettingsPopup`, `Toast`) | Home popups | `UISprite` |
+| Other Home popups (`EpisodeUnlockedOverlay`, `SettingsPopup`) | Home popups | **Art** (panels as above); `Toast` `UISprite` |
 | Every popup root | Dimmed full-screen background | black at 60 % (Episode Unlocked 75 %) |
 
 ## 2. Animation hooks
@@ -127,11 +133,10 @@ Deviations and decisions:
 
 TODOs:
 - Final tutorial texts (product) and optional pictures in `TutorialConfig`.
-- Missing art (full list for the artist in docs/art-inventory.md): booster icons (text labels), a standalone coin
-  ("●" in the Win reward and Play on price), popup panels, door / lock / key, tier looks for the Level button; for the
-  animations, glow, shock faces and VFX sprites (docs/art-inventory.md, Pending for animations).
-- Leaderboard and Shop are placeholders (Leaderboard can reuse the Shop's `ScrollBehindBar` structure); More Lives
-  offers no way to get lives.
+- Missing art (full list for the artist in docs/art-inventory.md): booster icons and pictures, door / lock / key, a
+  hard tier button; for the animations, glow, shock faces and VFX sprites (docs/art-inventory.md, Pending for
+  animations).
+- The leaderboard is fixed data (no backend, no scores); More Lives offers no way to get lives.
 - Clay melt and veil / door opening animations (`TubeView.SetClayShown`, `CoverView.SetOpen` snap today).
 - Consider adding "start position not stuck" to `LevelValidator` (today only `ShippedLevelTests` checks it).
 - Re-measure the stuck check on a device.

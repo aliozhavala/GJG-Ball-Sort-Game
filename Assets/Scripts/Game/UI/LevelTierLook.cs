@@ -6,53 +6,63 @@ using UnityEngine.UI;
 namespace BallSort.Game.UI
 {
     /// <summary>
-    /// The Home Level button's look for the level's tier: a tint, and a badge naming hard and super
-    /// hard levels. Placeholder until final art (docs/screens.md).
+    /// The Home Level button's look for the level's tier: the regular button, or the tier's own art
+    /// (a red button with a tilted tag at its top right) with the reward multiplier written on the tag.
     /// </summary>
+    /// <remarks>
+    /// The tier art reaches past the button (the tag sticks out at the top right), so it is a separate
+    /// image laid over the button rather than a sprite swap on it: the button keeps its rect, label
+    /// and tap area, and only its regular art is hidden.
+    /// </remarks>
     public sealed class LevelTierLook : MonoBehaviour
     {
+        [Tooltip("The regular button art; stays the tap target, hidden (transparent) for hard tiers.")]
         [SerializeField] private Image _background;
 
-        [Tooltip("Shown for hard and super hard levels only.")]
-        [SerializeField] private GameObject _badge;
-        [SerializeField] private TMP_Text _badgeLabel;
+        [Tooltip("Drawn over the button for hard and super hard levels; its pill lines up with the button.")]
+        [SerializeField] private Image _tierArt;
 
-        [Header("Regular")]
-        [SerializeField] private Color _regularTint = Color.white;
+        [Tooltip("On the tier art's tag, rotated to its angle.")]
+        [SerializeField] private TMP_Text _multiplierLabel;
 
         [Header("Hard")]
-        [SerializeField] private Color _hardTint = new Color(1f, 0.6f, 0.15f);
-        [SerializeField] private string _hardLabel = "Hard";
+        [SerializeField] private Sprite _hardSprite;
+        [SerializeField] private string _hardMultiplier = "x3";
 
         [Header("Super hard")]
-        [SerializeField] private Color _superHardTint = new Color(0.85f, 0.2f, 0.4f);
-        [SerializeField] private string _superHardLabel = "Super hard";
+        [SerializeField] private Sprite _superHardSprite;
+        [SerializeField] private string _superHardMultiplier = "x5";
 
         public void Show(LevelTier tier)
         {
-            _background.color = tier switch
+            Sprite art = tier switch
             {
-                LevelTier.Hard => _hardTint,
-                LevelTier.SuperHard => _superHardTint,
-                _ => _regularTint,
+                LevelTier.Hard => _hardSprite,
+                LevelTier.SuperHard => _superHardSprite,
+                _ => null,
             };
 
-            string label = tier switch
-            {
-                LevelTier.Hard => _hardLabel,
-                LevelTier.SuperHard => _superHardLabel,
-                _ => string.Empty,
-            };
+            bool special = art != null;
+            _tierArt.sprite = art;
+            _tierArt.gameObject.SetActive(special);
+            _multiplierLabel.text = tier == LevelTier.SuperHard ? _superHardMultiplier : _hardMultiplier;
 
-            _badgeLabel.text = label;
-            _badge.SetActive(label.Length > 0);
+            // Transparent, not disabled: the regular art stays the button's raycast target.
+            Color color = _background.color;
+            color.a = special ? 0f : 1f;
+            _background.color = color;
         }
 
         private void Awake()
         {
-            if (_background == null || _badge == null || _badgeLabel == null)
+            if (_background == null || _tierArt == null || _multiplierLabel == null)
             {
-                Debug.LogError($"{name}: background image, badge and badge label must be assigned.", this);
+                Debug.LogError($"{name}: background, tier art and multiplier label must be assigned.", this);
+            }
+
+            if (_hardSprite == null || _superHardSprite == null)
+            {
+                Debug.LogWarning($"{name}: a tier without art shows the regular button.", this);
             }
         }
     }

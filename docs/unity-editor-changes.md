@@ -757,3 +757,74 @@ All changes made through Unity MCP Editor commands; Unity generated every new `.
   threw `MissingReferenceException`. They now subscribe in `OnEnable` and unsubscribe in `OnDisable`.
 - The Editor save was backed up before Play mode and written back afterwards (level 20, 1,020 coins, 5 lives, Undo 0,
   Shuffle 99, Add tube 99).
+
+## 2026-10-31 — Third art delivery: icons, popup panels, settings switches, tier button, leaderboard
+
+All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabContents` / `SaveAsPrefabAsset`).
+
+### Assets
+- **Prepare Sprites** (extended with `SpriteRules.Deliveries`) moved the 24 files of `Assets/Art/Incoming/` with
+  `AssetDatabase.MoveAsset` (GUIDs kept), trimmed and imported them: `UI/Buttons/Button_SuperHard.png`,
+  `UI/Settings/Toggle_Off.png`, `Toggle_On.png`, `UI/Icons/` (`Icon_Coin`, `Icon_CoinPouch`, `Icon_CoinChest`,
+  `Icon_CoinChestFull`, `Icon_CoinTank`, `Icon_CoinTankFull`, `Icon_Heart`, `Icon_HeartBroken`, `Icon_NoAds`,
+  `Icon_Plus`), `UI/Leaderboard/` (`Leaderboard_Header`, `Leaderboard_Panel`, `Leaderboard_Row`, `Leaderboard_RowMe`),
+  `UI/Popups/` (`Popup_Panel`, `Settings_Panel`), and to `Art/Unused/`: `Icon_Clock`, `Popup_Panel_Header_Cream`,
+  `Popup_Panel_Header`, `Popup_Panel_Wide_Cream`, `Popup_Panel_Cream`. 9-slice borders: `Button_SuperHard`
+  150/0/320/0, `Popup_Panel` 100/110/100/100, `Leaderboard_Panel` 0/130/0/470. The empty `Assets/Art/Incoming/`
+  folders were moved to the trash.
+- New generated placeholders `Art/Sprites/Placeholder/UI/Booster_Undo.png`, `Booster_Shuffle.png`, `Booster_AddTube.png`
+  (256², import settings copied from `Plus_Green.png`, max 256).
+- New `Art/Atlases/Icon_Coin_TMP.asset`: TMP sprite asset made from `Icon_Coin` (menu Create ▸ TextMeshPro ▸ Sprite
+  Asset, moved here); its glyph metrics set to bearing x 0, bearing y 420, advance 540 so it follows the text.
+- New `Data/Config/LeaderboardConfig.asset`: 10 bots (Bubbles 1, Captain Fizz 2, Luna Star 5, Pip Pepper 5, Mochi 5,
+  Ziggy Zap 1, Sunny Sprout 4, Professor Plum 5, Nova 4, Tilly Tumble 2; avatar ids from `System.Random(2026)`).
+- `Prefabs/UI/WinPopup`, `TutorialPopup`, `EpisodeUnlockedOverlay`, `AreYouSurePopup`, `MoreLivesPopup`, `BuyPopup`:
+  `Panel` image → `Popup_Panel` (sliced, white, ppum 1), layout padding 80/80/80/90.
+  - `WinPopup`: `Panel/Reward` sprite asset → `Icon_Coin_TMP`; `WinPopup._rewardFormat` → `+{0} <sprite name="Icon_Coin">`.
+  - `AreYouSurePopup`: new `Panel/BrokenHeart` (`Icon_HeartBroken`, preserve aspect, preferred height 200) between
+    `Title` and `LifeCost`; `AreYouSurePopup._lifeCostIcon` → it.
+  - `MoreLivesPopup`: `Panel/Heart` → `Icon_Heart`, white, preferred height 240; `Heart/Count` offset y 10.
+  - `BuyPopup`: new `Panel/Coins` (inactive; preferred height 96; `CoinsDisplay`) → `Pill` (250×96, `Display_Coins`
+    sliced, ppum 3.958) → `Label` (TMP bold 38, `AmountLabel` 38–26, insets 96 / 22); new `Panel/Picture` (preserve
+    aspect, preferred height 220); `BuyButton/Content/CoinIcon` → `Icon_Coin`; `BuyPopup._picture` / `_coins` → them.
+- `Prefabs/UI/SettingsPopup`: `Panel` → `Settings_Panel` (simple, 820×1146), its `VerticalLayoutGroup`,
+  `ContentSizeFitter` and the children's `LayoutElement`s removed; children anchored on the art: `Title` (header lip,
+  auto-size 30–56), `SoundRow` / `MusicRow` / `HapticsRow` on the three bars (x 0.137–0.863), each `Label` left-aligned
+  at x 0.20–0.64 (auto-size 30–52), each toggle on the track (x 0.709–1.0): transparent target graphic, `graphic` none,
+  transition none, `Checkmark` renamed `Knob` (94×96, left-middle anchor), new `SettingSwitch` (off x 52, on x 121,
+  `Toggle_Off` / `Toggle_On`), `SettingToggle._switch` → it; `RestartButton` / `HomeButton` side by side on the bottom
+  strip (x 0.15–0.49 / 0.51–0.85, y 0.108–0.203, ppum 2.7, labels auto-size 28–46); `CloseButton` at (−10, −10).
+
+### Scenes
+- `Assets/Scenes/Home.unity`:
+  - `SafeArea/HomePage/LevelButton`: `TierBadge` removed; new first child `TierArt` (inactive; `Button_SuperHard`
+    sliced, ppum 1.861, offsets −1.07/−1.07 to +30.6/+26.9 so its pill covers the button) → `Multiplier` (TMP bold
+    auto 20–40, white, 140×46 at (−80, −60) from the top right, rotated −25°). `LevelTierLook`: `_tierArt`,
+    `_multiplierLabel`, `_hardSprite` and `_superHardSprite` (both `Button_SuperHard`).
+  - `SafeArea/TopBar/Lives/BuyButton`, `Coins/BuyButton` → `Icon_Plus`.
+  - `ShopPage/.../Panel/Bundle1–6/Picture` → `Icon_Coin`, `Icon_CoinPouch`, `Icon_CoinChest`, `Icon_CoinChestFull`,
+    `Icon_CoinTank`, `Icon_CoinTankFull`; their `PriceTag/Price` black, auto-size 12–36, margins 14/4/14/6.
+  - `ShopPage/.../Content/Bundle1–3` (cards): `Name` at x 0.67–0.975 (auto-size 24–46); new `Coin` (x 0.465–0.565,
+    `Icon_Coin` / `Icon_CoinChest` / `Icon_CoinTank`) and `NoAds` (x 0.57–0.66, `Icon_NoAds`); `Price` black, auto-size
+    20–56.
+  - `SafeArea/LeaderboardPage`: placeholder `Panel` removed; `Scroll` (copy of the Shop's scroll view, with
+    `ScrollBehindBar`) → `Viewport/Content` → `Header` (920×513, `Leaderboard_Header`, `Title` "Leaderboard") and
+    `Panel` (`Leaderboard_Panel` sliced, ppum 0.696, width 920, `VerticalLayoutGroup` padding 86/86/676/173, spacing 26)
+    holding `Podium1–3` (masked avatar pictures, 132², ignore layout, on the tube discs) and the inactive `RowTemplate`
+    (748×182, `LeaderboardRow`: `Background`, `Rank`, masked `Avatar` 104², `Name`). New `LeaderboardPage` on the page
+    (`LeaderboardConfig`, the row template, both row sprites, the three podium pictures).
+  - `HomeScreen`: `_leaderboardPage`, `_heartPicture` (`Icon_Heart`); `_heartsName` replaced by `_refillHeartsTitle`
+    ("Refill hearts").
+- `Assets/Scenes/Level.unity`: `SafeArea/BoosterBar/{Undo,Shuffle,AddTube}Button/BuyBadge` → `Icon_Plus`; `BoosterBar`
+  `_undoPicture` / `_shufflePicture` / `_addTubePicture` → the three placeholders; `StuckPanel._playOnFormat` →
+  `Play on — {0} <sprite name="Icon_Coin">`, its label's sprite asset → `Icon_Coin_TMP`.
+
+### Verification runs (no persistent changes)
+- EditMode tests: 1774 passed, 0 failed. Console clean after every compile and after Play mode.
+- Play mode, Home: each tier on the Level button (x3 / x5 on the tag); Shop and Leaderboard scrolled top and bottom;
+  real taps on Settings and on each switch (knob slid from 121 to 52 and swapped sprites halfway); the lives plus
+  opened "Refill hearts" with the heart; More Lives.
+- Play mode, Level 20: Undo at 0 opened "Buy Undo" with the balance (10,720) and the placeholder picture; buying closed
+  it and spent 300 (the popup's balance read 10,420); Settings → Restart opened Are You Sure with the broken heart;
+  the Win reward and Play on show the coin inline.
+- The Editor save was backed up before Play mode and written back afterwards.

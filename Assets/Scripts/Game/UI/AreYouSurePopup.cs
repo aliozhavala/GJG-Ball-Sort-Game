@@ -19,6 +19,9 @@ namespace BallSort.Game.UI
         [Tooltip("\"You will lose a life.\" Hidden when no life would be spent (at 0 lives).")]
         [SerializeField] private TMP_Text _lifeCostLine;
 
+        [Tooltip("The broken heart above the life line; shown and hidden with it.")]
+        [SerializeField] private GameObject _lifeCostIcon;
+
         [SerializeField] private Button _confirmButton;
 
         /// <summary>The player confirmed. The popup has already closed.</summary>
@@ -30,6 +33,10 @@ namespace BallSort.Game.UI
         public void Ask(bool costsALife)
         {
             _lifeCostLine.gameObject.SetActive(costsALife);
+            if (_lifeCostIcon != null)
+            {
+                _lifeCostIcon.SetActive(costsALife);
+            }
             _popup.Open();
         }
 

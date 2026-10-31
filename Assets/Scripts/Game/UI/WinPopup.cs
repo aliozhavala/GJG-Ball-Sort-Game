@@ -18,7 +18,7 @@ namespace BallSort.Game.UI
         [SerializeField] private TMP_Text _reward;
         [SerializeField] private Button _continueButton;
         [SerializeField] private string _titleFormat = "Level {0} complete";
-        [SerializeField] private string _rewardFormat = "+{0} <color=#FFC107>●</color>";
+        [SerializeField] private string _rewardFormat = "+{0} <sprite name=\"Icon_Coin\">";
 
         public event Action ContinueClicked;
 

@@ -35,13 +35,15 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - **Top bar:** avatar (top-left: the picked avatar in its frame, the same in every episode; mascot frames are a Level scene thing), lives (the count on the art's heart, the time to
   the next life on its pill) and coins (the count on the pill next to the art's coin, on one line: it shrinks to fit and
   is abbreviated, e.g. 125K or 1.2M, only once it would get too small, `AmountLabel`) between the corners, settings
-  button (top-right). A green plus sits on the right end of the lives pill while lives are below the maximum (it opens
-  Buy hearts) and always on the coins pill (it opens the Shop tab); Buying, below.
+  button (top-right). A green plus (`Icon_Plus`) sits on the right end of the lives pill while lives are below the
+  maximum (it opens Refill hearts) and always on the coins pill (it opens the Shop tab); Buying, below.
 - **Center:** big **Level button** (green) showing `Level N`, low on the page just above the bottom bar (about a quarter
   of the screen up), so the episode illustration stays visible. If `AllLevelsComplete`: shows `All levels complete` and
-  replays level 100. Its look depends on the level's tier: regular, hard or super hard (for now only the "Hard" or
-  "Super hard" badge; tier button art is missing, docs/art-inventory.md). At 0 lives it opens the More Lives popup
-  instead of loading the level.
+  replays level 100. Its look depends on the level's tier (`LevelTierLook`): regular levels show the green button;
+  hard and super hard levels show the red tier button (`Button_SuperHard`, drawn over the button as `TierArt`, its pill
+  stretched to the green button's size) with the reward multiplier written on its tilted tag at the tag's angle:
+  "x3" for hard, "x5" for super hard (rewards 60 and 100 against 20). Hard uses the super hard art until its own
+  arrives (docs/art-inventory.md, section 8). At 0 lives it opens the More Lives popup instead of loading the level.
 - **Bottom nav:** Shop · Home · Leaderboard, the order of the bar art. One bar image in three versions, each with its
   tab raised; selecting a tab swaps the bar to its version. Three invisible tap areas match the drawn sections
   (41 / 19 / 41 % of the bar's width). Home is selected on arriving. Every tab stays interactable (`HomeTabs` enforces it).
@@ -58,17 +60,27 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
     ("Shop"), the shop panel with the six **coin bundles** in its frames (`ShopPage`, `ShopItem`), and below it three
     copies of the bundle card with a name and a price (static: they do nothing). Bundles, top left to bottom right:
     1,000 / 5,000 / 10,000 / 25,000 / 50,000 / 100,000 coins, labelled 99,99 TL / 399,99 TL / 799,99 TL / 1499,99 TL /
-    2999,99 TL / 4999,99 TL (display only, `EconomyConfig`). Each shows a picture (placeholder coin until bundle art
-    arrives), its coins and its price on a yellow tag; a tap adds the coins at once (no real payment) and toasts
-    "+10,000 coins".
-  - **Leaderboard page:** placeholder (a title and five empty rows).
+    2999,99 TL / 4999,99 TL (display only, `EconomyConfig`). Each shows its picture (`Icon_Coin`, `Icon_CoinPouch`,
+    `Icon_CoinChest`, `Icon_CoinChestFull`, `Icon_CoinTank`, `Icon_CoinTankFull`, in that order), its coins and its
+    price in black on a yellow tag (shrinks to fit inside the tag); a tap adds the coins at once (no real payment) and
+    toasts "+10,000 coins". Each card shows, left to right above its price, a coin icon (`Icon_Coin`, `Icon_CoinChest`,
+    `Icon_CoinTank` for cards 1–3), the no-ads icon and its name; its price is black too.
+  - **Leaderboard page** (`LeaderboardPage`): the Shop's structure, a scroll view running behind the bar
+    (`ScrollBehindBar`): the leaderboard header ("Leaderboard" written on the plate), then the leaderboard panel,
+    9-sliced so its box stretches down to fit the rows. Rows, top to bottom: the rank (1 to N) in the circle on the
+    left, the avatar in the ring, the name. Rank 1 is always the player, with their saved name and avatar, on the
+    player's row art (`Leaderboard_RowMe`); below come 10 bots on the plain row (`Leaderboard_Row`), fixed in the
+    `LeaderboardConfig` asset (family-friendly names, avatar ids picked at random once from our 5). No backend and no
+    scores. The top 3 avatars also sit on the discs of the three tubes drawn at the top of the panel: rank 1 on the
+    tall middle tube, 2 on the left, 3 on the right. The page refreshes each time it is shown (name and avatar change
+    in the avatar menu). Rows are made once, from a template, when Home starts.
 - **Avatar** → **avatar menu** (`AvatarMenuPopup`, the `AvatarMenu_Panel` art): top, the picked avatar in its frame,
   the name to its right and the pen button to the right of the name. The name is read-only and takes no taps until
   the pen is tapped, then editable in place (no popup); Enter or a tap anywhere else ends the edit and saves it (trimmed, 1–16 characters;
   a refused name goes back to the saved one). Bottom, a 3 × 3 grid of frames: the first five hold avatars 1–5, a tap
   picks one (saved at once, shown on Home's avatar), the picked one in the green selected frame; the other four show the empty
   frame and cannot be picked. **Close** (✕) closes.
-- Settings popup (Home): Sound, Music, Haptics toggles.
+- Settings popup (Home): Sound, Music, Haptics toggles (Settings popup, Shared UI pieces).
 
 ## Level screen
 - **Top-left:** the episode's mascot frame (display only, for now; it hangs below the top bar, clear of the board).
@@ -81,7 +93,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   move. An illegal move, or a tap on a tube that can't be selected, plays invalid-move feedback and clears the
   selection. Tapping empty space deselects. The selection is also dropped on undo, add tube, Play on, restart,
   entering/leaving stuck and the win.
-- Settings popup (Level): Sound, Music, Haptics toggles + **Restart** + **Home**, both behind Are You Sure (Lives, below). Gameplay input is blocked while it is open.
+- Settings popup (Level): Sound, Music, Haptics toggles + **Restart** + **Home** side by side on the panel's bottom strip, both behind Are You Sure (Lives, below). Gameplay input is blocked while it is open.
 
 ### Boosters
 - Boosters work only while playing: while stuck the bar is hidden, and after a win (and during a shuffle pick) it is
@@ -122,13 +134,16 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 ## Buying
 Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyBooster`, `TryRefillLives` and `AddCoins`
 (each saved in one write).
-- **Buy popup** (`BuyPopup`, one per scene, over everything but the toast): "Buy {name}", a yellow button showing only
-  the price next to a coin icon (art slot, placeholder coin), and the ✕.
-  - **Boosters** (Level, from a booster at 0): "Buy Undo" 300, "Buy Shuffle" 300, "Buy Add tube" 900; one purchase adds
-    1 booster and closes the popup, and the badge shows the count again.
-  - **Hearts** (Home, from the plus on the lives pill, shown only below the maximum): "Buy hearts" 900 refills the lives
-    to the maximum and stops the timer. If they filled up while the popup was open, it closes with "Lives are already
-    full" and nothing is spent.
+- **Buy popup** (`BuyPopup`, one per scene, over everything but the toast): a title, a picture of what is bought, a
+  yellow button showing only the price next to `Icon_Coin`, and the ✕.
+  - **Boosters** (Level, from a booster at 0): "Buy Undo" 300, "Buy Shuffle" 300, "Buy Add tube" 900. Under the title,
+    the coin balance in a small copy of Home's coins pill (`CoinsDisplay`, bound to the wallet while shown, so it is
+    always current); then the booster's picture (`BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture`,
+    generated placeholders until booster art arrives). One purchase adds 1 booster and closes the popup, and the badge
+    shows the count again.
+  - **Hearts** (Home, from the plus on the lives pill, shown only below the maximum): "Refill hearts" with `Icon_Heart`
+    as the picture (no coin balance: Home's top bar shows it), 900 refills the lives to the maximum and stops the
+    timer. If they filled up while the popup was open, it closes with "Lives are already full" and nothing is spent.
 - **Not enough coins:** the invalid-move sound, the toast "Not enough coins", and the popup stays open.
 - **Coins:** the plus on Home's coins pill opens the Shop tab, whose bundles add coins (Home screen, Shop page).
 
@@ -143,8 +158,8 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   stuck → Give up, and closing the app mid-level (below). A win never costs one, and neither does Play on. Each such
   exit also counts one retry (docs/levels.md, Variants and retries); at 0 lives it still counts the retry, and lives
   stay at 0.
-- **Are You Sure popup:** settings → Home, settings → Restart and stuck → Give up each open it first: "Are you sure?" and
-  "You will lose a life." (that line is left out at 0 lives). **Confirm** → lives −1, then the action. **Close** (✕) →
+- **Are You Sure popup:** settings → Home, settings → Restart and stuck → Give up each open it first: "Are you sure?", a
+  broken heart (`Icon_HeartBroken`) and "You will lose a life." (the heart and the line are left out at 0 lives). **Confirm** → lives −1, then the action. **Close** (✕) →
   back to where it came from: the settings popup (still open) or the stuck bar. Nothing is spent before Confirm.
 - **Closing the app mid-level:** when a level starts, the save gets a level-in-progress mark naming the level. A win or a
   confirmed Home / Give up clears it in the same save that records them; a confirmed Restart keeps it for the new
@@ -156,7 +171,7 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   - Level (lives reach 0 there when Restart spends the last one): **Restart** opens the More Lives popup instead of
     restarting, with no Are You Sure first; its Close goes back to the settings popup. **Home** and **Give up** still
     work, through Are You Sure as usual, and lives stay at 0. Once a life comes back, Restart works again.
-- **More Lives popup:** a heart, the lives count and "Next life in 12:34", both refreshed every second, and **Close** (✕)
+- **More Lives popup:** a heart (`Icon_Heart`) with the lives count on it, and "Next life in 12:34", both refreshed every second, and **Close** (✕)
   → back to Home or the settings popup. There is no way to get lives faster yet.
 - **Home display:** `♥ N` and the time to the next life as `mm:ss`, or `Full` at the maximum, refreshed every second.
 
@@ -192,12 +207,25 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
 ## Shared UI pieces
 - **Toast:** short message, auto-hides, never blocks input. A new message replaces the current one instead of queueing.
 - **Popup:** modal with dimmed background; blocks input beneath it. Open = GameObject active. Draw order is hierarchy order: screen content, then popups, then the toast last. Popups can stack: Are You Sure and More Lives open over the settings popup, and only the topmost takes input. The tutorial popup and the Episode Unlocked overlay close on a tap anywhere; the others have buttons. A popup that follows the player data subscribes while open (`OnEnable`/`OnDisable`): a popup never opened never runs `OnDestroy`, and the player data outlives the scene.
+- **Popup panels:** every popup uses the popup panel art (`Popup_Panel`, 9-sliced to fit its content) except Settings
+  (`Settings_Panel`, fixed art) and the avatar menu (its own panel).
+- **Settings popup** (one prefab, both scenes): the settings panel art with "Settings" in its header lip, and Sound,
+  Music and Haptics written on the three bars next to their icons. Each has a switch in the track to the right of its
+  bar (`SettingSwitch`, driven by `SettingToggle`): one knob, on the left with `Toggle_Off` when off, on the right with
+  `Toggle_On` when on, never both. A tap slides the knob across (0.18 s DOTween, unscaled) and swaps its sprite halfway;
+  syncing from the save snaps it.
+- **Coin icon in text:** the Win reward (`+20 ●`) and the Play on price draw `Icon_Coin` inline through a TMP sprite
+  asset (`Art/Atlases/Icon_Coin_TMP.asset`, `<sprite name="Icon_Coin">` in `WinPopup._rewardFormat` and
+  `StuckPanel._playOnFormat`); the label needs that sprite asset assigned.
 - Buttons (art, 9-sliced so they stretch to any width): green for Continue and the Level button; red for Give up, Are
   You Sure's Confirm and Settings' Restart and Home; yellow for Play on, Buy and the shop's prices; the round ✕ closes every
   popup; the round gear is both settings buttons; the round pen edits the name. The booster buttons keep placeholders.
 - Canvas Scaler 1080×1920, match 0.5; `SafeArea` on root panels.
 - **Art slots:** per-episode art (Home and Level backgrounds, mascot frame) is in `EpisodeConfig`, the avatar pictures in
-  `AvatarConfig`, the tutorial image in `TutorialConfig`, the bottom bar's three versions on `HomeTabs`, and everything else is an `Image` on its screen or
-  popup object. Which slots hold final art and which still hold placeholders (Unity's built-in UI sprites, tinted, and
-  the generated heart, green plus and coin in `Art/Sprites/Placeholder/UI/`) is listed in docs/art-inventory.md. Home backgrounds exist for
+  `AvatarConfig`, the tutorial image in `TutorialConfig`, the bottom bar's three versions on `HomeTabs`, the tier
+  buttons on `LevelTierLook`, the switch knobs on each `SettingSwitch`, the leaderboard rows on `LeaderboardPage`, the
+  Buy popup's booster pictures on `BoosterBar` and its heart on `HomeScreen`, and everything else is an `Image` on its
+  screen or popup object. Which slots hold final art and which still hold placeholders (Unity's built-in UI sprites,
+  tinted, and generated ones in `Art/Sprites/Placeholder/UI/`: the booster pictures, and the heart on Home's lives pill)
+  is listed in docs/art-inventory.md. Home backgrounds exist for
   episodes 2 and 5; episodes 1, 3 and 4 use episode 2's until theirs arrive.
