@@ -63,7 +63,7 @@ namespace BallSort.Game.Views
         // The move or undo whose events are arriving: where its balls land, and what it has done so far.
         private int _operationTarget = -1;
         private bool _operationCompleted;
-        private bool _operationOpenedVeil;
+        private int _operationOpenedVeils;
 #if UNITY_EDITOR
         private bool _tubeConfigChanged;
 #endif
@@ -110,6 +110,12 @@ namespace BallSort.Game.Views
 
         /// <summary>A completed tube's cork has seated, <see cref="AnimationConfig.CorkImpactTime"/> into its completion.</summary>
         public event Action<TubeView> CorkSeated;
+
+        /// <summary>A hidden ball has started its reveal flip.</summary>
+        public event Action<BallView> RevealStarted;
+
+        /// <summary>A move's first towel has started to lift (one per move, however many it opened).</summary>
+        public event Action TowelLiftStarted;
 
         /// <summary>Shows <paramref name="session"/>'s board and follows its events until destroyed.</summary>
         public void Initialize(LevelSession session)
@@ -355,7 +361,7 @@ namespace BallSort.Game.Views
         {
             _operationTarget = targetIndex;
             _operationCompleted = false;
-            _operationOpenedVeil = false;
+            _operationOpenedVeils = 0;
         }
 
         private void OnMoveApplied(MoveEventArgs e)
@@ -379,13 +385,17 @@ namespace BallSort.Game.Views
             BallLanded?.Invoke(ball);
         }
 
-        // The new top shows once the balls above it have left (a snap until the reveal flip, §3.1).
+        // The new top flips face up once the balls above it have left (§3.1).
         private void OnBallRevealed(BallRevealedEventArgs e)
         {
             TubeView tube = _tubes[e.TubeIndex];
             BallView ball = tube.Balls[e.SlotIndex];
             int colorId = e.ColorId;
-            tube.WhenDeparted(() => ball.Reveal(colorId, _palette));
+            tube.WhenDeparted(() =>
+            {
+                ball.Reveal(colorId, _palette);
+                RevealStarted?.Invoke(ball);
+            });
         }
 
         // The completion plays when the tube's last ball lands.
@@ -420,17 +430,33 @@ namespace BallSort.Game.Views
             return count;
         }
 
-        // Snaps until the towel animation (§3.2), timed after the completion.
+        // The towel lifts off after the completion (§3.2); several towels opened by one move start in turn.
         private void OnTubeUnveiled(TubeUnveiledEventArgs e)
         {
             foreach (CoverView cover in _covers)
             {
                 if (cover.Kind == CoverKind.Veil && cover.Tubes[0].TubeIndex == e.TubeIndex)
                 {
-                    _operationOpenedVeil = true;
-                    AfterLanding(_animation.TowelDelay, cover.Tubes, () => cover.SetOpen(true));
+                    int order = _operationOpenedVeils++;
+                    float delay = _animation.TowelDelay + order * _animation.TowelStagger;
+                    AfterLanding(delay, cover.Tubes, () => LiftTowel(cover, isFirst: order == 0));
                     return;
                 }
+            }
+        }
+
+        // The lift is kept with the tube like a beat, so touching the tube finishes it.
+        private void LiftTowel(CoverView cover, bool isFirst)
+        {
+            Tween lift = cover.LiftOff(_animation, _tubeConfig.BallDiameter);
+            foreach (TubeView tube in cover.Tubes)
+            {
+                tube.AddBeat(lift);
+            }
+
+            if (isFirst)
+            {
+                TowelLiftStarted?.Invoke();
             }
         }
 
@@ -459,7 +485,7 @@ namespace BallSort.Game.Views
         private float KeyDelay()
         {
             float delay = _operationCompleted ? _animation.KeyWaitAfterComplete : 0f;
-            return _operationOpenedVeil ? Mathf.Max(delay, _animation.TowelDelay) : delay;
+            return _operationOpenedVeils > 0 ? Mathf.Max(delay, _animation.TowelDelay) : delay;
         }
 
         /// <summary>

@@ -61,6 +61,8 @@ namespace BallSort.Game.Views
             _board.BallLanded += OnBallLanded;
             _board.CompletionStarted += PlayTubeCompleted;
             _board.CorkSeated += OnCorkSeated;
+            _board.RevealStarted += OnRevealStarted;
+            _board.TowelLiftStarted += OnTowelLiftStarted;
             _celebration.SetActive(false);
 
             Transform effects = board.transform;
@@ -132,6 +134,12 @@ namespace BallSort.Game.Views
 
         private void OnBallLowered() => _audio.Play(Sfx.BallDeselect);
 
+        // On the flip's first frame (SFX guide 4.1). Step 6: smoke puff, haptic.
+        private void OnRevealStarted(BallView ball) => _audio.Play(Sfx.HiddenReveal);
+
+        // One pull however many towels the move opened (SFX guide 4.2). Step 6: smoke, sparks, haptic.
+        private void OnTowelLiftStarted() => _audio.Play(Sfx.TowelPull);
+
         // Undo flights land silently (SFX guide, Boosters).
         private void OnBallLanded(BallView ball)
         {
@@ -186,6 +194,8 @@ namespace BallSort.Game.Views
                 _board.BallLanded -= OnBallLanded;
                 _board.CompletionStarted -= PlayTubeCompleted;
                 _board.CorkSeated -= OnCorkSeated;
+                _board.RevealStarted -= OnRevealStarted;
+                _board.TowelLiftStarted -= OnTowelLiftStarted;
             }
         }
 

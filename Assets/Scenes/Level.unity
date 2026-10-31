@@ -596,6 +596,7 @@ MonoBehaviour:
   _flow: {fileID: 1281242728}
   _background: {fileID: 709923080}
   _tutorials: {fileID: 11400000, guid: ece36c2506c462940b65b37cca09eeb7, type: 2}
+  _buttonSounds: {fileID: 1635893139}
   _loadFailedFormat: Level {0} could not be loaded
 --- !u!4 &482350312
 Transform:
@@ -3622,6 +3623,7 @@ GameObject:
   - component: {fileID: 1635893136}
   - component: {fileID: 1635893135}
   - component: {fileID: 1635893134}
+  - component: {fileID: 1635893139}
   m_Layer: 5
   m_Name: LevelCanvas
   m_TagString: Untagged
@@ -3744,6 +3746,20 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1635893139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1635893133}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06cc98818be534d88bf3f60a3f309269, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.UiButtonSounds
+  _playButton: {fileID: 0}
+  _silent: []
 --- !u!1 &1644133033
 GameObject:
   m_ObjectHideFlags: 0

@@ -78,6 +78,11 @@ namespace BallSort.Game.Views
         private Tween _squashTween;
         private Tween _bobTween;
         private Tween _faceTween;
+        private Tween _flipTween;
+
+        // The reveal in progress: the colour shown at the flip's midpoint.
+        private int _revealColorId;
+        private bool _revealPending;
 
         // The flight in progress.
         private Vector3 _arcFrom;
@@ -98,6 +103,8 @@ namespace BallSort.Game.Views
         private TweenCallback<float> _bumpStep;
         private TweenCallback<float> _squashStep;
         private TweenCallback<float> _bobStep;
+        private TweenCallback<float> _flipStep;
+        private TweenCallback _endFlip;
         private TweenCallback _onDeparted;
         private TweenCallback _onLanded;
         private TweenCallback _onFlightUpdate;
@@ -160,8 +167,21 @@ namespace BallSort.Game.Views
             transform.localScale = Vector3.one * diameter;
         }
 
-        /// <summary>Turns a hidden ball face up. A key it carries stays, now visible, until <see cref="RemoveKey"/>.</summary>
-        public void Reveal(int colorId, ColorPalette palette) => ShowColour(colorId, false, palette);
+        /// <summary>
+        /// Turns a hidden ball face up with a card flip (docs/animations.md, 3.1): it narrows to nothing,
+        /// shows its colour at the midpoint and widens back. A key it carries stays, now visible, until
+        /// <see cref="RemoveKey"/>.
+        /// </summary>
+        public void Reveal(int colorId, ColorPalette palette)
+        {
+            BoardTweens.CompleteIfActive(_flipTween);
+            _palette = palette;
+            _revealColorId = colorId;
+            _revealPending = true;
+            float duration = _animation.RevealFlipDuration;
+            _flipTween = DOVirtual.Float(0f, 1f, duration, _flipStep)
+                .SetEase(Ease.Linear).OnComplete(_endFlip).OnBoardClock();
+        }
 
         /// <summary>
         /// The single entry point for the ball's resting face (open, or laughing in a completed tube).
@@ -292,6 +312,7 @@ namespace BallSort.Game.Views
         /// </summary>
         public void FinishMotion()
         {
+            BoardTweens.CompleteIfActive(_flipTween);
             BoardTweens.CompleteIfActive(_motion);
             BoardTweens.CompleteIfActive(_squashTween);
             BoardTweens.CompleteIfActive(_hopTween);
@@ -306,6 +327,7 @@ namespace BallSort.Game.Views
         public void StopMotion()
         {
             KillTweens();
+            EndFlip();
             _hop = 0f;
             _bump = 0f;
             _bob = 0f;
@@ -478,6 +500,35 @@ namespace BallSort.Game.Views
             Apply();
         }
 
+        // Drawn as |cos(πu)|: 1 → 0 → 1, the face swapped at the edge-on midpoint.
+        private void FlipStep(float u)
+        {
+            if (u >= 0.5f)
+            {
+                ApplyPendingReveal();
+            }
+
+            _face.localScale = new Vector3(Mathf.Abs(Mathf.Cos(Mathf.PI * u)), 1f, 1f);
+        }
+
+        // Also ends a flip cut short, so the ball always shows what the model says.
+        private void EndFlip()
+        {
+            ApplyPendingReveal();
+            _face.localScale = Vector3.one;
+        }
+
+        private void ApplyPendingReveal()
+        {
+            if (!_revealPending)
+            {
+                return;
+            }
+
+            _revealPending = false;
+            ShowColour(_revealColorId, false, _palette);
+        }
+
         private void ClearHop()
         {
             _hop = 0f;
@@ -528,6 +579,7 @@ namespace BallSort.Game.Views
             BoardTweens.KillIfActive(_bumpTween);
             BoardTweens.KillIfActive(_bobTween);
             BoardTweens.KillIfActive(_faceTween);
+            BoardTweens.KillIfActive(_flipTween);
         }
 
         private static float SpriteWidth(Sprite sprite) => sprite != null ? sprite.bounds.size.x : 1f;
@@ -562,6 +614,8 @@ namespace BallSort.Game.Views
             _bumpStep = BumpStep;
             _squashStep = SquashStep;
             _bobStep = BobStep;
+            _flipStep = FlipStep;
+            _endFlip = EndFlip;
             _onDeparted = OnDeparted;
             _onLanded = OnLanded;
             _onFlightUpdate = OnFlightUpdate;

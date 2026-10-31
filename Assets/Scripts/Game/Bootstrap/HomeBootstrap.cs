@@ -1,6 +1,7 @@
 using BallSort.Core.Levels;
 using BallSort.Game.Flow;
 using BallSort.Game.Services;
+using BallSort.Game.UI;
 using UnityEngine;
 
 namespace BallSort.Game.Bootstrap
@@ -12,15 +13,18 @@ namespace BallSort.Game.Bootstrap
     public sealed class HomeBootstrap : MonoBehaviour
     {
         [SerializeField] private HomeFlow _flow;
+        [SerializeField] private UiButtonSounds _buttonSounds;
 
         private void Start()
         {
             AppRoot app = AppRoot.Instance;
-            if (app == null || _flow == null)
+            if (app == null || _flow == null || _buttonSounds == null)
             {
-                Debug.LogError($"{name}: needs a running AppRoot and an assigned Home flow.", this);
+                Debug.LogError($"{name}: needs a running AppRoot and an assigned Home flow and button sounds.", this);
                 return;
             }
+
+            _buttonSounds.Initialize(app.Audio, app.PlayerData);
 
             _flow.Begin(app.PlayerData, app.SceneLoader, app.Episodes, ReadCurrentTier(app), app.SceneLoader.TakePendingArrival());
         }

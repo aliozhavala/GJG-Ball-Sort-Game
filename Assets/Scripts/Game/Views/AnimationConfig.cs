@@ -4,8 +4,8 @@ using UnityEngine;
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// Board motion: timings, eases and amounts of the select, flight, landing, invalid-move and
-    /// tube-complete animations (docs/animations.md, which names each field). Distances are in ball
+    /// Board motion: timings, eases and amounts of the select, flight, landing, invalid-move,
+    /// tube-complete, hidden-reveal and towel animations (docs/animations.md, which names each field). Distances are in ball
     /// diameters (d), times in seconds at <see cref="Speed"/> 1.
     /// </summary>
     /// <remarks>
@@ -107,9 +107,23 @@ namespace BallSort.Game.Views
         [Tooltip("Sparkles grow with the number of tubes already completed in the level.")]
         [SerializeField] private bool _chainEscalate = true;
 
-        [Header("Later beats (snaps until their animations exist)")]
+        [Header("3.1 Hidden reveal")]
+        [Tooltip("The \"?\" ball's card flip; its colour shows at the midpoint.")]
+        [SerializeField, Min(0f)] private float _revealFlipDuration = 0.32f;
+
+        [Header("3.2 Towel lifts")]
         [Tooltip("A veil opens this long after the last ball of the completing move lands.")]
         [SerializeField, Min(0f)] private float _towelDelay = 0.45f;
+        [Tooltip("The towel rises, fades out and tilts over this long (smoothstep).")]
+        [SerializeField, Min(0f)] private float _towelLiftDuration = 0.6f;
+        [Tooltip("How far the towel rises, in ball diameters.")]
+        [SerializeField, Min(0f)] private float _towelRise = 2.6f;
+        [Tooltip("Largest tilt, in degrees, reached in the middle of the lift.")]
+        [SerializeField, Min(0f)] private float _towelTilt = 5f;
+        [Tooltip("When one completion opens several towels, each starts this long after the previous one.")]
+        [SerializeField, Min(0f)] private float _towelStagger = 0.08f;
+
+        [Header("Later beats (snaps until their animations exist)")]
         [Tooltip("A found key's mark leaves this long after the last ball lands, when the move also completed a tube.")]
         [SerializeField, Min(0f)] private float _keyWaitAfterComplete = 0.25f;
 
@@ -176,7 +190,12 @@ namespace BallSort.Game.Views
         public bool Sparkles => _sparkles;
         public bool Confetti => _confetti;
         public bool ChainEscalate => _chainEscalate;
+        public float RevealFlipDuration => _revealFlipDuration;
         public float TowelDelay => _towelDelay;
+        public float TowelLiftDuration => _towelLiftDuration;
+        public float TowelRise => _towelRise;
+        public float TowelTilt => _towelTilt;
+        public float TowelStagger => _towelStagger;
         public float KeyWaitAfterComplete => _keyWaitAfterComplete;
         public float CelebrationDuration => _celebrationDuration;
     }

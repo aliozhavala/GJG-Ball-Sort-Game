@@ -13,8 +13,8 @@ namespace BallSort.Game.Views
     /// Pooled by <see cref="BoardView"/> and parented to the board root next to the tubes, so it can
     /// span several of them; <see cref="FitToTubes"/> follows them after every layout change.
     /// <para>
-    /// Every change of a cover's state goes through <see cref="SetOpen"/>, which also hides or shows
-    /// the covered tubes' balls, so the animation pass can replace the snap in one place. Hiding the
+    /// Every change of a cover's state goes through <see cref="SetOpen"/> (a snap) or
+    /// <see cref="LiftOff"/> (a veil's animated opening), which also hide or show the covered tubes' balls. Hiding the
     /// balls themselves (not just drawing over them) lets the cover art have soft or translucent edges.
     /// </para>
     /// </remarks>
@@ -30,6 +30,13 @@ namespace BallSort.Game.Views
         private AnimationConfig _animation;
         private float _diameter;
         private TweenCallback<float> _shakeStep;
+        private Tween _liftTween;
+        private float _liftY;
+        private Vector3 _pivot;
+        private float _bodyAlpha = 1f;
+        private float _iconAlpha = 1f;
+        private TweenCallback<float> _liftStep;
+        private TweenCallback _endLift;
 
         public CoverKind Kind { get; private set; }
 
@@ -55,6 +62,9 @@ namespace BallSort.Game.Views
             _body.drawMode = SpriteDrawMode.Sliced;
             _icon.sprite = icon;
             _icon.color = iconTint;
+            _bodyAlpha = bodyTint.a;
+            _iconAlpha = iconTint.a;
+            _pivot = Vector3.zero;
             _icon.transform.localScale = Vector3.one * (iconSize / SpriteWidth(icon));
         }
 
@@ -110,6 +120,7 @@ namespace BallSort.Game.Views
             float veilHeight = Mathf.Max(tubeHeight - config.VeilBottomGap, 0.1f);
             _body.transform.localScale = new Vector3(scale, scale, 1f);
             _body.transform.localPosition = new Vector3(0f, tubeHeight, 0f);
+            _pivot = _body.transform.localPosition;
             _body.size = new Vector2(SpriteWidth(_body.sprite), veilHeight / scale);
             _icon.transform.localPosition = new Vector3(0f, tubeHeight - veilHeight * 0.5f, 0f);
         }
@@ -130,6 +141,28 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
+        /// Opens a veil by lifting the towel off (docs/animations.md, 3.2): over
+        /// <see cref="AnimationConfig.TowelLiftDuration"/> (smoothstep) it rises, fades out and tilts
+        /// slightly in the middle. The cover is open from the start, so the balls under it show at once.
+        /// </summary>
+        /// <returns>The lift, so the board can finish it when the tube is touched.</returns>
+        public Tween LiftOff(AnimationConfig animation, float ballDiameter)
+        {
+            _animation = animation;
+            _diameter = ballDiameter;
+            StopMotion();
+            IsOpen = true;
+            foreach (TubeView tube in _tubes)
+            {
+                tube.SetBallsVisible(true);
+            }
+
+            _liftTween = DOVirtual.Float(0f, 1f, animation.TowelLiftDuration, _liftStep)
+                .SetEase(Ease.Linear).OnComplete(_endLift).OnBoardClock();
+            return _liftTween;
+        }
+
+        /// <summary>
         /// The invalid-move shake (docs/animations.md, 2.5) for a tap on a covered tube: the cover
         /// shakes with every tube under it, so nothing peeks out.
         /// </summary>
@@ -147,12 +180,44 @@ namespace BallSort.Game.Views
             }
         }
 
-        /// <summary>Ends a running shake: the cover is rebuilt or pooled.</summary>
+        /// <summary>Ends a running shake or lift: the cover is rebuilt or pooled.</summary>
         public void StopMotion()
         {
             BoardTweens.KillIfActive(_shakeTween);
+            BoardTweens.KillIfActive(_liftTween);
             _shakeX = 0f;
+            if (IsOpen)
+            {
+                EndLift();
+            }
+
             ApplyOffset();
+        }
+
+        private void LiftStep(float u)
+        {
+            float s = u * u * (3f - 2f * u);
+            _liftY = _animation.TowelRise * _diameter * s;
+            transform.localRotation = Quaternion.Euler(0f, 0f, _animation.TowelTilt * Mathf.Sin(Mathf.PI * s));
+            SetAlpha(1f - s);
+            ApplyOffset();
+        }
+
+        // The lifted towel is put back in place, hidden and opaque, as a snapped-open cover is.
+        private void EndLift()
+        {
+            _liftY = 0f;
+            transform.localRotation = Quaternion.identity;
+            SetAlpha(1f);
+            _body.enabled = false;
+            _icon.enabled = false;
+            ApplyOffset();
+        }
+
+        private void SetAlpha(float alpha)
+        {
+            _body.color = new Color(_body.color.r, _body.color.g, _body.color.b, _bodyAlpha * alpha);
+            _icon.color = new Color(_icon.color.r, _icon.color.g, _icon.color.b, _iconAlpha * alpha);
         }
 
         private void ShakeStep(float t)
@@ -162,7 +227,9 @@ namespace BallSort.Game.Views
             ApplyOffset();
         }
 
-        private void ApplyOffset() => transform.localPosition = _home + new Vector3(_shakeX, 0f, 0f);
+        // The tilt turns the towel about its rim, where it hangs, not about the tube's base.
+        private void ApplyOffset() =>
+            transform.localPosition = _home + new Vector3(_shakeX, _liftY, 0f) + (_pivot - transform.localRotation * _pivot);
 
         private static float SpriteWidth(Sprite sprite) => sprite != null ? sprite.bounds.size.x : 1f;
 
@@ -174,8 +241,14 @@ namespace BallSort.Game.Views
             }
 
             _shakeStep = ShakeStep;
+            _liftStep = LiftStep;
+            _endLift = EndLift;
         }
 
-        private void OnDestroy() => BoardTweens.KillIfActive(_shakeTween);
+        private void OnDestroy()
+        {
+            BoardTweens.KillIfActive(_shakeTween);
+            BoardTweens.KillIfActive(_liftTween);
+        }
     }
 }

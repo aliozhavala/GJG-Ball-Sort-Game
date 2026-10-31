@@ -1275,6 +1275,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Bootstrap.HomeBootstrap
   _flow: {fileID: 771675035}
+  _buttonSounds: {fileID: 559559152}
 --- !u!4 &253629350
 Transform:
   m_ObjectHideFlags: 0
@@ -2217,6 +2218,7 @@ GameObject:
   - component: {fileID: 559559149}
   - component: {fileID: 559559148}
   - component: {fileID: 559559147}
+  - component: {fileID: 559559152}
   m_Layer: 5
   m_Name: HomeCanvas
   m_TagString: Untagged
@@ -2342,6 +2344,20 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &559559152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 559559146}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06cc98818be534d88bf3f60a3f309269, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.UiButtonSounds
+  _playButton: {fileID: 1641956549}
+  _silent: []
 --- !u!1 &565514581
 GameObject:
   m_ObjectHideFlags: 0

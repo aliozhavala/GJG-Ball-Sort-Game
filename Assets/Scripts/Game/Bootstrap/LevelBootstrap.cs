@@ -2,6 +2,7 @@ using System;
 using BallSort.Core.Levels;
 using BallSort.Game.Flow;
 using BallSort.Game.Services;
+using BallSort.Game.UI;
 using BallSort.Game.Views;
 using UnityEngine;
 
@@ -43,6 +44,7 @@ namespace BallSort.Game.Bootstrap
         [SerializeField] private LevelFlow _flow;
         [SerializeField] private BackgroundSprite _background;
         [SerializeField] private TutorialConfig _tutorials;
+        [SerializeField] private UiButtonSounds _buttonSounds;
 
         [Tooltip("Toast shown on Home when a level file cannot be loaded; {0} is the level number or file name.")]
         [SerializeField] private string _loadFailedFormat = "Level {0} could not be loaded";
@@ -52,11 +54,13 @@ namespace BallSort.Game.Bootstrap
         private void Start()
         {
             _app = AppRoot.Instance;
-            if (_app == null || _flow == null || _background == null || _tutorials == null)
+            if (_app == null || _flow == null || _background == null || _tutorials == null || _buttonSounds == null)
             {
-                Debug.LogError($"{name}: needs a running AppRoot, an assigned level flow, background and tutorial config.", this);
+                Debug.LogError($"{name}: needs a running AppRoot, an assigned level flow, background, tutorial config and button sounds.", this);
                 return;
             }
+
+            _buttonSounds.Initialize(_app.Audio, _app.PlayerData);
 
             LevelVisit visit = ChooseVisit(out TextAsset editorFile);
             _background.Show(_app.Episodes.GetEpisodeForLevel(visit.LevelNumber).LevelBackground);
