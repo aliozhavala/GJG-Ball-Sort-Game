@@ -64,11 +64,13 @@ namespace BallSort.Game.Views
         private bool _isClay;
         private int _departures;
         private int _arrivals;
+        private TubeHighlight _highlight;
 
         private Vector3 _home;
         private float _shakeX;
         private float _bumpY;
         private Color _glowColour;
+        private Color _capColour = Color.white;
 
         private Tween _shakeTween;
         private Tween _bumpTween;
@@ -143,6 +145,7 @@ namespace BallSort.Game.Views
 
             // The cork's sprite is picked by colour on completion; like the rim it hangs from the mouth.
             ApplyPart(_cap, config.CapSprite, config.CapTint, height, new Vector3(scale, scale, 1f));
+            _capColour = config.CapTint;
             _cap.enabled = false;
 
             // Clay is sized from the tube's drawn width (its rim), so it keeps its place next to the tubes.
@@ -157,8 +160,9 @@ namespace BallSort.Game.Views
                 new Vector2(config.TubeWidth + 2f * padding, height + 2f * padding), new Vector3(0f, -padding, 0f));
             _glow.enabled = false;
 
-            // A pooled view may come back from a covered tube.
+            // A pooled view may come back from a covered or highlighted tube.
             SetCovered(false, false);
+            _highlight = TubeHighlight.None;
 
             float tapHeight = height + _animation.LiftHeight * config.BallDiameter + config.BallDiameter * 0.5f;
             _tapTarget.size = new Vector2(config.TubeWidth + config.HorizontalSpacing, tapHeight);
@@ -382,7 +386,8 @@ namespace BallSort.Game.Views
             Sprite cork = palette.GetCork(colorId);
             Color capTint = cork != null ? Color.white : _config.CapTint * colour;
             _cap.sprite = cork != null ? cork : _config.CapSprite;
-            _cap.color = new Color(capTint.r, capTint.g, capTint.b, _config.CapTint.a);
+            _capColour = new Color(capTint.r, capTint.g, capTint.b, _config.CapTint.a);
+            _cap.color = _capColour;
             _cap.enabled = _cap.sprite != null;
             Vector3 seated = new Vector3(0f, BodyHeight, 0f);
             BoardTweens.KillIfActive(_corkTween);
@@ -412,6 +417,46 @@ namespace BallSort.Game.Views
                 {
                     _balls[slot].Hop(slot * _animation.DanceStagger);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Draws the tube for the Shuffle booster's pick (<see cref="TubeHighlight"/>): an eligible tube
+        /// gets the glow in the highlight tint, a dimmed one is darkened with its balls. A snap. Never
+        /// asked of a completed tube with <see cref="TubeHighlight.Eligible"/>, so its own glow is only
+        /// ever darkened, never replaced.
+        /// </summary>
+        public void SetHighlight(TubeHighlight highlight)
+        {
+            if (highlight == _highlight)
+            {
+                return;
+            }
+
+            if (_highlight == TubeHighlight.Eligible)
+            {
+                _glow.enabled = false;
+            }
+
+            _highlight = highlight;
+            float shade = highlight == TubeHighlight.Dimmed ? _config.ShuffleDimShade : 1f;
+            Shade(_bottom, _config.TubeTint, shade);
+            Shade(_middle, _config.TubeTint, shade);
+            Shade(_rimBack, _config.TubeTint, shade);
+            Shade(_rimFront, _config.TubeTint, shade);
+            Shade(_front, _config.FrontTint, shade);
+            Shade(_clay, _config.ClayTint, shade);
+            Shade(_cap, _capColour, shade);
+
+            foreach (BallView ball in _balls)
+            {
+                ball.SetShade(shade);
+            }
+
+            if (highlight == TubeHighlight.Eligible)
+            {
+                _glow.color = _config.ShuffleHighlightTint;
+                _glow.enabled = _glow.sprite != null;
             }
         }
 
@@ -571,6 +616,9 @@ namespace BallSort.Game.Views
                 BoardTweens.KillIfActive(beat);
             }
         }
+
+        private static void Shade(SpriteRenderer renderer, Color tint, float shade) =>
+            renderer.color = new Color(tint.r * shade, tint.g * shade, tint.b * shade, tint.a);
 
         /// <summary>A piece drawn as is, scaled and placed by its pivot on the tube's centre line.</summary>
         private static void ApplyPart(SpriteRenderer renderer, Sprite sprite, Color tint, float y, Vector3 scale)

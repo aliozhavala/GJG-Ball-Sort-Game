@@ -9,7 +9,7 @@ namespace BallSort.Game.UI
     /// <summary>
     /// The Level screen's UI: settings button, level title and the episode's mascot frame on top, the
     /// booster bar (or, while stuck, the stuck panel) at the bottom, the popups (settings, Win, Are You
-    /// Sure, More Lives, tutorial), and the toast.
+    /// Sure, More Lives, Buy, tutorial), and the toast.
     /// </summary>
     /// <remarks>
     /// Presentation only: the level flow decides what to show and reacts to the buttons.
@@ -19,7 +19,7 @@ namespace BallSort.Game.UI
         [SerializeField] private TMP_Text _levelTitle;
         [SerializeField] private Button _settingsButton;
 
-        [Tooltip("Top right: the episode's mascot frame. Display only; hidden when the episode has none.")]
+        [Tooltip("Top left: the episode's mascot frame. Display only; hidden when the episode has none.")]
         [SerializeField] private Image _mascotFrame;
 
         [SerializeField] private BoosterBar _boosterBar;
@@ -29,9 +29,8 @@ namespace BallSort.Game.UI
         [SerializeField] private AreYouSurePopup _areYouSurePopup;
         [SerializeField] private MoreLivesPopup _moreLivesPopup;
         [SerializeField] private TutorialPopup _tutorialPopup;
+        [SerializeField] private BuyPopup _buyPopup;
         [SerializeField] private Toast _toast;
-        [Tooltip("\"Shuffling…\" label above the board, shown while a slow shuffle search runs. Not a raycast target.")]
-        [SerializeField] private TMP_Text _shufflingIndicator;
         [SerializeField] private string _levelFormat = "Level {0}";
 
         /// <summary>The player chose Restart in the settings popup, which stays open.</summary>
@@ -52,13 +51,16 @@ namespace BallSort.Game.UI
 
         public TutorialPopup Tutorial => _tutorialPopup;
 
+        /// <summary>Buys a booster the player has none of.</summary>
+        public BuyPopup Buy => _buyPopup;
+
         /// <summary>For short messages from the level flow, e.g. booster refusals.</summary>
         public Toast Toast => _toast;
 
         /// <summary>True while a modal popup covers the board.</summary>
         public bool IsPopupOpen =>
             _settingsPopup.Popup.IsOpen || _winPopup.Popup.IsOpen || _areYouSurePopup.Popup.IsOpen ||
-            _moreLivesPopup.Popup.IsOpen || _tutorialPopup.Popup.IsOpen;
+            _moreLivesPopup.Popup.IsOpen || _tutorialPopup.Popup.IsOpen || _buyPopup.Popup.IsOpen;
 
         /// <param name="levelLabel">The level's number, or a level file's name (editor testing).</param>
         /// <param name="mascotFrame">The episode's mascot frame; null hides it.</param>
@@ -73,14 +75,11 @@ namespace BallSort.Game.UI
             _settingsButton.onClick.AddListener(_settingsPopup.Popup.Open);
             _moreLivesPopup.Initialize(player);
             ShowStuck(false);
-            ShowShuffling(false);
         }
 
         /// <summary>Closes the settings popup, once the player has confirmed Restart or Home.</summary>
         public void CloseSettings() => _settingsPopup.Popup.Close();
 
-        /// <summary>Shows or hides the "Shuffling…" label.</summary>
-        public void ShowShuffling(bool visible) => _shufflingIndicator.gameObject.SetActive(visible);
 
         /// <summary>Swaps the booster bar for the stuck panel, or back.</summary>
         public void ShowStuck(bool stuck)
@@ -89,11 +88,25 @@ namespace BallSort.Game.UI
             _boosterBar.gameObject.SetActive(!stuck);
         }
 
-        /// <summary>Locks the settings button and the boosters, e.g. for the win sequence.</summary>
+        /// <summary>
+        /// Locks the settings button and the boosters (the win sequence, a shuffle pick). Locked buttons
+        /// still catch taps, so nothing beneath them is touched; they just do nothing.
+        /// </summary>
         public void SetLocked(bool locked)
         {
             _settingsButton.interactable = !locked;
             _boosterBar.SetInteractable(!locked);
+        }
+
+        /// <summary>
+        /// While the Shuffle booster waits for a tube, the settings button and the boosters let taps through
+        /// to the pick, which ends (and unlocks them) on the press. A button that caught that press would
+        /// click on its release, once unlocked, so the tap that cancels the pick would also use a booster.
+        /// </summary>
+        public void SetTapsPassThrough(bool passThrough)
+        {
+            _settingsButton.targetGraphic.raycastTarget = !passThrough;
+            _boosterBar.SetCatchesTaps(!passThrough);
         }
 
         private void OnRestartRequested() => RestartRequested?.Invoke();
@@ -104,7 +117,7 @@ namespace BallSort.Game.UI
         {
             if (_levelTitle == null || _settingsButton == null || _mascotFrame == null || _boosterBar == null ||
                 _stuckPanel == null || _settingsPopup == null || _winPopup == null || _areYouSurePopup == null ||
-                _moreLivesPopup == null || _tutorialPopup == null || _toast == null || _shufflingIndicator == null)
+                _moreLivesPopup == null || _tutorialPopup == null || _buyPopup == null || _toast == null)
             {
                 Debug.LogError($"{name}: every reference must be assigned.", this);
             }

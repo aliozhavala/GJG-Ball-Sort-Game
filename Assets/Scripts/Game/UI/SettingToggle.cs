@@ -12,6 +12,7 @@ namespace BallSort.Game.UI
         [SerializeField] private Toggle _toggle;
 
         private PlayerData _player;
+        private bool _subscribed;
 
         public void Bind(PlayerData player)
         {
@@ -19,7 +20,10 @@ namespace BallSort.Game.UI
             _player = player;
             _toggle.SetIsOnWithoutNotify(player.GetSetting(_setting));
             _toggle.onValueChanged.AddListener(OnToggled);
-            _player.SettingChanged += OnSettingChanged;
+            if (isActiveAndEnabled)
+            {
+                Subscribe();
+            }
         }
 
         private void OnToggled(bool isOn) => _player.SetSetting(_setting, isOn);
@@ -40,11 +44,38 @@ namespace BallSort.Game.UI
             }
 
             _toggle.onValueChanged.RemoveListener(OnToggled);
-            _player.SettingChanged -= OnSettingChanged;
+            Unsubscribe();
             _player = null;
         }
 
-        // PlayerData outlives the scene, so the subscription must not outlive this object.
+        private void Subscribe()
+        {
+            if (_player == null || _subscribed)
+            {
+                return;
+            }
+
+            _toggle.SetIsOnWithoutNotify(_player.GetSetting(_setting));
+            _player.SettingChanged += OnSettingChanged;
+            _subscribed = true;
+        }
+
+        private void Unsubscribe()
+        {
+            if (_player != null && _subscribed)
+            {
+                _player.SettingChanged -= OnSettingChanged;
+            }
+
+            _subscribed = false;
+        }
+
+        // PlayerData outlives the scene, so the subscription lasts only while the toggle is shown: a
+        // toggle in a popup that is never opened never runs OnDestroy.
+        private void OnEnable() => Subscribe();
+
+        private void OnDisable() => Unsubscribe();
+
         private void OnDestroy() => Unbind();
 
         private void OnValidate()

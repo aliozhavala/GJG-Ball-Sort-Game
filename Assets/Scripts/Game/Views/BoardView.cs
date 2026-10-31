@@ -17,10 +17,10 @@ namespace BallSort.Game.Views
     /// step with the session's events.
     /// </summary>
     /// <remarks>
-    /// The board is built in full only when the level loads, restarts or is shuffled, reading balls,
-    /// keys, covers and clay from the board state; every other event changes just the views it
-    /// touches (balls change tubes, a ball turns face up, a key mark goes, a cover opens, a tube
-    /// completes, a tube is appended). Tubes, balls and covers are pooled, so nothing is instantiated
+    /// The board is built in full only when the level loads or restarts, reading balls, keys, covers
+    /// and clay from the board state; every other event changes just the views it touches (balls
+    /// change tubes, a shuffled tube's balls are laid out again, a ball turns face up, a key mark goes,
+    /// a cover opens, a tube completes, a tube is appended). Tubes, balls and covers are pooled, so nothing is instantiated
     /// or destroyed once the pools are warm.
     /// <para>
     /// Covers are separate views over the tubes: one per veil, one door per lock across all of its
@@ -124,7 +124,7 @@ namespace BallSort.Game.Views
             _session.KeyFound += OnKeyFound;
             _session.LockOpened += OnLockOpened;
             _session.TubeAdded += OnTubeAdded;
-            _session.Shuffled += Rebuild;
+            _session.Shuffled += OnShuffled;
             _session.Restarted += Rebuild;
             Rebuild();
         }
@@ -162,6 +162,27 @@ namespace BallSort.Game.Views
 
             tube.Shake();
             tube.SetBallExpression(BallExpression.Shock, _palette, _animation.ShockFaceDuration);
+        }
+
+        /// <summary>
+        /// While the Shuffle booster waits for a pick (<paramref name="picking"/>), highlights the tubes it
+        /// can pick and dims the rest, covers included; otherwise draws every tube as usual.
+        /// </summary>
+        public void ShowShufflePick(bool picking)
+        {
+            for (int t = 0; t < _tubes.Count; t++)
+            {
+                TubeHighlight highlight = !picking ? TubeHighlight.None
+                    : _session.CanShuffleTube(t) ? TubeHighlight.Eligible
+                    : TubeHighlight.Dimmed;
+                _tubes[t].SetHighlight(highlight);
+            }
+
+            float shade = picking ? _tubeConfig.ShuffleDimShade : 1f;
+            foreach (CoverView cover in _covers)
+            {
+                cover.SetShade(cover.IsOpen ? 1f : shade);
+            }
         }
 
         /// <summary>Returns every tube, ball and cover to the pools.</summary>
@@ -374,6 +395,30 @@ namespace BallSort.Game.Views
             Transfer(e.ToIndex, e.FromIndex, e.Count, isUndo: true);
         }
 
+        // Snaps the shuffled tube's balls into their new order (its animation comes later). The reveal,
+        // completion and cover events that follow play on this tube as after a landing.
+        private void OnShuffled(TubeShuffledEventArgs e)
+        {
+            BeginOperation(e.TubeIndex);
+            TubeView tube = _tubes[e.TubeIndex];
+            tube.FinishPending();
+            tube.TakeAllBalls(_ballBuffer);
+            foreach (BallView ball in _ballBuffer)
+            {
+                _ballPool.Release(ball);
+            }
+
+            _ballBuffer.Clear();
+            foreach (Ball ball in e.Balls)
+            {
+                BallView ballView = _ballPool.Get();
+                ballView.Show(ball, _palette, _lockPalette, _tubeConfig.BallDiameter);
+                tube.AddBall(ballView);
+            }
+
+            AssertInSync(e.TubeIndex);
+        }
+
         private void OnBallDeparted(BallView ball) => _tubes[ball.FlightSource].NotifyDeparted();
 
         private void OnBallLanded(BallView ball)
@@ -544,7 +589,7 @@ namespace BallSort.Game.Views
             _session.KeyFound -= OnKeyFound;
             _session.LockOpened -= OnLockOpened;
             _session.TubeAdded -= OnTubeAdded;
-            _session.Shuffled -= Rebuild;
+            _session.Shuffled -= OnShuffled;
             _session.Restarted -= Rebuild;
             _session = null;
         }

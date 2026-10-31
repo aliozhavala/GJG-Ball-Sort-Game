@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using BallSort.Core.Levels;
 using BallSort.Core.Player;
+using BallSort.Game.Audio;
 using BallSort.Game.Services;
 using BallSort.Game.UI;
 using UnityEngine;
@@ -30,21 +31,26 @@ namespace BallSort.Game.Flow
 
         /// <summary>Sets Home up and plays <paramref name="arrival"/>. Call once, from the scene's bootstrap.</summary>
         /// <param name="levelTier">Tier of the level the Level button plays.</param>
+        /// <param name="economy">Prices on Home: the lives refill and the coin bundles.</param>
+        /// <param name="audio">Plays Home's sounds.</param>
         public void Begin(
-            PlayerData player, SceneLoader sceneLoader, EpisodeConfig episodes, LevelTier levelTier, HomeArrival arrival)
+            PlayerData player, SceneLoader sceneLoader, EpisodeConfig episodes, LevelTier levelTier, HomeArrival arrival,
+            EconomyConfig economy, AudioService audio)
         {
             if (_begun)
             {
                 throw new InvalidOperationException("The Home flow has already begun.");
             }
 
-            if (player == null || sceneLoader == null || episodes == null)
+            if (player == null || sceneLoader == null || episodes == null || economy == null || audio == null)
             {
-                throw new ArgumentNullException(player == null ? nameof(player) : sceneLoader == null ? nameof(sceneLoader) : nameof(episodes));
+                throw new ArgumentNullException(
+                    player == null ? nameof(player) : sceneLoader == null ? nameof(sceneLoader)
+                    : episodes == null ? nameof(episodes) : economy == null ? nameof(economy) : nameof(audio));
             }
 
             _begun = true;
-            _homeScreen.Initialize(player, sceneLoader, levelTier);
+            _homeScreen.Initialize(player, sceneLoader, levelTier, economy, audio);
 
             int unlocked = arrival.UnlockedEpisode;
             if (arrival.HasUnlockedEpisode && unlocked > 0 && unlocked < episodes.Count)

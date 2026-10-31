@@ -132,6 +132,27 @@ namespace BallSort.Core.Player
             return true;
         }
 
+        /// <summary>Fills the lives to the maximum (a bought refill) and stops the timer.</summary>
+        /// <returns>False, changing nothing, when they were already full.</returns>
+        public bool RefillToMax(DateTime nowUtc)
+        {
+            bool refilled = ApplyRefill(nowUtc);
+            if (IsFull)
+            {
+                if (refilled)
+                {
+                    Changed?.Invoke();
+                }
+
+                return false;
+            }
+
+            Count = Max;
+            TimerStartUtc = null;
+            Changed?.Invoke();
+            return true;
+        }
+
         /// <summary>
         /// Sets the lives directly, for testing tools. Below the maximum, the next life comes back
         /// after <paramref name="timeUntilNext"/> (clamped to one interval).

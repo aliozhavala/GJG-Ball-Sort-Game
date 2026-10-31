@@ -99,6 +99,12 @@ namespace BallSort.Game.Views
         [Tooltip("Size of the ice relative to the tube's drawn width.")]
         [SerializeField, Range(0.5f, 2f)] private float _clayScale = 1.1f;
 
+        [Header("Shuffle pick (tubes the Shuffle booster can and cannot pick)")]
+        [Tooltip("The glow's colour around a tube the Shuffle booster can pick.")]
+        [SerializeField] private Color _shuffleHighlightTint = new Color(1f, 0.95f, 0.55f, 0.9f);
+        [Tooltip("Brightness of the tubes it cannot pick, their balls and covers (1 = as drawn).")]
+        [SerializeField, Range(0f, 1f)] private float _shuffleDimShade = 0.45f;
+
         /// <summary>
         /// Editor only: raised from <c>OnValidate</c> when a value changes in the Inspector, so a board on
         /// screen can lay itself out again. Listeners must not build or destroy objects in the handler
@@ -137,6 +143,8 @@ namespace BallSort.Game.Views
         public Sprite ClaySprite => _claySprite;
         public Color ClayTint => _clayTint;
         public float ClayScale => _clayScale;
+        public Color ShuffleHighlightTint => _shuffleHighlightTint;
+        public float ShuffleDimShade => _shuffleDimShade;
 
         /// <summary>Scale that makes the tube art's body <see cref="TubeWidth"/> wide.</summary>
         public float ArtScale =>

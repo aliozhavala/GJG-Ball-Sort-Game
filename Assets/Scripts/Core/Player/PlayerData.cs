@@ -212,6 +212,76 @@ namespace BallSort.Core.Player
             RaiseChanged();
         }
 
+        // --- Buying with coins ----------------------------------------------------------------------
+
+        /// <summary>
+        /// Buys <paramref name="amount"/> boosters of <paramref name="type"/> for <paramref name="price"/>
+        /// coins, saved together. Refused, changing nothing, without enough coins.
+        /// </summary>
+        /// <param name="price">Coins to spend; not negative.</param>
+        /// <param name="amount">Boosters granted; not negative.</param>
+        /// <param name="refusal">Why the purchase was refused, or <see cref="PurchaseRefusal.None"/>.</param>
+        /// <returns>True when the coins were spent and the boosters added.</returns>
+        public bool TryBuyBooster(BoosterType type, int price, int amount, out PurchaseRefusal refusal)
+        {
+            RequireNonNegative(price, nameof(price));
+            RequireNonNegative(amount, nameof(amount));
+            refusal = Wallet.CanAfford(price) ? PurchaseRefusal.None : PurchaseRefusal.NotEnoughCoins;
+            if (refusal != PurchaseRefusal.None)
+            {
+                return false;
+            }
+
+            ChangeTogether(() =>
+            {
+                Wallet.TrySpend(price);
+                Boosters.Add(type, amount);
+            });
+            return true;
+        }
+
+        /// <summary>
+        /// Buys a refill of the lives to the maximum for <paramref name="price"/> coins, saved together.
+        /// Refused, changing nothing, when lives are already full (counting those that came back) or
+        /// without enough coins; a full player is told so first, since coins would not help.
+        /// </summary>
+        /// <param name="price">Coins to spend; not negative.</param>
+        /// <param name="refusal">Why the purchase was refused, or <see cref="PurchaseRefusal.None"/>.</param>
+        /// <returns>True when the coins were spent and the lives filled.</returns>
+        public bool TryRefillLives(int price, out PurchaseRefusal refusal)
+        {
+            RequireNonNegative(price, nameof(price));
+            RefreshLives();
+            refusal = _lives.IsFull ? PurchaseRefusal.LivesFull
+                : Wallet.CanAfford(price) ? PurchaseRefusal.None
+                : PurchaseRefusal.NotEnoughCoins;
+            if (refusal != PurchaseRefusal.None)
+            {
+                return false;
+            }
+
+            ChangeTogether(() =>
+            {
+                Wallet.TrySpend(price);
+                _lives.RefillToMax(_clock.UtcNow);
+            });
+            return true;
+        }
+
+        /// <summary>Grants coins, e.g. a shop bundle (there is no real payment yet).</summary>
+        /// <param name="amount">Coins to add; not negative.</param>
+        public void AddCoins(int amount) => Wallet.Add(RequireNonNegative(amount, nameof(amount)));
+
+        /// <summary>True when lives are below the maximum, counting those that have come back.</summary>
+        public bool CanRefillLives()
+        {
+            RefreshLives();
+            return !_lives.IsFull;
+        }
+
+        private static int RequireNonNegative(int value, string paramName) =>
+            value >= 0 ? value : throw new ArgumentOutOfRangeException(paramName, value, "Cannot be negative.");
+
         // --- Lives ---------------------------------------------------------------------------------
 
         /// <summary>Adds the lives that have come back since the last refresh (and saves them).</summary>

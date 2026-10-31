@@ -7,9 +7,13 @@ using UnityEngine;
 namespace BallSort.Game.UI
 {
     /// <summary>
-    /// The Level screen's booster bar — Undo, Shuffle, Add tube — and the player-facing text for
-    /// each reason a booster is unavailable (docs/screens.md).
+    /// The Level screen's booster bar — Undo, Shuffle, Add tube — the boosters' display names, and the
+    /// player-facing text for each reason a booster is unavailable (docs/screens.md).
     /// </summary>
+    /// <remarks>
+    /// A booster at 0 shows the buy badge and is never dimmed: tapping it opens the Buy popup, whatever
+    /// else would refuse it. The whole bar takes no taps while locked (stuck, won, a shuffle pick).
+    /// </remarks>
     [RequireComponent(typeof(CanvasGroup))]
     public sealed class BoosterBar : MonoBehaviour
     {
@@ -18,29 +22,49 @@ namespace BallSort.Game.UI
         [SerializeField] private BoosterButton _addTube;
         [SerializeField] private CanvasGroup _group;
 
+        [Header("Names (Buy popup: \"Buy {name}\")")]
+        [SerializeField] private string _undoName = "Undo";
+        [SerializeField] private string _shuffleName = "Shuffle";
+        [SerializeField] private string _addTubeName = "Add tube";
+
         [Header("Refusal messages")]
         [SerializeField] private string _nothingToUndo = "Nothing to undo";
         [SerializeField] private string _undoSealed = "Can't undo past a completed tube";
-        [SerializeField] private string _noUndosLeft = "No undos left";
-        [SerializeField] private string _noAddTubesLeft = "No add-tube boosters left";
         [SerializeField] private string _noRoomForTubes = "No room for more tubes";
-        [SerializeField] private string _noShufflesLeft = "No shuffles left";
-        [SerializeField] private string _noValidShuffle = "Can't shuffle right now";
+        [SerializeField] private string _nothingToShuffle = "No tube to shuffle";
 
         public event Action UndoClicked;
         public event Action ShuffleClicked;
         public event Action AddTubeClicked;
 
-        /// <summary>Shows each booster's count and dims the ones the session would refuse.</summary>
+        /// <summary>
+        /// Shows each booster's count (or the buy badge at 0) and dims the ones the session would refuse.
+        /// </summary>
         public void Refresh(LevelSession session, BoosterInventory boosters)
         {
-            _undo.Show(boosters.GetCount(BoosterType.Undo), session.UndoBlockReason == UndoBlockReason.None);
-            _shuffle.Show(boosters.GetCount(BoosterType.Shuffle), session.ShuffleBlockReason == ShuffleBlockReason.None);
-            _addTube.Show(boosters.GetCount(BoosterType.AddTube), session.AddTubeBlockReason == AddTubeBlockReason.None);
+            Show(_undo, boosters.GetCount(BoosterType.Undo), session.UndoBlockReason != UndoBlockReason.None);
+            Show(_shuffle, boosters.GetCount(BoosterType.Shuffle), session.ShuffleBlockReason != ShuffleBlockReason.None);
+            Show(_addTube, boosters.GetCount(BoosterType.AddTube), session.AddTubeBlockReason != AddTubeBlockReason.None);
         }
+
+        /// <summary>The booster's name as the player reads it, e.g. in "Buy Add tube".</summary>
+        public string GetDisplayName(BoosterType type) =>
+            type switch
+            {
+                BoosterType.Undo => _undoName,
+                BoosterType.Shuffle => _shuffleName,
+                BoosterType.AddTube => _addTubeName,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown booster type."),
+            };
+
+        // A booster at 0 can always be bought, so it is never dimmed.
+        private static void Show(BoosterButton button, int count, bool refused) => button.Show(count, count > 0 && refused);
 
         /// <summary>Whether the buttons react at all (false while the win sequence plays).</summary>
         public void SetInteractable(bool interactable) => _group.interactable = interactable;
+
+        /// <summary>Whether the bar catches taps at all; when false they reach whatever is beneath it.</summary>
+        public void SetCatchesTaps(bool catchesTaps) => _group.blocksRaycasts = catchesTaps;
 
         /// <summary>The toast for a refused undo, or null when no toast is due.</summary>
         public string Describe(UndoBlockReason reason) =>
@@ -48,8 +72,7 @@ namespace BallSort.Game.UI
             {
                 UndoBlockReason.NoMovesToUndo => _nothingToUndo,
                 UndoBlockReason.SealedByTubeCompletion => _undoSealed,
-                UndoBlockReason.NoBoostersLeft => _noUndosLeft,
-                _ => null,   // Stuck: the bar is hidden then and the banner explains.
+                _ => null,   // Stuck: the bar is hidden then. No boosters: the flow opens Buy instead.
             };
 
         /// <summary>The toast for a refused Add tube, or null when no toast is due.</summary>
@@ -57,7 +80,6 @@ namespace BallSort.Game.UI
             reason switch
             {
                 AddTubeBlockReason.NoRoom => _noRoomForTubes,
-                AddTubeBlockReason.NoBoostersLeft => _noAddTubesLeft,
                 _ => null,
             };
 
@@ -65,9 +87,8 @@ namespace BallSort.Game.UI
         public string Describe(ShuffleBlockReason reason) =>
             reason switch
             {
-                ShuffleBlockReason.NoBoostersLeft => _noShufflesLeft,
-                ShuffleBlockReason.NoValidShuffle => _noValidShuffle,
-                _ => null,   // Won, Stuck, or the board changed mid-search: nothing for the player to act on.
+                ShuffleBlockReason.NoEligibleTube => _nothingToShuffle,
+                _ => null,   // Won, Stuck: the bar takes no taps. No boosters: the flow opens Buy instead.
             };
 
         private void OnUndoClicked() => UndoClicked?.Invoke();

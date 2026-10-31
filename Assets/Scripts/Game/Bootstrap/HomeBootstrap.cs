@@ -22,7 +22,9 @@ namespace BallSort.Game.Bootstrap
                 return;
             }
 
-            _flow.Begin(app.PlayerData, app.SceneLoader, app.Episodes, ReadCurrentTier(app), app.SceneLoader.TakePendingArrival());
+            _flow.Begin(
+                app.PlayerData, app.SceneLoader, app.Episodes, ReadCurrentTier(app), app.SceneLoader.TakePendingArrival(),
+                app.Economy, app.Audio);
         }
 
         private static LevelTier ReadCurrentTier(AppRoot app)

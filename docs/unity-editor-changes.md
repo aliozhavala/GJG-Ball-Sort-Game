@@ -703,3 +703,57 @@ All changes made through Unity MCP Editor commands, except restoring the plain f
 - Stopping the user's Play session (it had lost `AppRoot` to a recompile) left a level-in-progress mark; clearing it
   through `PlayerData.LeaveAttempt` also spent a life and counted a retry, so the save was written back to its values
   before (lives 5, no timer, retries 3, no mark).
+
+## 2026-10-31 — Buying, shop bundles, per-tube Shuffle, episode split
+
+All changes made through Unity MCP Editor commands; Unity generated every new `.meta` file.
+
+### Assets
+- `Assets/Scripts/Core/Session/BoardShuffler.cs` and `PendingShuffle.cs` moved to the trash (`AssetDatabase.MoveAssetToTrash`).
+- New placeholder sprites in `Assets/Art/Sprites/Placeholder/UI/` (generated, 128×128, imported like `Heart.png`: Sprite,
+  single, 100 PPU, no mipmaps, alpha is transparency): `Plus_Green.png` (green disc, dark rim, white plus) and
+  `Coin.png` (gold coin with a darker rim).
+- `Assets/Data/Config/EconomyConfig.asset`: `_hardReward` 40 → 60, `_superHardReward` 60 → 100; new `_undoPrice` 300,
+  `_shufflePrice` 300, `_addTubePrice` 900, `_boostersPerPurchase` 1, `_livesRefillPrice` 900, `_coinBundles` (1,000 /
+  5,000 / 10,000 / 25,000 / 50,000 / 100,000 coins, "99,99 TL" … "4999,99 TL"). Saving also wrote `_maxLives: 5` and
+  `_lifeRefillMinutes: 30` in place of the stale `_startLives: 5` (same values).
+- `Assets/Data/Config/EpisodeConfig.asset`: first levels 1, 21, 41, 61, 81 → 1, 20, 40, 60, 80 (sprites unchanged).
+- New `Assets/Prefabs/UI/BuyPopup.prefab`, a copy of `AreYouSurePopup.prefab`: `AreYouSurePopup` replaced by
+  `BuyPopup` (popup, title, buy button and price wired); `LifeCost` removed; `ConfirmButton` renamed `BuyButton`, sprite
+  `Button_Yellow`, its label replaced by `Content` (`HorizontalLayoutGroup`, centred, spacing 16) holding `CoinIcon`
+  (96×96, `Coin.png`) and `Price` (160×110, TMP bold 60, `AmountLabel` 60 → 36); title "Buy Undo".
+
+### Scenes
+- `Assets/Scenes/Home.unity`:
+  - `BuyPopup` prefab instance under `HomeCanvas`, just before `Toast`, inactive; `HomeScreen._buyPopup` → it.
+  - `SafeArea/TopBar/Lives`: new `BuyButton` (56×56, `Plus_Green.png`, right-middle, x −4), inactive;
+    `LivesDisplay._buyButton` → it. `Lives/Timer` right offset −26 → −38 to make room.
+  - `SafeArea/TopBar/Coins`: new `BuyButton` (same); `HomeScreen._coinsBuyButton` → it. `Coins/Label` right offset
+    −26 → −38.
+  - `SafeArea/ShopPage`: `ShopPage` added, `_items` → six new children of `Scroll/Viewport/Content/Panel`,
+    `Bundle1` … `Bundle6`, anchored on the panel art's frames (columns 2.6–32.6 / 35.2–65.2 / 67.8–97.9 %, rows
+    46.9–88 / 2.8–43.9 %). Each: transparent `Image` + `Button` + `ShopItem`; `Picture` (`Coin.png`, preserve aspect),
+    `Coins` (TMP bold, auto-size 28–52), `PriceTag` (`Button_Yellow`, sliced) → `Price` (TMP bold, auto-size 18–36).
+    `Bundle1`–`Bundle3` (the static cards below the panel) are untouched.
+  - `HomeScreen._shopPage` → `ShopPage`, `_shopTab` = 0 (the tab whose page is `ShopPage`).
+- `Assets/Scenes/Level.unity`:
+  - `BuyPopup` prefab instance under `LevelCanvas`, just before `Toast`, inactive; `LevelHud._buyPopup` → it.
+  - `SafeArea/BoosterBar/{Undo,Shuffle,AddTube}Button`: new `BuyBadge` (60×60, `Plus_Green.png`, at `Badge`'s anchor
+    and position, not a raycast target), inactive; `BoosterButton._countBadge` → `Badge`, `_buyBadge` → `BuyBadge`.
+  - `SafeArea/ShufflingIndicator` removed (`LevelHud._shufflingIndicator` is gone).
+
+### Verification runs (no persistent changes)
+- EditMode tests: 1774 passed, 0 failed. Console clean after every compile and after Play mode.
+- Play mode, Home (real UI taps): the lives plus shows only below the maximum; Buy hearts at 100 coins kept the popup
+  open with "Not enough coins"; with 1,000 it refilled to 5 and closed; the coins plus opened the Shop tab; Bundle 3
+  added 10,000 with "+10,000 coins".
+- Play mode, Level 6 V1 (editor test visit): Undo at 0 showed the green plus, undimmed; Buy Undo at 100 coins stayed open
+  with the toast, at 1,100 it bought one (badge back to "1", dimmed: nothing to undo). Shuffle entered the pick: the five
+  mixed tubes glowed, the two empty ones were dimmed, the bar locked. Tube taps could not be driven from a command
+  (queued Input System events never reached the game), so the pick-and-shuffle tap is on the manual checklist; three
+  direct `TryShuffleTube` calls showed the tube view following the board each time.
+- Found and fixed during the run: `AvatarMenuPopup` and `SettingToggle` subscribed to `PlayerData` at `Initialize`, and a
+  popup never opened never runs `OnDestroy`, so after leaving Home any player-data change (spending or buying a booster)
+  threw `MissingReferenceException`. They now subscribe in `OnEnable` and unsubscribe in `OnDisable`.
+- The Editor save was backed up before Play mode and written back afterwards (level 20, 1,020 coins, 5 lives, Undo 0,
+  Shuffle 99, Add tube 99).

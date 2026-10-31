@@ -28,7 +28,7 @@ Balls are listed **bottom to top**. Tubes are numbered from 0, in the order they
 |---|---|---|
 | `formatVersion` | yes | Always `2`. |
 | `id` | yes | The level number, 1–100 (matches the file name). |
-| `tier` | yes | `"regular"`, `"hard"` or `"superHard"`. Sets the win reward (20 / 40 / 60 coins) and the Level button's look on Home. |
+| `tier` | yes | `"regular"`, `"hard"` or `"superHard"`. Sets the win reward (20 / 60 / 100 coins) and the Level button's look on Home. |
 | `tutorial` | no | `true` for a level that introduces a mechanic. The first time a player enters it, a popup shows its tutorial text, written in `Assets/Data/Config/TutorialConfig.asset` under the level's id. |
 | `layout` | yes | `{ "grid": [...] }`: where each tube stands. Shared by all five variants. |
 | `variants` | yes | Exactly 5 variants, V1 first. |

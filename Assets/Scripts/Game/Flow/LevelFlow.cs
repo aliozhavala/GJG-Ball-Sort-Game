@@ -1,6 +1,4 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using BallSort.Core.Levels;
 using BallSort.Core.Player;
 using BallSort.Core.Session;
@@ -15,8 +13,8 @@ namespace BallSort.Game.Flow
 {
     /// <summary>
     /// Runs one visit to the Level scene: wires the session to the board, input, HUD and feedback,
-    /// and moves through <see cref="LevelState"/>: Loading → Playing ⇄ Stuck → Won, with a short
-    /// Playing → Shuffling → Playing detour while a shuffle is searched for.
+    /// and moves through <see cref="LevelState"/>: Loading → Playing ⇄ Stuck → Won, with a
+    /// Playing → ShufflePicking → Playing detour while the Shuffle booster waits for a tube.
     /// </summary>
     /// <remarks>
     /// The session owns the rules; this class only reacts to its events and to the HUD's buttons.
@@ -30,6 +28,10 @@ namespace BallSort.Game.Flow
     /// shows its tutorial popup the first time it is entered (docs/screens.md, Tutorials).
     /// </para>
     /// <para>
+    /// Boosters work only while Playing (the bar is hidden while stuck and locked otherwise). A booster
+    /// at 0 opens the Buy popup instead of being used (docs/screens.md, Buying).
+    /// </para>
+    /// <para>
     /// An editor test visit plays its chosen variant on every attempt and saves nothing: no life, no
     /// retry, no reward, no progress, no tutorial seen. Its popups still show, so they can be tested.
     /// </para>
@@ -41,10 +43,7 @@ namespace BallSort.Game.Flow
         [SerializeField] private LevelHud _hud;
         [SerializeField] private LevelFeedback _feedback;
 
-        [Tooltip("Seconds a shuffle search may run before \"Shuffling…\" appears. Most finish in a few milliseconds.")]
-        [SerializeField, Min(0f)] private float _shufflingIndicatorDelay = 0.3f;
-
-        // Used only by the shuffle search, one search at a time.
+        // Picks the order of each shuffled tube; main thread only.
         private readonly System.Random _shuffleRandom = new System.Random();
 
         // Picks the variant of each try from the sixth on; main thread only.
@@ -56,6 +55,7 @@ namespace BallSort.Game.Flow
         private EpisodeConfig _episodes;
         private TutorialConfig _tutorials;
         private SceneLoader _sceneLoader;
+        private AudioService _audio;
         private LevelVisit _visit;
 
         // The exit Are You Sure is asking about.
@@ -107,11 +107,7 @@ namespace BallSort.Game.Flow
             _episodes = episodes != null ? episodes : throw new ArgumentNullException(nameof(episodes));
             _tutorials = tutorials != null ? tutorials : throw new ArgumentNullException(nameof(tutorials));
             _sceneLoader = sceneLoader ?? throw new ArgumentNullException(nameof(sceneLoader));
-            if (audio == null)
-            {
-                throw new ArgumentNullException(nameof(audio));
-            }
-
+            _audio = audio != null ? audio : throw new ArgumentNullException(nameof(audio));
             _visit = visit;
 
             int variant = _visit.IsEditorTest ? _visit.Variant : player.BeginAttempt(_variantRandom);
@@ -125,6 +121,7 @@ namespace BallSort.Game.Flow
 
             _input.SelectionChanged += _boardView.ShowSelection;
             _input.InvalidMove += _feedback.PlayInvalidMove;
+            _input.ShuffleTubePicked += OnShuffleTubePicked;
 
             _session.Changed += RefreshHud;
             _session.StuckChanged += OnStuckChanged;
@@ -152,15 +149,19 @@ namespace BallSort.Game.Flow
         {
             State = state;
             bool canPlay = state == LevelState.Playing || state == LevelState.Stuck;
+            bool picking = state == LevelState.ShufflePicking;
 
-            _input.IsAcceptingTaps = canPlay;
+            _input.IsAcceptingTaps = canPlay || picking;
+            _input.IsPickingShuffleTube = picking;
             if (!canPlay)
             {
                 _input.ClearSelection();
             }
 
             _hud.SetLocked(!canPlay);
+            _hud.SetTapsPassThrough(picking);
             _hud.ShowStuck(state == LevelState.Stuck);
+            _boardView.ShowShufflePick(picking);
             RefreshHud();
         }
 
@@ -199,12 +200,11 @@ namespace BallSort.Game.Flow
             Enter(LevelState.Won);
             if (!_visit.IsEditorTest)
             {
-                int episodeBefore = _episodes.GetEpisodeIndex(_visit.LevelNumber);
-                bool advanced = _player.RecordWin(_visit.LevelNumber, _economy.GetWinReward(_session.Level.Tier));
-                int episodeNow = _episodes.GetEpisodeIndex(_player.CurrentLevel);
-                if (advanced && episodeNow > episodeBefore)
+                _player.RecordWin(_visit.LevelNumber, _economy.GetWinReward(_session.Level.Tier));
+                int unlocked = _episodes.GetUnlockedEpisode(_visit.LevelNumber, _player.CurrentLevel);
+                if (unlocked >= 0)
                 {
-                    _arrivalAfterWin = HomeArrival.WithUnlockedEpisode(episodeNow);
+                    _arrivalAfterWin = HomeArrival.WithUnlockedEpisode(unlocked);
                 }
             }
 
@@ -228,70 +228,92 @@ namespace BallSort.Game.Flow
 
         private void OnUndoClicked()
         {
+            if (State != LevelState.Playing || OpenBuyIfNone(BoosterType.Undo))
+            {
+                return;
+            }
+
             if (!_session.TryUndo(out var reason))
             {
                 ShowRefusal(_hud.Boosters.Describe(reason));
             }
         }
 
-        // The search runs the solver up to 20 times, too slow for one frame on a phone, so it runs on
-        // a worker thread against the session's private copy while input is locked.
-        private async void OnShuffleClicked()
+        /// <summary>Starts the pick: the next tap on an eligible tube shuffles it, anything else cancels.</summary>
+        private void OnShuffleClicked()
         {
-            if (!_session.TryBeginShuffle(out PendingShuffle shuffle, out ShuffleBlockReason reason))
+            if (State != LevelState.Playing || OpenBuyIfNone(BoosterType.Shuffle))
+            {
+                return;
+            }
+
+            ShuffleBlockReason reason = _session.ShuffleBlockReason;
+            if (reason != ShuffleBlockReason.None)
             {
                 ShowRefusal(_hud.Boosters.Describe(reason));
                 return;
             }
 
-            CancellationToken cancellation = destroyCancellationToken;
-            Enter(LevelState.Shuffling);
-            Task<bool> search = Task.Run(() => shuffle.Search(_shuffleRandom, cancellation), cancellation);
-            try
-            {
-                // Only a search slow enough to notice earns the label; a quick one would just flicker.
-                var delay = TimeSpan.FromSeconds(_shufflingIndicatorDelay);
-                if (await Task.WhenAny(search, Task.Delay(delay, cancellation)) != search &&
-                    !cancellation.IsCancellationRequested)
-                {
-                    _hud.ShowShuffling(true);
-                }
+            Enter(LevelState.ShufflePicking);
+        }
 
-                await search;
-            }
-            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (Exception e)
-            {
-                // Logged, then refused below as "no valid shuffle": the player keeps playing.
-                Debug.LogException(e, this);
-            }
-
-            if (cancellation.IsCancellationRequested)
+        private void OnShuffleTubePicked(int tubeIndex)
+        {
+            if (State != LevelState.ShufflePicking)
             {
                 return;
             }
 
-            _hud.ShowShuffling(false);
-            if (!_session.TryApplyShuffle(shuffle, out reason))
+            // Back to Playing first: the shuffle's own events may move on to Stuck or Won.
+            Enter(LevelState.Playing);
+            if (tubeIndex == TubeInput.NoTube || !_session.CanShuffleTube(tubeIndex))
+            {
+                return;   // Cancelled: nothing spent.
+            }
+
+            if (!_session.TryShuffleTube(tubeIndex, _shuffleRandom, out ShuffleBlockReason reason))
             {
                 ShowRefusal(_hud.Boosters.Describe(reason));
-            }
-
-            if (State == LevelState.Shuffling)
-            {
-                Enter(_session.IsStuck ? LevelState.Stuck : LevelState.Playing);
             }
         }
 
         private void OnAddTubeClicked()
         {
+            if (State != LevelState.Playing || OpenBuyIfNone(BoosterType.AddTube))
+            {
+                return;
+            }
+
             if (!_session.TryAddTube(out var reason))
             {
                 ShowRefusal(_hud.Boosters.Describe(reason));
             }
+        }
+
+        /// <summary>A booster at 0 opens the Buy popup instead of being used.</summary>
+        /// <returns>True when the player holds none (the popup is open).</returns>
+        private bool OpenBuyIfNone(BoosterType type)
+        {
+            if (_player.Boosters.GetCount(type) > 0)
+            {
+                return false;
+            }
+
+            _hud.Buy.Show(_hud.Boosters.GetDisplayName(type), _economy.GetBoosterPrice(type), () => TryBuyBooster(type));
+            return true;
+        }
+
+        /// <returns>True when bought, which closes the popup; without enough coins it stays open.</returns>
+        private bool TryBuyBooster(BoosterType type)
+        {
+            if (_player.TryBuyBooster(type, _economy.GetBoosterPrice(type), _economy.BoostersPerPurchase, out _))
+            {
+                return true;
+            }
+
+            _audio.Play(Sfx.MoveInvalid);
+            _hud.Toast.Show(_hud.Buy.NotEnoughCoinsText);
+            return false;
         }
 
         private void OnPlayOnClicked()
@@ -457,6 +479,7 @@ namespace BallSort.Game.Flow
             {
                 _input.SelectionChanged -= _boardView.ShowSelection;
                 _input.InvalidMove -= _feedback.PlayInvalidMove;
+                _input.ShuffleTubePicked -= OnShuffleTubePicked;
             }
 
             if (_hud != null)

@@ -55,7 +55,6 @@ namespace BallSort.Game.Views
             _board = board;
             _audio = audio;
             _session.Restarted += ResetFeel;
-            _session.Shuffled += ResetFeel;
             _board.BallLifted += OnBallLifted;
             _board.BallLowered += OnBallLowered;
             _board.BallLanded += OnBallLanded;
@@ -175,7 +174,6 @@ namespace BallSort.Game.Views
             if (_session != null)
             {
                 _session.Restarted -= ResetFeel;
-                _session.Shuffled -= ResetFeel;
                 _session = null;
             }
 

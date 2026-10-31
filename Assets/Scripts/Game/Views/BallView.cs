@@ -77,6 +77,11 @@ namespace BallSort.Game.Views
         private BallExpression _restingExpression;
         private BallExpression _expression;
         private int _keyLockId = Ball.NoKey;
+
+        // Shuffle's dimming (1 = as drawn), and the tints it multiplies.
+        private float _shade = 1f;
+        private Color _bodyTint = Color.white;
+        private Color _keyTint = Color.white;
         private float _diameter = 1f;
 
         // Position = moved position + bounce offsets, all in the parent's (board) units.
@@ -165,7 +170,10 @@ namespace BallSort.Game.Views
             _keyMark.sprite = palette.KeyMarkSprite;
             _keyMark.transform.localScale = Vector3.one * (palette.KeyMarkSize / SpriteWidth(palette.KeyMarkSprite));
             _keyMark.transform.localPosition = palette.KeyMarkOffset;
-            _keyMark.color = locks.GetTint(ball.KeyLockId);
+            _keyTint = locks.GetTint(ball.KeyLockId);
+            _shade = 1f;
+            _hiddenMark.color = Color.white;
+            _keyMark.color = _keyTint;
             _keyLockId = ball.KeyLockId;
 
             _restingExpression = BallExpression.Open;
@@ -198,6 +206,20 @@ namespace BallSort.Game.Views
             ApplyExpression(expression, palette);
             _faceTween = DOVirtual.DelayedCall(seconds, _restoreFace, false).OnBoardClock();
         }
+
+        /// <summary>
+        /// Darkens the ball by <paramref name="shade"/> (1 = as drawn), e.g. in a tube the Shuffle
+        /// booster cannot pick. Kept until the next <see cref="Show"/> or <see cref="SetShade"/>.
+        /// </summary>
+        public void SetShade(float shade)
+        {
+            _shade = shade;
+            _body.color = Shaded(_bodyTint);
+            _hiddenMark.color = Shaded(Color.white);
+            _keyMark.color = Shaded(_keyTint);
+        }
+
+        private Color Shaded(Color tint) => new Color(tint.r * _shade, tint.g * _shade, tint.b * _shade, tint.a);
 
         /// <summary>The ball's key has been found; its mark goes.</summary>
         public void RemoveKey()
@@ -383,7 +405,8 @@ namespace BallSort.Game.Views
             _colorId = colorId;
             Sprite sprite = hidden ? palette.HiddenSprite : palette.GetSprite(colorId, _expression);
             _body.sprite = sprite;
-            _body.color = hidden ? palette.HiddenTint : palette.GetSpriteTint(colorId);
+            _bodyTint = hidden ? palette.HiddenTint : palette.GetSpriteTint(colorId);
+            _body.color = Shaded(_bodyTint);
             _hiddenMark.enabled = hidden && _hiddenMark.sprite != null;
             float size = hidden ? palette.HiddenSpriteSize : palette.GetSpriteSize(colorId);
             _body.transform.localScale = Vector3.one * (size / SpriteWidth(sprite));

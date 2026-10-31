@@ -26,7 +26,7 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 - A **key** sits on one specific ball and opens the lock with the same id.
 - A key is **found** when its ball is part of its tube's selectable run (revealed, top run, tube not covered/clay). Check after every move, undo, reveal and cover removal. Found → the lock opens, the key mark disappears from the ball.
 - Consequences: a key on a hidden ball can't be found until revealed; a key inside a covered tube can't be found until that tube is uncovered.
-- A key on a hidden ball is **invisible** (no key mark) until the ball is revealed. A key's ball is only revealed by becoming the top of the tube a move just left (a shuffle never moves it), and that tube is open and not clay, so revealing the ball also finds the key, in the same move. Its events fire `BallRevealed`, then `KeyFound`, then `LockOpened` (order documented on `BoardState`), and the step 6 animations must play them in that order: the ball flips and shows its key, the key mark leaves, then the door opens.
+- A key on a hidden ball is **invisible** (no key mark) until the ball is revealed. A key's ball is only revealed by becoming the top of a tube: the tube a move just left, or a tube the Shuffle booster rearranged. Either tube is open and not clay, so revealing the ball also finds the key, in the same operation. Its events fire `BallRevealed`, then `KeyFound`, then `LockOpened` (order documented on `BoardState`), and the step 6 animations must play them in that order: the ball flips and shows its key, the key mark leaves, then the door opens.
 - Validation: every lock has exactly one key and every key's lock exists; no key is in a selectable run at level start; lock tubes are adjacent in one row and have the same capacity; no key in a clay tube; lock ids are unique; a ball holds at most one key; no key inside a tube covered by its own lock.
 - Level design note: put keys on the top ball of a run so the visual matches.
 
@@ -63,13 +63,29 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 - Cost, measured in the Editor: random play on every delivered level and variant (15,307 checks) averaged 0.02 ms per check, and no check recorded more than 9 positions. The search costs about 0.1 ms per position at 13 tubes (the largest delivered levels), so the limit is 32 positions: about 3.5–4.5 ms when it is reached (measured on synthetic one-colour 13-tube boards built to keep every move reversible). A few hundred positions would cost 30 ms or more.
 
 ## Shuffle (booster)
-- **Which tubes:** only tubes that are **not covered** (veil or lock), **not clay** and **not completed**. Balls move only between these tubes, and each of them keeps its ball count. Every other tube is untouched.
-- **Keys stay put:** a ball that still carries a key keeps its tube and slot.
-- **Hidden balls take part:** every ball keeps its hidden flag, except that a hidden ball landing on **top** of a tube is revealed. After a shuffle every tube's top ball is revealed.
-- **Valid result:** it differs from the current arrangement, no tube is completed, no key is findable (no key in a selectable run), and the board is solvable (solver, Fast mode; a result the solver can't confirm within its node limit counts as unsolvable).
-- **Limits** (constants in `BoardShuffler`): up to **20** random arrangements (`MaxAttempts`), each solved within **2,000** nodes (`NodeLimit`). Basis (Editor, random solvable boards up to the full 3×6 grid): a shuffle takes 1–6 ms and a solvable candidate needed at most ~130 nodes; the worst case, every attempt failing at the limit, is ~1 s on 18 tubes.
-  - Re-measured on the delivered levels (Editor). On the largest, `level_028` (13 tubes, 44 balls the shuffle can move), 400 shuffles, from the start and from 25/50/75% through a solution in each variant, all succeeded: median 0.9 ms, max 3.2 ms. Across all 100 levels (4,000 shuffles): median 0.4 ms, max 35 ms; the 13 that found no valid arrangement gave up within 2.2 ms. The worst case was never seen; timed from a 2,000-node search on the 13-tube levels it would be 1.2–3 s (`level_051`, with its capacity-16 tube, is the slowest per node). The limits are kept.
-- **Timing:** the search runs off the main thread with input locked; "Shuffling…" appears only if it takes longer than 0.3 s (docs/screens.md).
-- **No valid shuffle found:** nothing changes, the booster isn't spent, and a toast says so.
-- **Success:** spends one Shuffle booster and **clears the undo history** (the recorded moves no longer match the board). A shuffle is not undoable.
-- Like every booster, unavailable once the level is won or while stuck.
+The Shuffle booster rearranges **one tube the player picks** (the pick itself: docs/screens.md, Boosters). Rules in
+`ShuffleRules`, applied by `LevelSession.TryShuffleTube`.
+- **What the player sees decides, never hidden colours.** A ball's *look* is "?" when hidden, otherwise its colour plus
+  its key mark if it carries a key (each lock's mark has its own colour). A hidden ball's key is invisible, so it does
+  not count. Nothing here reads the colour of a hidden ball, so neither the pick nor the result can leak it.
+- **Eligible tube:** not covered (veil or lock), not clay, not completed, and holding at least two balls that look
+  different. With none eligible the booster is refused ("No tube to shuffle") and nothing is spent.
+- **The new order:** the tube's own balls, so it keeps its count and colours, in an order whose look differs from the
+  current one in at least one slot (compared with the new top already revealed). It is a random order (Fisher–Yates),
+  tried up to 8 times; if every try looks the same, the top is swapped with a ball that looks different, which always
+  shows. Every other tube is untouched.
+- **Hidden balls** keep their hidden flag, except a hidden ball that lands on **top**, which is revealed.
+- **Keys move with their balls.** A key that ends up in the tube's selectable run is found and opens its lock through
+  the normal cascade, as after a move.
+- **Completion:** a full tube of one colour with a hidden ball in it is eligible ("?" looks different); if the shuffle
+  puts the hidden ball on top, revealing it completes the tube, which corks, opens the veils of its colour and may win
+  the level, as after a move.
+- **No solvability check:** the shuffle may leave the level unwinnable or immediately stuck. Stuck is evaluated
+  afterwards, as after every operation.
+- **Cost:** spends one Shuffle booster and **clears the undo history** (the recorded moves no longer match the board).
+  Not undoable. Like every booster, refused (nothing spent) once the level is won, while stuck, or with no boosters left;
+  an ineligible tube is refused too (`ShuffleBlockReason.TubeNotEligible`).
+- **Events:** `Shuffled` (the tube and its new order, bottom → top, the top revealed and keys where they landed), then
+  as after a move `BallRevealed` (the new top, if it was hidden), `TubeCompleted`, each `TubeUnveiled`, each `KeyFound`
+  and its `LockOpened`, `LevelCompleted`; then `StuckChanged` (if it changed) and `Changed`.
+- The view snaps the tube's balls into the new order (`BoardView`); its animation is not made yet.

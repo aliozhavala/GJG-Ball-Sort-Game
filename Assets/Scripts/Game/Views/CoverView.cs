@@ -25,6 +25,8 @@ namespace BallSort.Game.Views
         [SerializeField] private SpriteRenderer _icon;
 
         private readonly List<TubeView> _tubes = new List<TubeView>();
+        private Color _bodyTint = Color.white;
+        private Color _iconTint = Color.white;
         private Vector3 _home;
         private float _shakeX;
         private Tween _shakeTween;
@@ -51,6 +53,8 @@ namespace BallSort.Game.Views
             _tubes.Clear();
             StopMotion();
 
+            _bodyTint = bodyTint;
+            _iconTint = iconTint;
             _body.sprite = body;
             _body.color = bodyTint;
             _body.drawMode = SpriteDrawMode.Sliced;
@@ -60,6 +64,15 @@ namespace BallSort.Game.Views
         }
 
         public void AddTube(TubeView tube) => _tubes.Add(tube);
+
+        /// <summary>Darkens the cover by <paramref name="shade"/> (1 = as drawn), e.g. while the Shuffle booster picks a tube.</summary>
+        public void SetShade(float shade)
+        {
+            _body.color = Shade(_bodyTint, shade);
+            _icon.color = Shade(_iconTint, shade);
+        }
+
+        private static Color Shade(Color tint, float shade) => new Color(tint.r * shade, tint.g * shade, tint.b * shade, tint.a);
 
         /// <summary>
         /// Fits the body to the covered tubes. A veil hangs from its tube's rim like the art, as wide as

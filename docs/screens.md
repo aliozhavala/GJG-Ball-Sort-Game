@@ -16,7 +16,7 @@ Read this when working on UI, scene flow, lives, tutorials, boosters, or player 
 | Field | Start value | Notes |
 |---|---|---|
 | CurrentLevel | 1 | Advances when the current level is won. After level 100 is won: stays 100, `AllLevelsComplete = true`. Replays (level 100 after the run) pay the reward but never move progress; editor level jumps record nothing. |
-| Coins | 1000 | +20 / +40 / +60 per win of a regular / hard / super hard level (the level's `tier`). Play on costs 900. |
+| Coins | 1000 | +20 / +60 / +100 per win of a regular / hard / super hard level (the level's `tier`). Play on costs 900; boosters and hearts can be bought (Buying, below); the Shop's bundles add coins. |
 | Lives | 5 (full) | 0 to the maximum (5). Spent and refilled as described in Lives, below. |
 | Life timer | none | UTC time the current wait for a life began; kept only while lives are below the maximum. |
 | Boosters: Undo / Shuffle / AddTube | 99 / 99 / 99 | Global totals, spent in any level, no refills. |
@@ -27,7 +27,7 @@ Read this when working on UI, scene flow, lives, tutorials, boosters, or player 
 | Tutorials seen | none | Ids of the levels whose tutorial popup has been dismissed. |
 | Settings: Sound / Music / Haptics | on / on / on | Saved. Sound mutes every sound effect (`AudioService`); Music and Haptics have no effect yet (no music, no haptics). |
 
-All numbers live in an `EconomyConfig` ScriptableObject, not in code, including the win reward of each tier, the lives maximum and the refill interval. Progress and rewards are saved **at the moment of the win**, before any celebration or panel.
+All numbers live in an `EconomyConfig` ScriptableObject, not in code, including the win reward of each tier, the lives maximum and the refill interval, every price, the boosters per purchase and the Shop's coin bundles. Progress and rewards are saved **at the moment of the win**, before any celebration or panel.
 
 **Save format:** one versioned JSON blob (`SaveData`) in PlayerPrefs under `BallSort.Save`, written on every change and on pause/quit. Every field is required: a corrupt save, a save with missing fields, or one from a newer version is replaced by defaults with a warning. Out-of-range values are clamped on load. Bump `SaveData.CurrentVersion` and add a migration to `SaveJsonCodec` when the shape changes (version 2 added the try fields; a version 1 save migrates with try 0 and no last variant. Version 3 adds the life timer, the level-in-progress mark, the player name and the tutorials seen, and turns the try count into the retry count: a version 2 save keeps its count as retries, starts the life timer at load if lives are below the maximum, and gets no mark, the name `Player` and no tutorials seen. Version 4 adds the avatar: an older save gets avatar 1; an id without an avatar is replaced by 1 on load). Editor tools: **Ball Sort ▸ Reset Save** (disabled in Play mode) and **Ball Sort ▸ Player Data…** (set coins, lives, the time to the next life, booster counts, the player name and the avatar, jump to any level (retries cleared), and clear the tutorials seen; it also shows the level, retries, last variant, level in progress and tutorials seen; edits the save in Edit mode, the live player in Play mode).
 
@@ -35,7 +35,8 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - **Top bar:** avatar (top-left: the picked avatar in its frame, the same in every episode; mascot frames are a Level scene thing), lives (the count on the art's heart, the time to
   the next life on its pill) and coins (the count on the pill next to the art's coin, on one line: it shrinks to fit and
   is abbreviated, e.g. 125K or 1.2M, only once it would get too small, `AmountLabel`) between the corners, settings
-  button (top-right).
+  button (top-right). A green plus sits on the right end of the lives pill while lives are below the maximum (it opens
+  Buy hearts) and always on the coins pill (it opens the Shop tab); Buying, below.
 - **Center:** big **Level button** (green) showing `Level N`, low on the page just above the bottom bar (about a quarter
   of the screen up), so the episode illustration stays visible. If `AllLevelsComplete`: shows `All levels complete` and
   replays level 100. Its look depends on the level's tier: regular, hard or super hard (for now only the "Hard" or
@@ -53,8 +54,13 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   Leaderboard and Shop swap the center for their page; Home brings the Level button back. The top bar stays on every tab.
   - **Shop page:** a vertical scroll view that runs down behind the bar to the screen's bottom edge, so items
     scroll out from behind it (hold and swipe); its content's bottom padding is the bar's height plus 40, so the last
-    item scrolls fully into view (`ScrollBehindBar`; the Leaderboard page can use the same structure): the shop header ("Shop"), the shop panel (six empty item frames until item
-    art arrives) and three copies of the bundle card with a name and a price. All static: nothing in it does anything.
+    item scrolls fully into view (`ScrollBehindBar`; the Leaderboard page can use the same structure): the shop header
+    ("Shop"), the shop panel with the six **coin bundles** in its frames (`ShopPage`, `ShopItem`), and below it three
+    copies of the bundle card with a name and a price (static: they do nothing). Bundles, top left to bottom right:
+    1,000 / 5,000 / 10,000 / 25,000 / 50,000 / 100,000 coins, labelled 99,99 TL / 399,99 TL / 799,99 TL / 1499,99 TL /
+    2999,99 TL / 4999,99 TL (display only, `EconomyConfig`). Each shows a picture (placeholder coin until bundle art
+    arrives), its coins and its price on a yellow tag; a tap adds the coins at once (no real payment) and toasts
+    "+10,000 coins".
   - **Leaderboard page:** placeholder (a title and five empty rows).
 - **Avatar** → **avatar menu** (`AvatarMenuPopup`, the `AvatarMenu_Panel` art): top, the picked avatar in its frame,
   the name to its right and the pen button to the right of the name. The name is read-only and takes no taps until
@@ -69,7 +75,8 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   **Top-center:** `Level N` (shrinks rather than reach the frame or the button). **Top-right:** settings button, as on
   Home. No avatar, coins, or lives here.
 - **Middle:** the board (tubes laid out on the level's grid).
-- **Bottom:** booster bar — Undo, Shuffle, Add tube — each with its remaining count.
+- **Bottom:** booster bar — Undo, Shuffle, Add tube — each with its remaining count, or at 0 a green plus in the count
+  badge's place (no separate button): tapping that booster opens the Buy popup.
 - **Input:** tap a tube to select it (its top ball lifts above the mouth; the rest of the run follows when it moves), tap it again to deselect, tap another tube to
   move. An illegal move, or a tap on a tube that can't be selected, plays invalid-move feedback and clears the
   selection. Tapping empty space deselects. The selection is also dropped on undo, add tube, Play on, restart,
@@ -77,29 +84,53 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - Settings popup (Level): Sound, Music, Haptics toggles + **Restart** + **Home**, both behind Are You Sure (Lives, below). Gameplay input is blocked while it is open.
 
 ### Boosters
-- Unavailable boosters look dimmed but still react to taps with a short toast explaining why:
-  - Undo: "Nothing to undo" / "Can't undo past a completed tube" / "No undos left".
-  - Add tube: "No add-tube boosters left" / "No room for more tubes".
-  - Shuffle: "No shuffles left" / "Can't shuffle right now" (no valid shuffle found; the booster is not spent).
+- Boosters work only while playing: while stuck the bar is hidden, and after a win (and during a shuffle pick) it is
+  locked, so nothing in it reacts, buying included.
+- **At 0** a booster shows the green plus instead of its count, is never dimmed, and a tap opens the **Buy popup**
+  (Buying, below), whatever else would refuse it.
+- Otherwise, unavailable boosters look dimmed but still react to taps with a short toast explaining why:
+  - Undo: "Nothing to undo" / "Can't undo past a completed tube".
+  - Add tube: "No room for more tubes".
+  - Shuffle: "No tube to shuffle" (no tube is eligible, docs/mechanics.md).
 - Reason precedence (first match wins), so the toast names the real obstacle rather than the booster count:
   - Undo: Stuck → no moves → sealed → no boosters.
   - Add tube: level won → Stuck → no room → no boosters.
-  - Shuffle: level won → Stuck → no boosters → no valid shuffle (known only after trying, so the button stays enabled until then).
+  - Shuffle: level won → Stuck → no boosters → no eligible tube.
 - **Add tube:** appends an empty tube of capacity 4. Not undoable, doesn't seal undo history. No room once every row already has 8 cells ("No room for more tubes").
-- **Shuffle:** rearranges the balls of the open tubes, keeping the board solvable (rules in docs/mechanics.md). Spent only when it succeeds; clears the undo history, so Undo then shows "Nothing to undo". Not undoable. The search runs off the main thread; until it is applied or refused, taps, boosters and settings are locked (flow state `Shuffling`). If it takes longer than 0.3 s (`LevelFlow._shufflingIndicatorDelay`), a "Shuffling…" label appears where the stuck banner would be, and goes when the search ends. The board is rebuilt in place (no animation until step 6).
+- **Shuffle:** tapping it enters the **pick** (flow state `ShufflePicking`): the selection is dropped, the tubes it can
+  shuffle are highlighted (the glow in `TubeVisualConfig`'s highlight tint) and the rest dimmed with their balls and
+  covers (`TubeView.SetHighlight`, `BoardView.ShowShufflePick`), and the booster bar and settings are locked and let
+  taps through (`LevelHud.SetTapsPassThrough`). The next tap anywhere ends the pick: an eligible tube is shuffled into a
+  different order (rules in docs/mechanics.md) and one Shuffle is spent; anything else (another tube, empty space, any
+  button, Shuffle again) only cancels: it spends nothing and the button tapped does nothing. A
+  shuffle clears the undo history, so Undo then shows "Nothing to undo"; it is not undoable, and it may leave the board
+  stuck. The tube's balls snap into place (no animation yet).
 - **Restart** (settings, behind Are You Sure; it costs a life) reloads the level from data in its next variant: hidden balls hidden again, added tubes gone, undo history cleared. Boosters already spent stay spent.
 
 ### Stuck (not won, and nothing useful left to do)
 - Checked after every move, undo, added tube, Play on, shuffle and restart.
 - Stuck = nothing meaningful left to do: no legal move, or only moves that go round in a loop (rule in docs/mechanics.md, Win and stuck).
 - Show **"No more useful moves"** above the board (`StuckPanel._bannerText`, the one place to change it; does not cover or block the tubes).
-- Booster bar hidden (boosters cannot be used while stuck); tubes can still be selected.
+- Booster bar hidden (no booster, count, green plus or Buy works while stuck); tubes can still be selected.
 - Two buttons side by side in the booster bar's place: **Give up** (behind Are You Sure; it costs a life) and **Play on — 900 ●**.
   - Play on: spend 900 coins, add one empty capacity-4 tube, leave the stuck state. It continues the same attempt and costs no life.
   - Play on is disabled (still showing its price) if coins < 900 or every row already has 8 cells. Give up is then the only choice.
 
 ### Win
 - Input locks, progress + reward are saved and the level-in-progress mark is cleared (one save), short placeholder celebration (~1 s, e.g. "Well done!" text), then the **Win panel**: "Level N complete", `+20 ●` (the tier's reward), **Continue** → Home. A win never costs a life.
+
+## Buying
+Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyBooster`, `TryRefillLives` and `AddCoins`
+(each saved in one write).
+- **Buy popup** (`BuyPopup`, one per scene, over everything but the toast): "Buy {name}", a yellow button showing only
+  the price next to a coin icon (art slot, placeholder coin), and the ✕.
+  - **Boosters** (Level, from a booster at 0): "Buy Undo" 300, "Buy Shuffle" 300, "Buy Add tube" 900; one purchase adds
+    1 booster and closes the popup, and the badge shows the count again.
+  - **Hearts** (Home, from the plus on the lives pill, shown only below the maximum): "Buy hearts" 900 refills the lives
+    to the maximum and stops the timer. If they filled up while the popup was open, it closes with "Lives are already
+    full" and nothing is spent.
+- **Not enough coins:** the invalid-move sound, the toast "Not enough coins", and the popup stays open.
+- **Coins:** the plus on Home's coins pill opens the Shop tab, whose bundles add coins (Home screen, Shop page).
 
 ## Lives
 - **Maximum 5**; below it, **one life comes back every 30 minutes** until full (both numbers in `EconomyConfig`). Lives never go below 0.
@@ -132,13 +163,14 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 ## Episodes
 - The run is split into episodes, each with its own Home background, Level background and mascot frame (the scientist
   in a frame). An `EpisodeConfig` ScriptableObject lists each episode's first level and those three sprites; currently
-  5 episodes × 20 levels (first levels 1, 21, 41, 61, 81). Placeholder art until step 6.
+  5 episodes: levels 1–19, 20–39, 40–59, 60–79 and 80–100 (first levels 1, 20, 40, 60, 80). Nothing else assumes a
+  length: backgrounds, mascot frames and the Episode Unlocked check all follow the first levels.
 - The current episode is derived from the current level (the last episode whose first level is not after it), never
   stored. Home shows the episode of `PlayerData.CurrentLevel`; the Level scene shows the episode of the level being
   played: its background, and its mascot frame at the top left. Home never shows a mascot frame except in the Episode
   Unlocked overlay.
-- **Episode Unlocked:** Continue on the Win panel of a win that moved `CurrentLevel` into a new episode (to level 21,
-  41, 61 or 81) brings up Home on the previous episode's background. About 0.7 s later (`HomeFlow._episodeUnlockedDelay`) the
+- **Episode Unlocked:** Continue on the Win panel of a win that moved `CurrentLevel` into a new episode (winning level
+  19, 39, 59 or 79; `EpisodeMap.FindUnlocked`) brings up Home on the previous episode's background. About 0.7 s later (`HomeFlow._episodeUnlockedDelay`) the
   Episode Unlocked overlay appears ("Episode N unlocked" and the new episode's mascot frame) and the Home background
   switches to the new episode behind it. A tap anywhere closes the overlay; Home input is blocked from arriving until
   then. The Level scene shows the new episode from then on, as it always shows the played level's episode. The
@@ -159,13 +191,13 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 
 ## Shared UI pieces
 - **Toast:** short message, auto-hides, never blocks input. A new message replaces the current one instead of queueing.
-- **Popup:** modal with dimmed background; blocks input beneath it. Open = GameObject active. Draw order is hierarchy order: screen content, then popups, then the toast last. Popups can stack: Are You Sure and More Lives open over the settings popup, and only the topmost takes input. The tutorial popup and the Episode Unlocked overlay close on a tap anywhere; the others have buttons.
+- **Popup:** modal with dimmed background; blocks input beneath it. Open = GameObject active. Draw order is hierarchy order: screen content, then popups, then the toast last. Popups can stack: Are You Sure and More Lives open over the settings popup, and only the topmost takes input. The tutorial popup and the Episode Unlocked overlay close on a tap anywhere; the others have buttons. A popup that follows the player data subscribes while open (`OnEnable`/`OnDisable`): a popup never opened never runs `OnDestroy`, and the player data outlives the scene.
 - Buttons (art, 9-sliced so they stretch to any width): green for Continue and the Level button; red for Give up, Are
-  You Sure's Confirm and Settings' Restart and Home; yellow for Play on and the shop's prices; the round ✕ closes every
+  You Sure's Confirm and Settings' Restart and Home; yellow for Play on, Buy and the shop's prices; the round ✕ closes every
   popup; the round gear is both settings buttons; the round pen edits the name. The booster buttons keep placeholders.
 - Canvas Scaler 1080×1920, match 0.5; `SafeArea` on root panels.
 - **Art slots:** per-episode art (Home and Level backgrounds, mascot frame) is in `EpisodeConfig`, the avatar pictures in
   `AvatarConfig`, the tutorial image in `TutorialConfig`, the bottom bar's three versions on `HomeTabs`, and everything else is an `Image` on its screen or
   popup object. Which slots hold final art and which still hold placeholders (Unity's built-in UI sprites, tinted, and
-  the generated heart in `Art/Sprites/Placeholder/UI/`) is listed in docs/art-inventory.md. Home backgrounds exist for
+  the generated heart, green plus and coin in `Art/Sprites/Placeholder/UI/`) is listed in docs/art-inventory.md. Home backgrounds exist for
   episodes 2 and 5; episodes 1, 3 and 4 use episode 2's until theirs arrive.

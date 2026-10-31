@@ -17,19 +17,19 @@ MonoBehaviour:
     _homeBackground: {fileID: 21300000, guid: f4b6999180bdd8a49b77a054a51b2f9a, type: 3}
     _levelBackground: {fileID: 21300000, guid: 366c2b13bdb1a3845b412e7561bb469d, type: 3}
     _mascotFrame: {fileID: 21300000, guid: 9662224b7b0ac0547a42653ccd99fab2, type: 3}
-  - _firstLevel: 21
+  - _firstLevel: 20
     _homeBackground: {fileID: 21300000, guid: f4b6999180bdd8a49b77a054a51b2f9a, type: 3}
     _levelBackground: {fileID: 21300000, guid: 55dbc8f8d8a8e7c4b9c2c415c3d8a311, type: 3}
     _mascotFrame: {fileID: 21300000, guid: 90b77726e38652a4ab023ffc135e5106, type: 3}
-  - _firstLevel: 41
+  - _firstLevel: 40
     _homeBackground: {fileID: 21300000, guid: f4b6999180bdd8a49b77a054a51b2f9a, type: 3}
     _levelBackground: {fileID: 21300000, guid: 6001a6415898a4347aa994ec1708573d, type: 3}
     _mascotFrame: {fileID: 21300000, guid: 1424c4a1e01987f4db9f0e5f322294a9, type: 3}
-  - _firstLevel: 61
+  - _firstLevel: 60
     _homeBackground: {fileID: 21300000, guid: f4b6999180bdd8a49b77a054a51b2f9a, type: 3}
     _levelBackground: {fileID: 21300000, guid: bddb5b04208732742b15b000cae5ea47, type: 3}
     _mascotFrame: {fileID: 21300000, guid: de9b8295117550f4b92968673a3612b1, type: 3}
-  - _firstLevel: 81
+  - _firstLevel: 80
     _homeBackground: {fileID: 21300000, guid: e157f74d7225c18478ede09b132f2d3c, type: 3}
     _levelBackground: {fileID: 21300000, guid: 4ee68d0cfdafa0f45b5074d3463cbfe6, type: 3}
     _mascotFrame: {fileID: 21300000, guid: 611d71a089cdc5442bd13e2ff3a025b1, type: 3}

@@ -62,7 +62,6 @@ namespace BallSort.Game.UI
                 }
             }
 
-            _player.Changed += Refresh;
         }
 
         public void Open()
@@ -139,13 +138,26 @@ namespace BallSort.Game.UI
             }
         }
 
-        private void OnDestroy()
+        // Follows the player only while open. A popup that is never opened never runs OnDestroy, so a
+        // subscription made at Initialize would outlive the scene (PlayerData does) and throw later.
+        private void OnEnable()
+        {
+            if (_player != null)
+            {
+                _player.Changed += Refresh;
+            }
+        }
+
+        private void OnDisable()
         {
             if (_player != null)
             {
                 _player.Changed -= Refresh;
             }
+        }
 
+        private void OnDestroy()
+        {
             if (_nameField != null)
             {
                 _nameField.onEndEdit.RemoveListener(OnNameEditEnded);

@@ -13,12 +13,31 @@ MonoBehaviour:
   m_Name: EconomyConfig
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Services.EconomyConfig
   _startCoins: 1000
-  _startLives: 5
   _startUndo: 99
   _startShuffle: 99
   _startAddTube: 99
+  _maxLives: 5
+  _lifeRefillMinutes: 30
   _regularReward: 20
-  _hardReward: 40
-  _superHardReward: 60
+  _hardReward: 60
+  _superHardReward: 100
   _playOnCost: 900
   _addedTubeCapacity: 4
+  _undoPrice: 300
+  _shufflePrice: 300
+  _addTubePrice: 900
+  _boostersPerPurchase: 1
+  _livesRefillPrice: 900
+  _coinBundles:
+  - _coins: 1000
+    _priceLabel: 99,99 TL
+  - _coins: 5000
+    _priceLabel: 399,99 TL
+  - _coins: 10000
+    _priceLabel: 799,99 TL
+  - _coins: 25000
+    _priceLabel: 1499,99 TL
+  - _coins: 50000
+    _priceLabel: 2999,99 TL
+  - _coins: 100000
+    _priceLabel: 4999,99 TL

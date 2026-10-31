@@ -174,7 +174,8 @@ shared canvas size.
 - **VFX** (step 6 animations): tube-complete sparkle, win celebration, invalid-move effect.
 
 **Level HUD**
-- **Booster icons**: Undo, Shuffle, Add tube, and a **count badge** (the buttons show text today).
+- **Booster icons**: Undo, Shuffle, Add tube, a **count badge** (the buttons show text today) and the **buy badge**
+  shown at 0 (green plus; placeholder `Placeholder/UI/Plus_Green.png` on `BoosterBar/*Button/BuyBadge`).
 - **Booster bar background** (bottom strip of the Level scene).
 - **Level title plate** behind "Level N" (optional).
 - **Stuck banner** ("No more useful moves") background.
@@ -184,7 +185,10 @@ shared canvas size.
 - **Popup panel** (9-sliceable): Settings, Win, Are You Sure, More Lives, Tutorial.
 - **Popup title ribbon** (optional).
 - **Toggle on/off** (or Sound / Music / Haptics icons with on/off states) for Settings.
-- **Standalone coin icon** (Win reward, Play on price) and **standalone heart** (More Lives) (problem 12).
+- **Standalone coin icon** (Win reward, Play on price; the Buy popup's button and the shop bundles use the placeholder
+  `Placeholder/UI/Coin.png` today) and **standalone heart** (More Lives) (problem 12).
+- **Green plus** on the lives and coins pills (Home) and on a booster at 0 (placeholder `Placeholder/UI/Plus_Green.png`).
+- **Buy popup** panel (it reuses the placeholder popup panel and the yellow button).
 - **Episode Unlocked** banner/overlay art.
 - **Toast** background.
 
@@ -194,8 +198,9 @@ shared canvas size.
   colour or a badge), since tinting a coloured sprite only darkens it *(code: `LevelTierLook` swaps sprites instead of
   tints)*.
 - **Leaderboard page**: title/header and a row (rank, avatar, name, score).
-- **Shop item art** for the six frames of the shop panel (e.g. coin packs, booster packs) and a price tag; the bundle
-  card's title (or we write it in text).
+- **Coin bundle art** for the six frames of the shop panel (1,000 to 100,000 coins: `ShopPage/.../Panel/Bundle<N>/Picture`,
+  placeholder coin today); the price tag uses the yellow button. The three bundle cards below the panel stay static;
+  their title is still missing (or we write it in text).
 - **Avatar frame opening**: the frame's middle is a filled disc, so the picture is masked to a circle over it (74 % of
   the frame's width, measured). A frame with a transparent opening, or a mask shape, would fit exactly.
 

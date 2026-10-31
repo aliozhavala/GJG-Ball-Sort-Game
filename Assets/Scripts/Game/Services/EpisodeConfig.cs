@@ -49,6 +49,21 @@ namespace BallSort.Game.Services
             return EpisodeMap.Find(_firstLevels, level);
         }
 
+        /// <summary>
+        /// The episode winning <paramref name="wonLevel"/> unlocked, now that the player's current level
+        /// is <paramref name="nextLevel"/> (see <see cref="EpisodeMap.FindUnlocked"/>); -1 for none.
+        /// </summary>
+        public int GetUnlockedEpisode(int wonLevel, int nextLevel)
+        {
+            if (_episodes.Length == 0)
+            {
+                return -1;
+            }
+
+            _firstLevels ??= ReadFirstLevels();
+            return EpisodeMap.FindUnlocked(_firstLevels, wonLevel, nextLevel);
+        }
+
         /// <summary>The episode at <paramref name="index"/> (0-based), as <see cref="GetEpisodeIndex"/> returns it.</summary>
         public Episode GetEpisode(int index) => _episodes[index];
 

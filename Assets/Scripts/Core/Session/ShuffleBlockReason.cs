@@ -1,6 +1,6 @@
 namespace BallSort.Core.Session
 {
-    /// <summary>Why the Shuffle booster cannot be used, or why a shuffle was not applied.</summary>
+    /// <summary>Why the Shuffle booster cannot be used, or why a tube was not shuffled.</summary>
     public enum ShuffleBlockReason
     {
         /// <summary>Shuffle is available.</summary>
@@ -16,15 +16,12 @@ namespace BallSort.Core.Session
         NoBoostersLeft,
 
         /// <summary>
-        /// No valid arrangement was found within the attempt limit (docs/mechanics.md, Shuffle).
-        /// Known only after searching; nothing was changed or spent.
+        /// No tube can be shuffled: every tube is covered, clay, completed, or holds no two balls that
+        /// look different (docs/mechanics.md, Shuffle).
         /// </summary>
-        NoValidShuffle,
+        NoEligibleTube,
 
-        /// <summary>
-        /// The board changed between starting a shuffle search and applying it, so its result no
-        /// longer fits. Nothing was changed or spent.
-        /// </summary>
-        BoardChanged,
+        /// <summary>The tube asked for cannot be shuffled, though another one can. Nothing was changed or spent.</summary>
+        TubeNotEligible,
     }
 }

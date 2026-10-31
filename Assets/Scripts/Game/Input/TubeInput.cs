@@ -17,9 +17,15 @@ namespace BallSort.Game.Input
     /// tube to move there. An illegal move clears the selection and raises <see cref="InvalidMove"/>;
     /// the tapped tube is never auto-selected. Tapping empty space just deselects.
     /// <para>
-    /// The selection is also dropped whenever the board changes under it — undo, an added tube
-    /// (booster or Play on), restart, entering or leaving the stuck state, and the win — so a
+    /// The selection is also dropped whenever the board changes under it — undo, a shuffle, an added
+    /// tube (booster or Play on), restart, entering or leaving the stuck state, and the win — so a
     /// lifted run never refers to a stale board.
+    /// </para>
+    /// <para>
+    /// While <see cref="IsPickingShuffleTube"/>, the next tap anywhere — a tube, empty space or the UI —
+    /// ends the pick and is reported through <see cref="ShuffleTubePicked"/> instead: the tube under it,
+    /// or <see cref="NoTube"/>. The flow decides what it means; selection and moves do not happen then.
+    /// The HUD lets taps through meanwhile (<c>LevelHud.SetTapsPassThrough</c>), so no button takes that tap too.
     /// </para>
     /// </remarks>
     public sealed class TubeInput : MonoBehaviour
@@ -41,6 +47,18 @@ namespace BallSort.Game.Input
         /// <summary>Taps are ignored while false, e.g. during the win sequence.</summary>
         public bool IsAcceptingTaps { get; set; }
 
+        /// <summary>
+        /// True while the Shuffle booster waits for a tube: the next tap is a pick, not a selection.
+        /// Set by the flow; cleared by the tap that picks.
+        /// </summary>
+        public bool IsPickingShuffleTube { get; set; }
+
+        /// <summary>
+        /// Raised by the tap that ends a shuffle pick, with the tapped tube, or <see cref="NoTube"/> for a
+        /// tap on empty space or on the UI.
+        /// </summary>
+        public event Action<int> ShuffleTubePicked;
+
         /// <summary>Raised when the selection changes, with the new tube index or <see cref="NoTube"/>.</summary>
         public event Action<int> SelectionChanged;
 
@@ -60,7 +78,7 @@ namespace BallSort.Game.Input
 
             _session.MoveUndone += OnMoveUndone;
             _session.TubeAdded += OnTubeAdded;
-            _session.Shuffled += ClearSelection;
+            _session.Shuffled += OnShuffled;
             _session.Restarted += ClearSelection;
             _session.StuckChanged += OnStuckChanged;
             _session.LevelCompleted += ClearSelection;
@@ -83,7 +101,15 @@ namespace BallSort.Game.Input
             }
 
             Vector2 screenPosition = pointer.position.ReadValue();
-            if (IsOverUi(screenPosition))
+            bool overUi = IsOverUi(screenPosition);
+            if (IsPickingShuffleTube)
+            {
+                IsPickingShuffleTube = false;
+                ShuffleTubePicked?.Invoke(overUi ? NoTube : FindTube(screenPosition));
+                return;
+            }
+
+            if (overUi)
             {
                 return;
             }
@@ -168,6 +194,8 @@ namespace BallSort.Game.Input
 
         private void OnTubeAdded(TubeAddedEventArgs _) => ClearSelection();
 
+        private void OnShuffled(TubeShuffledEventArgs _) => ClearSelection();
+
         private void OnStuckChanged(bool _) => ClearSelection();
 
         private void Unsubscribe()
@@ -179,7 +207,7 @@ namespace BallSort.Game.Input
 
             _session.MoveUndone -= OnMoveUndone;
             _session.TubeAdded -= OnTubeAdded;
-            _session.Shuffled -= ClearSelection;
+            _session.Shuffled -= OnShuffled;
             _session.Restarted -= ClearSelection;
             _session.StuckChanged -= OnStuckChanged;
             _session.LevelCompleted -= ClearSelection;

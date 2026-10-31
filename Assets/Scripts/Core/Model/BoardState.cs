@@ -24,7 +24,8 @@ namespace BallSort.Core.Model
     /// </para>
     /// <para>
     /// All mutation finishes before the first event fires, so subscribers always observe the final
-    /// board. Events then fire in this order: <see cref="MoveApplied"/> or <see cref="MoveUndone"/>,
+    /// board. Events then fire in this order: <see cref="MoveApplied"/>, <see cref="MoveUndone"/> or
+    /// <see cref="TubeShuffled"/>,
     /// <see cref="BallRevealed"/>, <see cref="TubeCompleted"/>, each <see cref="TubeUnveiled"/>, each
     /// <see cref="KeyFound"/> followed by its <see cref="LockOpened"/>, and <see cref="LevelCompleted"/>.
     /// Subscribers must not change the board from inside an event.
@@ -111,6 +112,13 @@ namespace BallSort.Core.Model
 
         /// <summary>Raised after a move has been undone. Revealed balls stay revealed.</summary>
         public event Action<MoveEventArgs> MoveUndone;
+
+        /// <summary>
+        /// Raised after the Shuffle booster rearranged one tube. Like a move, it may be followed by
+        /// <see cref="BallRevealed"/> (the new top), <see cref="TubeCompleted"/>, cover changes and
+        /// <see cref="LevelCompleted"/>.
+        /// </summary>
+        public event Action<TubeShuffledEventArgs> TubeShuffled;
 
         /// <param name="tubes">The level's tubes, in board order. At least one, none null.</param>
         public BoardState(IEnumerable<Tube> tubes)
@@ -331,6 +339,58 @@ namespace BallSort.Core.Model
             }
 
             return completed;
+        }
+
+        /// <summary>
+        /// Writes a shuffled order into one tube, reveals its new top ball, settles the covers (a key
+        /// now in the top run is found and opens its lock), then announces what happened.
+        /// </summary>
+        /// <remarks>
+        /// The order comes from <c>ShuffleRules.Arrange</c>: the tube's own balls, so the colour totals
+        /// are unchanged. The tube's balls may all be one colour with one of them hidden, so revealing
+        /// the top can complete it, and that completion opens veils and can win, as after a move.
+        /// </remarks>
+        /// <param name="tubeIndex">The shuffled tube.</param>
+        /// <param name="bottomToTop">Exactly the tube's ball count; the top one need not be revealed yet.</param>
+        internal void ShuffleTube(int tubeIndex, Ball[] bottomToTop)
+        {
+            Tube tube = _tubes[tubeIndex];
+            if (bottomToTop == null || bottomToTop.Length != tube.Count)
+            {
+                throw new ArgumentException($"Tube {tubeIndex} holds {tube.Count} ball(s).", nameof(bottomToTop));
+            }
+
+            int top = tube.Count - 1;
+            bool revealed = bottomToTop[top].IsHidden;
+            var placed = new Ball[bottomToTop.Length];
+            for (int slot = 0; slot <= top; slot++)
+            {
+                placed[slot] = slot == top ? bottomToTop[slot].AsRevealed() : bottomToTop[slot];
+                tube.SetBall(slot, placed[slot]);
+            }
+
+            bool completed = IsCompleted(tube);
+            int colorId = tube.Top.ColorId;
+            SettleCovers(completed ? colorId : -1);
+
+            TubeShuffled?.Invoke(new TubeShuffledEventArgs(tubeIndex, Array.AsReadOnly(placed)));
+
+            if (revealed)
+            {
+                BallRevealed?.Invoke(new BallRevealedEventArgs(tubeIndex, top, colorId));
+            }
+
+            if (completed)
+            {
+                TubeCompleted?.Invoke(new TubeCompletedEventArgs(tubeIndex, colorId));
+            }
+
+            RaiseCoverChanges();
+
+            if (completed && IsWon)
+            {
+                LevelCompleted?.Invoke();
+            }
         }
 
         /// <summary>

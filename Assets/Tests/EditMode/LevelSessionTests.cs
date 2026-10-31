@@ -551,7 +551,7 @@ namespace BallSort.Tests.EditMode
 
             Assert.That(session.TryUndo(out UndoBlockReason undo), Is.False);
             Assert.That(session.TryAddTube(out AddTubeBlockReason addTube), Is.False);
-            Assert.That(session.TryShuffle(new System.Random(1), out ShuffleBlockReason shuffle), Is.False);
+            Assert.That(session.TryShuffleTube(1, new System.Random(1), out ShuffleBlockReason shuffle), Is.False);
 
             Assert.That(undo, Is.EqualTo(UndoBlockReason.Stuck));
             Assert.That(addTube, Is.EqualTo(AddTubeBlockReason.Stuck));

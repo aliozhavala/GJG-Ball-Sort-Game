@@ -24,6 +24,26 @@ namespace BallSort.Core.Levels
             return episode;
         }
 
+        /// <summary>
+        /// The episode a win unlocked: the one the player's next level belongs to, when it is a later
+        /// episode than the won level's. With first levels 1, 20, 40, …, winning 19 unlocks episode 1
+        /// (0-based); winning 20, or the last level, unlocks nothing.
+        /// </summary>
+        /// <param name="firstLevels">Each episode's first level, as for <see cref="Find"/>.</param>
+        /// <param name="wonLevel">The level just won.</param>
+        /// <param name="nextLevel">The player's current level after the win; not after <paramref name="wonLevel"/> for a replay.</param>
+        /// <returns>The unlocked episode's 0-based index, or -1 when the win unlocked none.</returns>
+        public static int FindUnlocked(IReadOnlyList<int> firstLevels, int wonLevel, int nextLevel)
+        {
+            if (nextLevel <= wonLevel)
+            {
+                return -1;
+            }
+
+            int next = Find(firstLevels, nextLevel);
+            return next > Find(firstLevels, wonLevel) ? next : -1;
+        }
+
         /// <summary>Checks an episode list: at least one episode, the first starting at level 1, first levels strictly ascending.</summary>
         /// <returns>The first problem found, or null when the list is valid.</returns>
         public static string Validate(IReadOnlyList<int> firstLevels)

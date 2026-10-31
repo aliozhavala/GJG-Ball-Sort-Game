@@ -29,7 +29,9 @@ namespace BallSort.Core.Session
     /// <see cref="TubeCompleted"/>, each <see cref="TubeUnveiled"/>, each <see cref="KeyFound"/> followed
     /// by its <see cref="LockOpened"/>, <see cref="LevelCompleted"/>.</item>
     /// <item>Added tube (booster or Play on): <see cref="TubeAdded"/>.</item>
-    /// <item>Shuffle: <see cref="Shuffled"/>.</item>
+    /// <item>Shuffle: <see cref="Shuffled"/>, then, as after a move, <see cref="BallRevealed"/> (the new top),
+    /// <see cref="TubeCompleted"/>, each <see cref="TubeUnveiled"/>, each <see cref="KeyFound"/> followed by its
+    /// <see cref="LockOpened"/>, <see cref="LevelCompleted"/>.</item>
     /// <item>Restart: <see cref="Restarted"/>.</item>
     /// </list>
     /// Each operation then ends with <see cref="StuckChanged"/> (only if it changed) and finally
@@ -45,9 +47,6 @@ namespace BallSort.Core.Session
 
         private BoardState _board;
         private BoardGrid _grid;
-
-        // Bumped by every change to the board, so a shuffle searched on an older copy is refused.
-        private int _revision;
 
         /// <summary>The level being played; its <see cref="LoadedLevel.Source"/> is what restart rebuilds from.</summary>
         public LoadedLevel Level => _level;
@@ -133,9 +132,9 @@ namespace BallSort.Core.Session
         }
 
         /// <summary>
-        /// Why shuffle is unavailable, or <see cref="Session.ShuffleBlockReason.None"/>. Whether a valid
-        /// arrangement exists is only known after searching, so
-        /// <see cref="Session.ShuffleBlockReason.NoValidShuffle"/> never appears here.
+        /// Why shuffle is unavailable, or <see cref="Session.ShuffleBlockReason.None"/> when at least one
+        /// tube can be shuffled (<see cref="CanShuffleTube"/>). Never
+        /// <see cref="Session.ShuffleBlockReason.TubeNotEligible"/>, which is about one tube.
         /// </summary>
         public ShuffleBlockReason ShuffleBlockReason
         {
@@ -151,9 +150,12 @@ namespace BallSort.Core.Session
                     return ShuffleBlockReason.Stuck;
                 }
 
-                return _boosters.GetCount(BoosterType.Shuffle) > 0
-                    ? ShuffleBlockReason.None
-                    : ShuffleBlockReason.NoBoostersLeft;
+                if (_boosters.GetCount(BoosterType.Shuffle) == 0)
+                {
+                    return ShuffleBlockReason.NoBoostersLeft;
+                }
+
+                return ShuffleRules.HasEligibleTube(_board) ? ShuffleBlockReason.None : ShuffleBlockReason.NoEligibleTube;
             }
         }
 
@@ -219,10 +221,10 @@ namespace BallSort.Core.Session
         public event Action<TubeAddedEventArgs> TubeAdded;
 
         /// <summary>
-        /// The balls of the open tubes have been rearranged and the undo history cleared. Tubes,
-        /// covers and indices are unchanged; views refresh the balls from <see cref="Board"/>.
+        /// Forwarded from the board: the Shuffle booster rearranged one tube (its index and new order
+        /// in the payload); the undo history is already cleared. Reveal, completion and cover events may follow.
         /// </summary>
-        public event Action Shuffled;
+        public event Action<TubeShuffledEventArgs> Shuffled;
 
         /// <summary>Raised when <see cref="IsStuck"/> changes, with its new value.</summary>
         public event Action<bool> StuckChanged;
@@ -275,6 +277,14 @@ namespace BallSort.Core.Session
         public bool CanSelect(int tubeIndex) => MoveRules.CanSelect(_board, tubeIndex);
 
         /// <summary>
+        /// Whether the Shuffle booster may pick this tube: not covered, clay or completed, and holding
+        /// at least two balls that look different (<see cref="ShuffleRules.IsEligible"/>). Says nothing
+        /// about the booster count or the stuck state; see <see cref="ShuffleBlockReason"/>.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">If the index is not a valid tube index.</exception>
+        public bool CanShuffleTube(int tubeIndex) => ShuffleRules.IsEligible(_board, tubeIndex);
+
+        /// <summary>
         /// Moves the run on top of one tube onto another, if the rules allow it.
         /// </summary>
         /// <param name="fromIndex">Index of the tube to take from.</param>
@@ -289,7 +299,6 @@ namespace BallSort.Core.Session
                 return false;
             }
 
-            _revision++;
             RefreshStuck();
             Changed?.Invoke();
             return true;
@@ -310,7 +319,6 @@ namespace BallSort.Core.Session
 
             _history.TryUndo();
             _boosters.TrySpend(BoosterType.Undo);
-            _revision++;
             RefreshStuck();
             Changed?.Invoke();
             return true;
@@ -365,69 +373,32 @@ namespace BallSort.Core.Session
         }
 
         /// <summary>
-        /// Shuffles the open tubes and spends one Shuffle booster, searching on the calling thread.
+        /// Shuffles one tube into an order that looks different and spends one Shuffle booster, if
+        /// <see cref="ShuffleBlockReason"/> allows and the tube is eligible (<see cref="CanShuffleTube"/>).
         /// </summary>
         /// <remarks>
-        /// The search can take a while (up to 20 solver runs), so the game uses
-        /// <see cref="TryBeginShuffle"/>, <see cref="PendingShuffle.Search"/> on a worker thread and
-        /// <see cref="TryApplyShuffle"/> instead; this is the same in one blocking call.
+        /// Rules in docs/mechanics.md (Shuffle): hidden balls keep their flag unless they land on top,
+        /// keys move with their balls and one that lands in the top run is found, and the undo history is
+        /// cleared. There is no solvability check: a shuffle may leave the level unwinnable or stuck.
+        /// Not undoable.
         /// </remarks>
-        /// <param name="random">Source of the arrangements.</param>
-        /// <param name="reason">Why nothing was shuffled, when this returns false.</param>
-        /// <returns>True when the board has been shuffled.</returns>
-        public bool TryShuffle(Random random, out ShuffleBlockReason reason)
+        /// <param name="tubeIndex">The tube to shuffle.</param>
+        /// <param name="random">Picks the new order.</param>
+        /// <param name="reason">Why nothing was shuffled, when this returns false; nothing was spent then.</param>
+        /// <returns>True when the tube has been shuffled.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">If the index is not a valid tube index.</exception>
+        public bool TryShuffleTube(int tubeIndex, Random random, out ShuffleBlockReason reason)
         {
-            if (!TryBeginShuffle(out PendingShuffle shuffle, out reason))
+            if (random == null)
             {
-                return false;
+                throw new ArgumentNullException(nameof(random));
             }
 
-            shuffle.Search(random);
-            return TryApplyShuffle(shuffle, out reason);
-        }
-
-        /// <summary>
-        /// Starts a shuffle, if <see cref="ShuffleBlockReason"/> allows: takes a private copy of the
-        /// board for <see cref="PendingShuffle.Search"/>. Nothing is spent yet. Main thread only.
-        /// </summary>
-        /// <param name="shuffle">The shuffle to search, when this returns true.</param>
-        /// <param name="reason">Why no shuffle can start, when this returns false.</param>
-        public bool TryBeginShuffle(out PendingShuffle shuffle, out ShuffleBlockReason reason)
-        {
+            bool eligible = CanShuffleTube(tubeIndex);
             reason = ShuffleBlockReason;
-            shuffle = reason == ShuffleBlockReason.None ? new PendingShuffle(this, _board.Clone(), _revision) : null;
-            return shuffle != null;
-        }
-
-        /// <summary>
-        /// Applies a searched shuffle: writes its arrangement into the board, clears the undo history
-        /// and spends one Shuffle booster. Main thread only.
-        /// </summary>
-        /// <remarks>
-        /// Refused, with nothing changed or spent, when the board changed since
-        /// <see cref="TryBeginShuffle"/> (<see cref="Session.ShuffleBlockReason.BoardChanged"/>), when
-        /// shuffling is no longer allowed, or when the search found nothing
-        /// (<see cref="Session.ShuffleBlockReason.NoValidShuffle"/>). A shuffle cannot be undone.
-        /// </remarks>
-        /// <param name="shuffle">A shuffle begun on this session and searched.</param>
-        /// <param name="reason">Why the shuffle was not applied, when this returns false.</param>
-        /// <exception cref="ArgumentException">If <paramref name="shuffle"/> was begun on another session.</exception>
-        public bool TryApplyShuffle(PendingShuffle shuffle, out ShuffleBlockReason reason)
-        {
-            if (shuffle == null)
+            if (reason == ShuffleBlockReason.None && !eligible)
             {
-                throw new ArgumentNullException(nameof(shuffle));
-            }
-
-            if (shuffle.Session != this)
-            {
-                throw new ArgumentException("The shuffle was begun on another session.", nameof(shuffle));
-            }
-
-            reason = shuffle.Revision != _revision ? ShuffleBlockReason.BoardChanged : ShuffleBlockReason;
-            if (reason == ShuffleBlockReason.None && !shuffle.IsFound)
-            {
-                reason = ShuffleBlockReason.NoValidShuffle;
+                reason = ShuffleBlockReason.TubeNotEligible;
             }
 
             if (reason != ShuffleBlockReason.None)
@@ -435,12 +406,12 @@ namespace BallSort.Core.Session
                 return false;
             }
 
-            _board.CopyStateFrom(shuffle.Result);
+            // History and boosters first, so the board's events already see the final session state.
+            Ball[] order = ShuffleRules.Arrange(_board[tubeIndex], random);
             _history.Clear();
             _boosters.TrySpend(BoosterType.Shuffle);
-            _revision++;
+            _board.ShuffleTube(tubeIndex, order);
 
-            Shuffled?.Invoke();
             RefreshStuck();
             Changed?.Invoke();
             return true;
@@ -462,7 +433,6 @@ namespace BallSort.Core.Session
             _grid = _level.CreateGrid();
             Variant = variant;
             _history.Clear();
-            _revision++;
             Subscribe(_board);
 
             Restarted?.Invoke();
@@ -475,7 +445,6 @@ namespace BallSort.Core.Session
         {
             _grid.TryAddTube(out int row, out int cell);
             int tubeIndex = _board.AddTube(_addedTubeCapacity);
-            _revision++;
             TubeAdded?.Invoke(new TubeAddedEventArgs(tubeIndex, _addedTubeCapacity, row, cell));
             RefreshStuck();
             Changed?.Invoke();
@@ -505,6 +474,7 @@ namespace BallSort.Core.Session
             board.LockOpened += OnLockOpened;
             board.LevelCompleted += OnLevelCompleted;
             board.MoveUndone += OnMoveUndone;
+            board.TubeShuffled += OnTubeShuffled;
         }
 
         private void Unsubscribe(BoardState board)
@@ -517,6 +487,7 @@ namespace BallSort.Core.Session
             board.LockOpened -= OnLockOpened;
             board.LevelCompleted -= OnLevelCompleted;
             board.MoveUndone -= OnMoveUndone;
+            board.TubeShuffled -= OnTubeShuffled;
         }
 
         private void OnMoveApplied(MoveEventArgs e) => MoveApplied?.Invoke(e);
@@ -534,5 +505,7 @@ namespace BallSort.Core.Session
         private void OnLevelCompleted() => LevelCompleted?.Invoke();
 
         private void OnMoveUndone(MoveEventArgs e) => MoveUndone?.Invoke(e);
+
+        private void OnTubeShuffled(TubeShuffledEventArgs e) => Shuffled?.Invoke(e);
     }
 }

@@ -13,10 +13,11 @@ namespace BallSort.Game.Flow
         Stuck,
 
         /// <summary>
-        /// A shuffle is being searched for off the main thread: taps and the HUD are locked so the
-        /// board it started from stays current. Returns to Playing when it is applied or refused.
+        /// The Shuffle booster waits for a tube: eligible tubes are highlighted, the rest dimmed, and the
+        /// HUD is locked. The next tap picks (an eligible tube is shuffled) or cancels (anything else,
+        /// nothing spent); either way back to Playing.
         /// </summary>
-        Shuffling,
+        ShufflePicking,
 
         /// <summary>The level is won: input is locked while the celebration and Win panel play.</summary>
         Won,

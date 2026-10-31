@@ -15,7 +15,7 @@ namespace BallSort.Game.Services
         [SerializeField] private Sprite _homeBackground;
         [SerializeField] private Sprite _levelBackground;
 
-        [Tooltip("The scientist in a frame: top right of the Level scene, and on the Episode Unlocked overlay.")]
+        [Tooltip("The scientist in a frame: top left of the Level scene, and on the Episode Unlocked overlay.")]
         [SerializeField] private Sprite _mascotFrame;
 
         public int FirstLevel => _firstLevel;

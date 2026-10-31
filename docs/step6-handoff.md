@@ -75,7 +75,9 @@ values, rules and our deviations from product's document are in docs/animation-s
 | Invalid move | `LevelFeedback.PlayInvalidMove` (from `TubeInput.InvalidMove`) → `BoardView.ShowInvalid` | **animated** (2.5: shake, shock face) |
 | Celebration | `LevelFeedback.PlayCelebrationAsync` (awaited before the Win panel) | label for 1 s, once the board has settled |
 | Added tube, re-centring | `BoardView.OnTubeAdded` | snap |
-| Restart / shuffle | `BoardView.Rebuild` (on `Restarted` / `Shuffled`) | rebuild |
+| Restart | `BoardView.Rebuild` (on `Restarted`) | rebuild |
+| Shuffle (one tube) | `BoardView.OnShuffled` (on `Shuffled`, which carries the tube and its new order) | the tube's balls snap |
+| Shuffle pick | `BoardView.ShowShufflePick` → `TubeView.SetHighlight` (glow on eligible tubes, the rest dimmed) | snap |
 | Stuck bar in / out | `LevelHud.ShowStuck` → `StuckPanel.SetVisible` | snap |
 | Popups open / close | `Popup.Open` / `Close` (`Opened` / `Closed` events) | `SetActive` |
 | Toast | `Toast.Show` | DOTween fade |
@@ -91,7 +93,8 @@ Event order within one operation (documented on `LevelSession`); animations must
 - Move or undo: `MoveApplied` / `MoveUndone` → `BallRevealed` → `TubeCompleted` → each `TubeUnveiled` → each `KeyFound`
   then its `LockOpened` → `LevelCompleted`, then `StuckChanged` (only if changed), then `Changed`. So: balls fly, the
   source's new top flips (showing a key it carries), the cap drops, veils open, the key mark leaves, the door opens.
-- Added tube (booster or Play on): `TubeAdded` → `StuckChanged` → `Changed`. Shuffle: `Shuffled` → … Restart: `Restarted` → …
+- Added tube (booster or Play on): `TubeAdded` → `StuckChanged` → `Changed`. Shuffle: `Shuffled` → then as after a
+  move (`BallRevealed`, `TubeCompleted`, veils, keys and doors, `LevelCompleted`) → … Restart: `Restarted` → …
 - The board finishes every change before the first event, so a handler never sees a half-applied move.
 
 ## 3. UI structure
@@ -131,7 +134,7 @@ TODOs:
   offers no way to get lives.
 - Clay melt and veil / door opening animations (`TubeView.SetClayShown`, `CoverView.SetOpen` snap today).
 - Consider adding "start position not stuck" to `LevelValidator` (today only `ShippedLevelTests` checks it).
-- Re-measure the stuck check and the shuffle search on a device.
+- Re-measure the stuck check on a device.
 
 Known issues:
 - `Level.unity` and `Home.unity` are often marked dirty with no change (Editor quirk; save is a no-op).
@@ -139,7 +142,7 @@ Known issues:
 - `Popup.IsOpen` is the GameObject's active state: animated closes must keep input blocked until the close ends.
 - Stacked popups: the settings panel shows around Are You Sure / More Lives (by design; art may prefer to hide it).
 - The mascot frame (255×255, top left) hangs below the 180-high top bar, ending above the board area; the stuck banner
-  and "Shuffling…" label are inset to clear it.
+  is inset to clear it.
 - Lives refill uses the device clock, so moving the clock forward grants lives (offline game; accepted).
 - In the Editor, stopping Play mode mid-level counts as closing the app and costs a life on the next Play. Saving
   scripts during Play mode reloads the domain and loses `AppRoot`: stop Play first.

@@ -6,15 +6,18 @@ namespace BallSort.Tests.EditMode
     [TestFixture]
     public sealed class EpisodeMapTests
     {
-        private static readonly int[] FiveEpisodes = { 1, 21, 41, 61, 81 };
+        // The shipped split: levels 1–19, 20–39, 40–59, 60–79 and 80–100.
+        private static readonly int[] FiveEpisodes = { 1, 20, 40, 60, 80 };
 
         [TestCase(1, 0)]
-        [TestCase(20, 0)]
-        [TestCase(21, 1)]
-        [TestCase(40, 1)]
-        [TestCase(41, 2)]
-        [TestCase(80, 3)]
-        [TestCase(81, 4)]
+        [TestCase(19, 0)]
+        [TestCase(20, 1)]
+        [TestCase(39, 1)]
+        [TestCase(40, 2)]
+        [TestCase(59, 2)]
+        [TestCase(60, 3)]
+        [TestCase(79, 3)]
+        [TestCase(80, 4)]
         [TestCase(100, 4)]
         public void Find_ReturnsTheLastEpisodeStartingAtOrBeforeTheLevel(int level, int episode)
         {
@@ -33,6 +36,34 @@ namespace BallSort.Tests.EditMode
         public void Find_ALevelPastTheLastFirstLevel_StaysInTheLastEpisode()
         {
             Assert.That(EpisodeMap.Find(FiveEpisodes, 901), Is.EqualTo(4));
+        }
+
+        [TestCase(19, 20, 1)]
+        [TestCase(39, 40, 2)]
+        [TestCase(59, 60, 3)]
+        [TestCase(79, 80, 4)]
+        public void FindUnlocked_WinningAnEpisodesLastLevel_UnlocksTheNext(int won, int next, int episode)
+        {
+            Assert.That(EpisodeMap.FindUnlocked(FiveEpisodes, won, next), Is.EqualTo(episode));
+        }
+
+        [TestCase(1, 2)]
+        [TestCase(18, 19)]
+        [TestCase(20, 21)]
+        [TestCase(40, 41)]
+        [TestCase(80, 81)]
+        [TestCase(99, 100)]
+        public void FindUnlocked_AWinInsideAnEpisode_UnlocksNothing(int won, int next)
+        {
+            Assert.That(EpisodeMap.FindUnlocked(FiveEpisodes, won, next), Is.EqualTo(-1));
+        }
+
+        [TestCase(100, 100)]
+        [TestCase(19, 19)]
+        public void FindUnlocked_AWinThatDoesNotAdvance_UnlocksNothing(int won, int next)
+        {
+            // The last level, or a replay: progress stays where it is.
+            Assert.That(EpisodeMap.FindUnlocked(FiveEpisodes, won, next), Is.EqualTo(-1));
         }
 
         [Test]
