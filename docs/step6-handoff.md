@@ -1,6 +1,7 @@
 # Step 6 handoff: art integration and animations
 
-State at the end of roadmap 7c (2026-10-30), updated after the first art delivery (6a, same day). Every sprite below has
+State at the end of roadmap 7c (2026-10-30), updated after the first art delivery (6a, same day) and the second
+(6c, 2026-10-31: rim halves, corks, avatars and the avatar menu; docs/art-inventory.md §7). Every sprite below has
 a slot; final art drops in without code changes unless a row says otherwise. Delivered art lives in
 `Assets/Art/Sprites/` (prepared with **Ball Sort ▸ Art ▸ Prepare Sprites**; inventory, problems and missing art in
 docs/art-inventory.md). Placeholders: Unity's built-in UI skin (`UISprite`, `Knob`, `Background`, `Checkmark`,
@@ -126,7 +127,9 @@ TODOs:
 - Missing art (full list for the artist in docs/art-inventory.md): booster icons (text labels), a standalone coin
   ("●" in the Win reward and Play on price), popup panels, door / lock / key, tier looks for the Level button; for the
   animations, glow, shock faces and VFX sprites (docs/art-inventory.md, Pending for animations).
-- Leaderboard and Shop are placeholders; More Lives offers no way to get lives.
+- Leaderboard and Shop are placeholders (Leaderboard can reuse the Shop's `ScrollBehindBar` structure); More Lives
+  offers no way to get lives.
+- Clay melt and veil / door opening animations (`TubeView.SetClayShown`, `CoverView.SetOpen` snap today).
 - Consider adding "start position not stuck" to `LevelValidator` (today only `ShippedLevelTests` checks it).
 - Re-measure the stuck check and the shuffle search on a device.
 
@@ -138,4 +141,10 @@ Known issues:
 - The mascot frame (255×255, top left) hangs below the 180-high top bar, ending above the board area; the stuck banner
   and "Shuffling…" label are inset to clear it.
 - Lives refill uses the device clock, so moving the clock forward grants lives (offline game; accepted).
-- In the Editor, stopping Play mode mid-level counts as closing the app and costs a life on the next Play.
+- In the Editor, stopping Play mode mid-level counts as closing the app and costs a life on the next Play. Saving
+  scripts during Play mode reloads the domain and loses `AppRoot`: stop Play first.
+- Input fields: never change a `Selectable`'s `interactable` (or the selection) inside `onEndEdit`, which a tap
+  elsewhere raises mid-selection ("Attempting to select while already selecting"); `AvatarMenuPopup` blocks the
+  name's taps with a `CanvasGroup` instead.
+- In automated taps (MCP), the first raycast right after the avatar menu opens sometimes misses the pen; the next
+  hits. Not seen by hand yet; worth a manual check on device.
