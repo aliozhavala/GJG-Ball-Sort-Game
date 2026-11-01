@@ -1,8 +1,9 @@
-# Animations (board moves: 2.2–2.6)
+# Animations and feedback (built so far)
 
 What is built from product's `docs/design/animations.md` §2.2–2.6 and the matching sounds of `docs/design/SFX_GUIDE.md`
-§3, plus the UI and booster sounds (SFX guide §5, §6.3, §6.4, §7), purchase feedback and the haptic calls (below). The
-other animation sections (intro, mechanics, boosters, win, idle) are not built yet. Every number is an `AnimationConfig`
+§3, plus the UI and booster sounds (SFX guide §5, §6.3, §6.4, §7), purchase feedback and the haptic calls (below). Also built:
+3.4 ice break, 4 shuffle (one tube), 5.1 stuck timing and 6.1 blink. Not built yet: 2.1 intro, 3.1–3.3 (reveal, towel,
+lock box), undo and add-tube animations, 5.2–5.4 (win, life lost, episode), the other idle and UI loops. Every number is an `AnimationConfig`
 field (Inspector-tunable); sound rules are on `SfxConfig`. Choices that differ from the product document are marked
 **(ours)**.
 
