@@ -107,6 +107,16 @@ namespace BallSort.Game.Views
         [Tooltip("Sparkles grow with the number of tubes already completed in the level.")]
         [SerializeField] private bool _chainEscalate = true;
 
+        [Header("3.4 Ice break")]
+        [Tooltip("When a clay (ice) tube completes, its ice cracks for this long, then bursts (sound, shards, ring). " +
+            "Same moment as the cork's impact by default, so the two sounds land together.")]
+        [SerializeField, Min(0f)] private float _iceCrackTime = 0.16f;
+        [Tooltip("Sideways shiver of the cracking ice, in d (stands in for the crack art).")]
+        [SerializeField, Min(0f)] private float _iceShiverAmount = 0.04f;
+        [SerializeField, Min(0f)] private float _iceShiverFrequency = 70f;
+        [Tooltip("How far the cracking ice turns white before it bursts: 0 = not at all, 1 = fully white.")]
+        [SerializeField, Range(0f, 1f)] private float _iceCrackBrighten = 0.5f;
+
         [Header("6.1 Blink")]
         [Tooltip("Now and then one ball on the board blinks (a revealed ball resting with its open face).")]
         [SerializeField] private bool _blink = true;
@@ -202,6 +212,10 @@ namespace BallSort.Game.Views
         public bool Sparkles => _sparkles;
         public bool Confetti => _confetti;
         public bool ChainEscalate => _chainEscalate;
+        public float IceCrackTime => _iceCrackTime;
+        public float IceShiverAmount => _iceShiverAmount;
+        public float IceShiverFrequency => _iceShiverFrequency;
+        public float IceCrackBrighten => _iceCrackBrighten;
         public bool Blink => _blink;
         public float BoardBlinkIntervalMin => Mathf.Min(_boardBlinkIntervalMin, _boardBlinkIntervalMax);
         public float BoardBlinkIntervalMax => Mathf.Max(_boardBlinkIntervalMin, _boardBlinkIntervalMax);

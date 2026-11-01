@@ -36,6 +36,10 @@ namespace BallSort.Game.Views
         [SerializeField] private VfxBurst _confetti;
         [Tooltip("Droplets where a ball lands.")]
         [SerializeField] private VfxBurst _droplets;
+        [Tooltip("Ice shards and a puff where a completed clay tube's ice bursts (colours on the prefab).")]
+        [SerializeField] private VfxBurst _iceBreak;
+        [Tooltip("Colour of the ring when the ice bursts (the ring is the tube-complete ring).")]
+        [SerializeField] private Color _iceRingColour = new Color(0.75f, 0.92f, 1f);
 
         private LevelSession _session;
         private BoardView _board;
@@ -45,6 +49,7 @@ namespace BallSort.Game.Views
         private VfxPool _ringPool;
         private VfxPool _confettiPool;
         private VfxPool _dropletsPool;
+        private VfxPool _iceBreakPool;
         private Tween _punch;
         private TweenCallback<float> _punchStep;
 
@@ -68,6 +73,7 @@ namespace BallSort.Game.Views
             _board.BallLanded += OnBallLanded;
             _board.CompletionStarted += PlayTubeCompleted;
             _board.CorkSeated += OnCorkSeated;
+            _board.IceBroken += OnIceBroken;
             _celebration.SetActive(false);
 
             Transform effects = board.transform;
@@ -75,6 +81,7 @@ namespace BallSort.Game.Views
             _ringPool = new VfxPool(_ring, effects, 2);
             _confettiPool = new VfxPool(_confetti, effects, 2);
             _dropletsPool = new VfxPool(_droplets, effects, 4);
+            _iceBreakPool = new VfxPool(_iceBreak, effects, 1);
         }
 
         /// <summary>
@@ -208,6 +215,21 @@ namespace BallSort.Game.Views
                 .SetEase(Ease.Linear).OnComplete(EndPunch).OnBoardClock();
         }
 
+        /// <summary>
+        /// A completed clay tube's ice bursts (docs/animation-spec.md, 3.4): its sound and haptic, shards
+        /// and a puff, and a ring in the ice's colour. With the default timing it lands with the cork.
+        /// </summary>
+        private void OnIceBroken(TubeView tube, Vector3 centre)
+        {
+            _audio.Play(Sfx.IceBreak);
+            _haptics.Heavy();
+            _iceBreakPool.Play(centre, Color.white, 0);
+            if (_animation.Sparkles)
+            {
+                _ringPool.Play(centre, _iceRingColour, 0);
+            }
+        }
+
         private void PunchStep(float t) =>
             _board.Layout.SetPunch(1f + _animation.PunchScale * BoardTweens.HalfSine(t, _animation.PunchDuration));
 
@@ -253,15 +275,16 @@ namespace BallSort.Game.Views
                 _board.BallLanded -= OnBallLanded;
                 _board.CompletionStarted -= PlayTubeCompleted;
                 _board.CorkSeated -= OnCorkSeated;
+                _board.IceBroken -= OnIceBroken;
             }
         }
 
         private void Awake()
         {
             if (_animation == null || _clock == null || _celebration == null ||
-                _sparkles == null || _ring == null || _confetti == null || _droplets == null)
+                _sparkles == null || _ring == null || _confetti == null || _droplets == null || _iceBreak == null)
             {
-                Debug.LogError($"{name}: animation config, board clock, celebration and the four effects must be assigned.", this);
+                Debug.LogError($"{name}: animation config, board clock, celebration and the five effects must be assigned.", this);
             }
 
             _punchStep = PunchStep;

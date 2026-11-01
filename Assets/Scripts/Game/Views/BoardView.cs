@@ -115,6 +115,12 @@ namespace BallSort.Game.Views
         /// <summary>A completed tube's cork has seated, <see cref="AnimationConfig.CorkImpactTime"/> into its completion.</summary>
         public event Action<TubeView> CorkSeated;
 
+        /// <summary>
+        /// A completed clay tube's ice has burst, <see cref="AnimationConfig.IceCrackTime"/> into its
+        /// completion: the tube, and where the ice was (world space).
+        /// </summary>
+        public event Action<TubeView, Vector3> IceBroken;
+
         /// <summary>Shows <paramref name="session"/>'s board and follows its events until destroyed.</summary>
         public void Initialize(LevelSession session)
         {
@@ -453,10 +459,24 @@ namespace BallSort.Game.Views
 
         private void PlayCompletion(TubeView tube, int colorId, int chain)
         {
+            bool breaksIce = tube.HasIce;
             tube.ShowCompleted(colorId, _palette, animate: true);
             CompletionStarted?.Invoke(tube, colorId, chain);
             tube.AddBeat(DOVirtual.DelayedCall(_animation.CorkImpactTime, () => CorkSeated?.Invoke(tube), false)
                 .OnBoardClock());
+            if (breaksIce)
+            {
+                tube.AddBeat(DOVirtual.DelayedCall(_animation.IceCrackTime, () => BreakIce(tube), false)
+                    .OnBoardClock());
+            }
+        }
+
+        // The ice cracked since the completion started; it bursts now (docs/animation-spec.md, 3.4).
+        private void BreakIce(TubeView tube)
+        {
+            Vector3 centre = tube.IceCentre;
+            tube.BreakIce();
+            IceBroken?.Invoke(tube, centre);
         }
 
         private int CountCompletedTubes()

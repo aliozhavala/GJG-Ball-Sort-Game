@@ -1005,3 +1005,29 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
   back to their open faces and blinked on.
 - EditMode tests: 1774 passed, 0 failed. Console: no errors or warnings. Level.unity's dirty flag after Play was
   layout-only; reloaded from disk, not saved.
+
+## 2026-11-01 — Second animation batch, stage 4: ice break
+
+### Assets
+- New placeholder sprite `Assets/Art/Sprites/Placeholder/Vfx_IceShard.png` (generated, 32×48, white splinter with a
+  darker facet, soft edge; Sprite, single, 100 PPU, no mipmaps, clamp, alpha is transparency).
+- New prefab `Assets/Prefabs/VFX/Vfx_IceBreak.prefab`, a copy of `Vfx_Droplets` (`AssetDatabase.CopyAsset`), retuned:
+  root system = shards (burst 22, lifetime 0.8–1.1, speed 2–4.5, size 0.12–0.24, random start rotation, rotation
+  over lifetime ±6, gravity 2.5, cone 50° radius 0.35, start colour random between `#D1F2FF` and `#8CD1FF`, fade out
+  over the last 30 %, size over lifetime off, texture sheet → `Vfx_IceShard`); new child `Puff` (8 particles,
+  lifetime 0.45–0.6, speed 0.3–0.8, size 0.45–0.75 growing ×0.7 → ×1.4, white at 55 % fading out, circle radius 0.3,
+  local simulation, hierarchy scaling, texture sheet → `Ball_Circle`, same material and sorting layer, order −1).
+  `VfxBurst`: `_root` → shards, `_tinted` / `_mixed` empty, `_chainScaled` none (colours stay the prefab's).
+- `Data/Config/AnimationConfig.asset`: new fields keep their code defaults (`_iceCrackTime` 0.16, `_iceShiverAmount`
+  0.04, `_iceShiverFrequency` 70, `_iceCrackBrighten` 0.5); not edited.
+
+### Level.unity
+- `LevelFlow/LevelFeedback._iceBreak` → `Vfx_IceBreak`; `_iceRingColour` keeps its default (`#BFEBFF`).
+
+### Verification
+- Play mode (editor test visit to `clay_large_tube` V1): four moves filled the clay tube. The ice shivered (up to
+  0.035 board units) and was gone 0.80 s after the last move's tap (its flight, then 0.16 s); `sfx_ice_break` and
+  `sfx_tube_cork` both played, `Vfx_IceBreak` and a second ring were playing.
+- EditMode tests: 1774 passed, 0 failed. Console: no errors; one expected warning from the test level itself
+  (`clay_large_tube` is marked as a tutorial level without a `TutorialConfig` entry). Level.unity's dirty flag after
+  Play was reloaded from disk (the scene was saved before Play).

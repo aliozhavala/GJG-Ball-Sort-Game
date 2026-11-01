@@ -103,6 +103,20 @@ Timed so the order reads right; §3 will replace the snaps with animations in th
   same move opened; its door opens right after.
 - Win: the celebration starts once the board has settled.
 
+## 3.4 Ice break
+Plays with the normal completion (2.6) when a clay (ice) tube completes; an unfinished clay tube keeps its ice.
+
+| t (from the completion's start: the last ball lands) | Piece | Values |
+|---|---|---|
+| 0 → `_iceCrackTime` **0.16** | Crack | the ice shivers sideways ±`_iceShiverAmount` **0.04 d** at `_iceShiverFrequency` **70** and whitens up to `_iceCrackBrighten` **50 %** **(ours: stands in for the three growing cracks, whose art is missing)** |
+| `_iceCrackTime` | Burst | the ice is gone (`TubeView.BreakIce`); pooled `Vfx_IceBreak`: 22 ice shards up from the ice with gravity (0.8–1.1 s) and a puff of 8 soft circles; the tube-complete ring in `LevelFeedback._iceRingColour` (pale ice blue; 2.2 d, the ring prefab's size, not the document's 2.4 d **(ours)**); `iceBreak` sound and a Heavy haptic |
+
+- With the default timing the burst lands with the cork's impact, so `iceBreak` and `tubeCork` play together (SFX guide
+  §4.4), inside the cork's hit-stop.
+- Hook: `BoardView.PlayCompletion` keeps a beat on the tube (`IceBroken` event → `LevelFeedback`); touching the tube
+  plays it at once. A tube rebuilt completed (restart) shows no ice and no burst.
+- "Melt" in the earlier notes is this break: the product document and the sound are a shatter.
+
 ## 6.1 Blink
 - **One ball at a time (ours, after playtesting; product's document has every creature blink every 2–7 s, which
   read as far too much on a full board):** after a random wait between `_boardBlinkIntervalMin` **2 s** and
@@ -187,6 +201,7 @@ logs each call, to check them.
 | Medium (`Landing`) | each ball lands (not on undo) |
 | Warning | invalid tap or move; the stuck bar appearing; a life lost |
 | Success | cork seats; booster bought; lives refilled |
+| Heavy | the ice bursts (3.4) |
 | Light | every button and toggle press (not popups' ✕ or the name pen); each booster applied |
 
 Haptics for sounds not played yet (reveal, towel, lock box, win, rewards) come with those sounds.

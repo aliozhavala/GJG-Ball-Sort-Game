@@ -3110,6 +3110,8 @@ MonoBehaviour:
   _ring: {fileID: 3797218006555269455, guid: 7f7e0aacff1367e428b1471309249aa1, type: 3}
   _confetti: {fileID: 6343190156446273167, guid: ae4d3573ea17b8543972201e75632ed2, type: 3}
   _droplets: {fileID: 1174934197166351166, guid: ae3b2036bec406742aa247acb7a4dcee, type: 3}
+  _iceBreak: {fileID: 1174934197166351166, guid: 0dfa3905e3b38284eb52c02c956cad6e, type: 3}
+  _iceRingColour: {r: 0.75, g: 0.92, b: 1, a: 1}
 --- !u!114 &1281242728
 MonoBehaviour:
   m_ObjectHideFlags: 0

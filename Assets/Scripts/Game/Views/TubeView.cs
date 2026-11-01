@@ -76,11 +76,13 @@ namespace BallSort.Game.Views
         private Tween _bumpTween;
         private Tween _corkTween;
         private Tween _glowTween;
+        private Tween _iceTween;
 
         private TweenCallback<float> _shakeStep;
         private TweenCallback<float> _bumpStep;
         private TweenCallback<float> _glowStep;
         private TweenCallback<float> _glowPulseStep;
+        private TweenCallback<float> _iceCrackStep;
         private TweenCallback _clearShake;
         private TweenCallback _clearBump;
         private TweenCallback _startGlowPulse;
@@ -108,6 +110,12 @@ namespace BallSort.Game.Views
 
         /// <summary>Where a lifted ball's centre sits, in ball space: above the mouth by the lift height.</summary>
         public Vector3 LiftPoint => new Vector3(0f, BodyHeight + _animation.LiftHeight * _config.BallDiameter, 0f);
+
+        /// <summary>True while the tube's clay (ice) is drawn: a clay tube not completed yet, or cracking.</summary>
+        public bool HasIce => _clay.enabled;
+
+        /// <summary>The centre of the ice, in world space (where it bursts).</summary>
+        public Vector3 IceCentre => _clay.enabled ? _clay.bounds.center : _ballRoot.position;
 
         /// <summary>True when no ball is flying out of or into the tube and no beat is waiting.</summary>
         public bool IsSettled => _departures == 0 && _arrivals == 0 && !HasActiveBeat();
@@ -374,12 +382,20 @@ namespace BallSort.Game.Views
         /// <summary>
         /// Shows the tube completed in <paramref name="colorId"/>: the colour's cork, glow, laughing
         /// balls, and the clay gone. Animated (docs/animation-spec.md, 2.6), the cork drops, the glow
-        /// fades to its idle pulse and the balls hop in turn; otherwise all of it shows at rest.
+        /// fades to its idle pulse and the balls hop in turn, and the ice starts to crack: it stays until
+        /// <see cref="BreakIce"/> (3.4). Otherwise all of it shows at rest.
         /// </summary>
         public void ShowCompleted(int colorId, ColorPalette palette, bool animate)
         {
             SetBallExpression(BallExpression.Laugh, palette);
-            SetClayShown(false);
+            if (animate && HasIce)
+            {
+                StartIceCrack();
+            }
+            else
+            {
+                SetClayShown(false);
+            }
 
             // A colour's own cork is drawn as is; the plain cork is tinted in the colour.
             Color colour = palette.GetColor(colorId);
@@ -479,6 +495,44 @@ namespace BallSort.Game.Views
         /// now; its melt comes with the animations.
         /// </summary>
         public void SetClayShown(bool shown) => _clay.enabled = shown && _isClay && _clay.sprite != null;
+
+        /// <summary>The cracked ice bursts: gone at once (the shards are VFX, played by the caller).</summary>
+        public void BreakIce()
+        {
+            BoardTweens.KillIfActive(_iceTween);
+            ResetIce();
+            SetClayShown(false);
+        }
+
+        // Shivers and whitens until it breaks (the crack art is missing: docs/art-inventory.md, section 10).
+        private void StartIceCrack()
+        {
+            BoardTweens.KillIfActive(_iceTween);
+            float duration = Mathf.Max(_animation.IceCrackTime, 0.001f);
+            _iceTween = DOVirtual.Float(0f, duration, duration, _iceCrackStep).SetEase(Ease.Linear).OnBoardClock();
+        }
+
+        private void IceCrackStep(float t)
+        {
+            float shiver = _animation.IceShiverAmount * _config.BallDiameter *
+                Mathf.Sin(_animation.IceShiverFrequency * t);
+            _clay.transform.localPosition = new Vector3(shiver, 0f, 0f);
+            float k = _animation.IceCrackBrighten * Mathf.Clamp01(t / Mathf.Max(_animation.IceCrackTime, 0.001f));
+            Color tint = _config.ClayTint;
+            _clay.color = new Color(
+                Mathf.Lerp(tint.r, 1f, k), Mathf.Lerp(tint.g, 1f, k), Mathf.Lerp(tint.b, 1f, k), tint.a);
+        }
+
+        private void ResetIce()
+        {
+            if (_config == null)
+            {
+                return;
+            }
+
+            _clay.transform.localPosition = Vector3.zero;
+            _clay.color = _config.ClayTint;
+        }
 
         /// <summary>Hands every ball back to the caller (for pooling) and empties the tube.</summary>
         public void TakeAllBalls(List<BallView> into)
@@ -607,6 +661,12 @@ namespace BallSort.Game.Views
 
         private void KillTweens()
         {
+            if (_iceTween != null && _iceTween.IsActive())
+            {
+                _iceTween.Kill();
+                ResetIce();
+            }
+
             BoardTweens.KillIfActive(_shakeTween);
             BoardTweens.KillIfActive(_bumpTween);
             BoardTweens.KillIfActive(_corkTween);
@@ -683,6 +743,7 @@ namespace BallSort.Game.Views
             _bumpStep = BumpStep;
             _glowStep = SetGlowAlpha;
             _glowPulseStep = GlowPulseStep;
+            _iceCrackStep = IceCrackStep;
             _clearShake = ClearShake;
             _clearBump = ClearBump;
             _startGlowPulse = StartGlowPulse;

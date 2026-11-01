@@ -418,3 +418,10 @@ booster count badges, the lives heart and the coins pill. Haptics need no assets
 **Stage 3 (blinking):** no new art: the half-open and closed faces of colours 0–9 are the blink frames. Missing, and
 optional: blink frames for colours 10–11 (ids without art; they keep their placeholder and do not blink) and for the
 hidden ball (it never blinks: its colour is unknown, and its art has no eyes to close).
+
+**Stage 4 (ice break, docs/animation-spec.md 3.4):**
+| Needed | Slot | Placeholder now | Notes for the artist |
+|---|---|---|---|
+| Ice cracks (3 cracks growing over 0.16 s, or 2–3 frames) | none yet *(code: an overlay or frames on `TubeView`'s clay)* | the ice shivers and whitens | Drawn on the ice's own canvas (`Mechanics/Clay_Ice`), so it lines up. |
+| Ice shard | `Prefabs/VFX/Vfx_IceBreak` texture sheet (Sprites mode) | `Placeholder/Vfx_IceShard` (generated white splinter, 32×48) | White or pale blue; tinted per particle on the prefab. 2–3 shapes welcome (the sheet takes several sprites). |
+| Smoke puff | `Vfx_IceBreak/Puff` texture sheet | `Placeholder/Ball_Circle` | Soft white cloud, transparent edges. |

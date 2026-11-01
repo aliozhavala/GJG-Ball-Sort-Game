@@ -95,7 +95,7 @@ Sounds: `AudioService` (on `AppRoot`, passed by the bootstraps to `LevelFlow` â†
 `HomeFlow` â†’ `HomeScreen`), `Play(Sfx, pitch)`; one slot per sound in `SfxConfig`. Hooked so far: select, deselect,
 land, invalid, completion chime, cork (from `LevelFeedback`, on `BoardView`'s presentation events), the three booster
 sounds, button, Play, reward jingle, coin gain and life lost (docs/animation-spec.md, Boosters, buttons and purchases).
-Not played yet: reveal, towel, the three lock box sounds, ice, fanfare, title stamp. Haptics: `HapticsService` on
+Not played yet: reveal, towel, the three lock box sounds, fanfare, title stamp (ice: docs/animation-spec.md 3.4). Haptics: `HapticsService` on
 `AppRoot`, called next to the sounds, vibrates nothing yet (docs/animation-spec.md, Haptics).
 
 Event order within one operation (documented on `LevelSession`); animations must play in this order:
@@ -140,7 +140,8 @@ TODOs:
   hard tier button; for the animations, glow, shock faces and VFX sprites (docs/art-inventory.md, Pending for
   animations).
 - The leaderboard is fixed data (no backend, no scores); More Lives offers no way to get lives.
-- Clay melt and veil / door opening animations (`TubeView.SetClayShown`, `CoverView.SetOpen` snap today).
+- Veil / door opening animations (`CoverView.SetOpen` snaps today). The clay's break on completion is built
+  (docs/animation-spec.md 3.4).
 - Consider adding "start position not stuck" to `LevelValidator` (today only `ShippedLevelTests` checks it).
 - Re-measure the stuck check on a device.
 
