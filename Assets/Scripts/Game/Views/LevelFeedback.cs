@@ -40,6 +40,12 @@ namespace BallSort.Game.Views
         [SerializeField] private VfxBurst _iceBreak;
         [Tooltip("Colour of the ring when the ice bursts (the ring is the tube-complete ring).")]
         [SerializeField] private Color _iceRingColour = new Color(0.75f, 0.92f, 1f);
+        [Tooltip("Lilac smoke where a hidden ball turns face up (colour on the prefab).")]
+        [SerializeField] private VfxBurst _revealPuff;
+        [Tooltip("Pink smoke over a tube whose veil lifts (colour on the prefab).")]
+        [SerializeField] private VfxBurst _towelPuff;
+        [Tooltip("Gold sparks at the mouth of a tube whose veil lifts (colour on the prefab).")]
+        [SerializeField] private VfxBurst _towelSparks;
 
         private LevelSession _session;
         private BoardView _board;
@@ -50,6 +56,9 @@ namespace BallSort.Game.Views
         private VfxPool _confettiPool;
         private VfxPool _dropletsPool;
         private VfxPool _iceBreakPool;
+        private VfxPool _revealPuffPool;
+        private VfxPool _towelPuffPool;
+        private VfxPool _towelSparksPool;
         private Tween _punch;
         private TweenCallback<float> _punchStep;
 
@@ -75,6 +84,8 @@ namespace BallSort.Game.Views
             _board.CorkSeated += OnCorkSeated;
             _board.IceBroken += OnIceBroken;
             _board.LockBeatPlayed += OnLockBeat;
+            _board.VeilLifting += OnVeilLifting;
+            _board.BallRevealing += OnBallRevealing;
             _celebration.SetActive(false);
 
             Transform effects = board.transform;
@@ -83,6 +94,9 @@ namespace BallSort.Game.Views
             _confettiPool = new VfxPool(_confetti, effects, 2);
             _dropletsPool = new VfxPool(_droplets, effects, 4);
             _iceBreakPool = new VfxPool(_iceBreak, effects, 1);
+            _revealPuffPool = new VfxPool(_revealPuff, effects, 1);
+            _towelPuffPool = new VfxPool(_towelPuff, effects, 1);
+            _towelSparksPool = new VfxPool(_towelSparks, effects, 1);
         }
 
         /// <summary>
@@ -233,6 +247,35 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
+        /// A hidden ball turns face up (docs/animation-spec.md, 3.1): a lilac puff, and after a move (not
+        /// a shuffle, SFX guide 4.1) its sound and a Light haptic.
+        /// </summary>
+        private void OnBallRevealing(BallView ball, bool withSound)
+        {
+            _revealPuffPool.Play(ball.transform.position, Color.white, 0);
+            if (withSound)
+            {
+                _audio.Play(Sfx.HiddenReveal);
+                _haptics.Light();
+            }
+        }
+
+        /// <summary>
+        /// A veil lifts (docs/animation-spec.md, 3.2): pink smoke over the tube and gold sparks at its
+        /// mouth; the first veil of a completion plays the towel's sound and a Heavy haptic (SFX guide 4.2).
+        /// </summary>
+        private void OnVeilLifting(CoverView veil, bool withSound)
+        {
+            _towelPuffPool.Play(veil.VeilCentre, Color.white, 0);
+            _towelSparksPool.Play(veil.VeilMouth, Color.white, 0);
+            if (withSound)
+            {
+                _audio.Play(Sfx.TowelPull);
+                _haptics.Heavy();
+            }
+        }
+
+        /// <summary>
         /// A lock box's opening (docs/animation-spec.md, 3.3; SFX guide 4.3): one sound per box at each
         /// step, the key's flight, its seating (with the box's wobble) and the covers sliding open.
         /// </summary>
@@ -301,15 +344,18 @@ namespace BallSort.Game.Views
                 _board.CorkSeated -= OnCorkSeated;
                 _board.IceBroken -= OnIceBroken;
                 _board.LockBeatPlayed -= OnLockBeat;
+                _board.VeilLifting -= OnVeilLifting;
+                _board.BallRevealing -= OnBallRevealing;
             }
         }
 
         private void Awake()
         {
             if (_animation == null || _clock == null || _celebration == null ||
-                _sparkles == null || _ring == null || _confetti == null || _droplets == null || _iceBreak == null)
+                _sparkles == null || _ring == null || _confetti == null || _droplets == null || _iceBreak == null ||
+                _revealPuff == null || _towelPuff == null || _towelSparks == null)
             {
-                Debug.LogError($"{name}: animation config, board clock, celebration and the five effects must be assigned.", this);
+                Debug.LogError($"{name}: animation config, board clock, celebration and the eight effects must be assigned.", this);
             }
 
             _punchStep = PunchStep;

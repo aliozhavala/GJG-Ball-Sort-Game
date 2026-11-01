@@ -64,16 +64,18 @@ namespace BallSort.Game.Views
         private Action<BallView> _onBallDeparted;
         private Action<BallView> _onBallLanded;
         private Action<CoverView, LockBeat> _onLockBeat;
+        private Action<CoverView, bool> _onVeilLifting;
 
         // The move or undo whose events are arriving: where its balls land, and what it has done so far.
         private int _operationTarget = -1;
         private bool _operationCompleted;
-        private bool _operationOpenedVeil;
+        private int _operationVeils;
         private bool _operationIsShuffle;
 
-        // Board time after the landing by which the covers this operation opened show their tubes: a key
-        // found later in it waits for them (a key inside a lock box that is still opening, or under a veil).
-        private float _operationCoversShownBy;
+        // Board time after the landing before which a key found in this operation may not leave its ball:
+        // the veils it opened have lifted, the lock boxes it opened earlier show their tubes, a ball it
+        // turned face up has finished turning.
+        private float _operationKeyNotBefore;
 
         // Keys found in this operation whose lock has not opened yet (the lock opens right after).
         private readonly List<PendingKey> _pendingKeys = new List<PendingKey>();
@@ -146,6 +148,18 @@ namespace BallSort.Game.Views
 
         /// <summary>A lock box's opening reached a step (key flying, key seated, covers opening), in time.</summary>
         public event Action<CoverView, LockBeat> LockBeatPlayed;
+
+        /// <summary>
+        /// A veil starts to lift (docs/animation-spec.md, 3.2); the flag is true for the first veil of the
+        /// completion, which carries the sound.
+        /// </summary>
+        public event Action<CoverView, bool> VeilLifting;
+
+        /// <summary>
+        /// A hidden ball starts to turn face up (docs/animation-spec.md, 3.1); the flag is false after a
+        /// shuffle, whose reveal is silent.
+        /// </summary>
+        public event Action<BallView, bool> BallRevealing;
 
         /// <summary>Shows <paramref name="session"/>'s board and follows its events until destroyed.</summary>
         public void Initialize(LevelSession session)
@@ -319,7 +333,7 @@ namespace BallSort.Game.Views
             if (cover.Kind == CoverKind.Veil)
             {
                 view.name = $"Veil {cover.Id}";
-                view.SetupVeil(cover.Id, _tubeConfig, _palette);
+                view.SetupVeil(cover.Id, _tubeConfig, _palette, _animation);
             }
             else
             {
@@ -415,9 +429,9 @@ namespace BallSort.Game.Views
         {
             _operationTarget = targetIndex;
             _operationCompleted = false;
-            _operationOpenedVeil = false;
+            _operationVeils = 0;
             _operationIsShuffle = false;
-            _operationCoversShownBy = 0f;
+            _operationKeyNotBefore = 0f;
             _pendingKeys.Clear();
         }
 
@@ -499,20 +513,30 @@ namespace BallSort.Game.Views
             BallLanded?.Invoke(ball);
         }
 
-        // The new top shows once the balls above it have left (a snap until the reveal flip, §3.1); after a
-        // shuffle, once its balls have landed.
+        /// <summary>
+        /// The new top turns face up (docs/animation-spec.md, 3.1) once the balls above it have left; after
+        /// a shuffle, once its balls have landed, silently, and a key it carries waits for the turn.
+        /// </summary>
         private void OnBallRevealed(BallRevealedEventArgs e)
         {
             TubeView tube = _tubes[e.TubeIndex];
             BallView ball = tube.Balls[e.SlotIndex];
             int colorId = e.ColorId;
-            if (_operationIsShuffle && e.TubeIndex == _operationTarget)
+            bool shuffled = _operationIsShuffle && e.TubeIndex == _operationTarget;
+            void Reveal()
             {
-                tube.WhenArrived(() => ball.Reveal(colorId, _palette));
+                ball.Reveal(colorId, _palette, animate: true);
+                BallRevealing?.Invoke(ball, !shuffled);
+            }
+
+            if (shuffled)
+            {
+                _operationKeyNotBefore = Mathf.Max(_operationKeyNotBefore, _animation.RevealFlipDuration);
+                tube.WhenArrived(Reveal);
             }
             else
             {
-                tube.WhenDeparted(() => ball.Reveal(colorId, _palette));
+                tube.WhenDeparted(Reveal);
             }
         }
 
@@ -562,19 +586,28 @@ namespace BallSort.Game.Views
             return count;
         }
 
-        // Snaps until the towel animation (§3.2), timed after the completion.
+        /// <summary>
+        /// The towel lifts (docs/animation-spec.md, 3.2) after the completion has played, each veil of the
+        /// same completion a stagger after the previous one; only the first one is heard.
+        /// </summary>
         private void OnTubeUnveiled(TubeUnveiledEventArgs e)
         {
             foreach (CoverView cover in _covers)
             {
                 if (cover.Kind == CoverKind.Veil && cover.Tubes[0].TubeIndex == e.TubeIndex)
                 {
-                    _operationOpenedVeil = true;
-                    AfterLanding(_animation.TowelDelay, cover.Tubes, () => cover.SetOpen(true));
+                    float delay = _animation.TowelDelay + _operationVeils * _animation.TowelStagger;
+                    bool withSound = _operationVeils == 0;
+                    _operationVeils++;
+                    _operationKeyNotBefore = Mathf.Max(_operationKeyNotBefore, delay + _animation.TowelLiftDuration);
+                    float diameter = _tubeConfig.BallDiameter;
+                    AfterLanding(cover.Tubes, () => cover.PlayVeilLift(delay, diameter, _animation, withSound, _onVeilLifting));
                     return;
                 }
             }
         }
+
+        private void OnVeilLifting(CoverView veil, bool withSound) => VeilLifting?.Invoke(veil, withSound);
 
         // The key flies with its lock's opening, which comes right after (§3.3).
         private void OnKeyFound(KeyFoundEventArgs e)
@@ -618,7 +651,7 @@ namespace BallSort.Game.Views
             }
 
             float delay = KeyDelay();
-            _operationCoversShownBy = Mathf.Max(_operationCoversShownBy, delay + _animation.UnlockRevealTime);
+            _operationKeyNotBefore = Mathf.Max(_operationKeyNotBefore, delay + _animation.UnlockRevealTime);
             var affected = new List<TubeView>(box.Tubes);
             if (keyTube != null && !affected.Contains(keyTube))
             {
@@ -633,18 +666,14 @@ namespace BallSort.Game.Views
 
         /// <summary>
         /// A found key leaves its ball at the landing: after the completion's beat when the move completed
-        /// a tube, never before a veil the same move opened, and not before the covers opened earlier in
-        /// the same move show their tubes (a key inside a lock box that is still opening).
+        /// a tube, never before a veil the same move opened has lifted, a lock box opened earlier in the
+        /// same move shows its tubes (a key inside a box that is still opening), or a ball a shuffle turned
+        /// face up has turned.
         /// </summary>
         private float KeyDelay()
         {
             float delay = _operationCompleted ? _animation.KeyWaitAfterComplete : 0f;
-            if (_operationOpenedVeil)
-            {
-                delay = Mathf.Max(delay, _animation.TowelDelay);
-            }
-
-            return Mathf.Max(delay, _operationCoversShownBy);
+            return Mathf.Max(delay, _operationKeyNotBefore);
         }
 
         /// <summary>
@@ -759,6 +788,7 @@ namespace BallSort.Game.Views
             _onBallDeparted = OnBallDeparted;
             _onBallLanded = OnBallLanded;
             _onLockBeat = OnLockBeat;
+            _onVeilLifting = OnVeilLifting;
             _blinks = new BlinkScheduler(_tubes, _animation);
 
             _tubePool = new ObjectPool<TubeView>(

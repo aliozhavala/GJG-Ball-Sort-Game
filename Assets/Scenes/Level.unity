@@ -3112,6 +3112,9 @@ MonoBehaviour:
   _droplets: {fileID: 1174934197166351166, guid: ae3b2036bec406742aa247acb7a4dcee, type: 3}
   _iceBreak: {fileID: 1174934197166351166, guid: 0dfa3905e3b38284eb52c02c956cad6e, type: 3}
   _iceRingColour: {r: 0.75, g: 0.92, b: 1, a: 1}
+  _revealPuff: {fileID: 5793639465854562217, guid: 92f8aec1cdf0ca34cb3841f8f543b75e, type: 3}
+  _towelPuff: {fileID: 410269544886547885, guid: 2697b3d1b9c84454986202ef352f2e32, type: 3}
+  _towelSparks: {fileID: 3892596044704622054, guid: b676fe87054c42e4cb33cd45ad6c3965, type: 3}
 --- !u!114 &1281242728
 MonoBehaviour:
   m_ObjectHideFlags: 0

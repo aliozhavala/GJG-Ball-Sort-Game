@@ -15,9 +15,10 @@ namespace BallSort.Game.Views
     /// Pooled by <see cref="BoardView"/> and parented to the board root next to the tubes, so it can
     /// span several of them; <see cref="FitToTubes"/> follows them after every layout change.
     /// <para>
-    /// Every change of a cover's state goes through <see cref="SetOpen"/>, which also hides or shows
-    /// the covered tubes' balls, so the animation pass can replace the snap in one place. Hiding the
-    /// balls themselves (not just drawing over them) lets the cover art have soft or translucent edges.
+    /// Every change of a cover's state goes through <see cref="SetOpen"/> (a snap) or an opening
+    /// (<see cref="PlayVeilLift"/>, <see cref="PlayUnlock"/>), which also hide or show the covered tubes'
+    /// balls. Hiding the balls themselves (not just drawing over them) lets the cover art have soft or
+    /// translucent edges. A closed veil sways a little from its rim.
     /// </para>
     /// </remarks>
     public sealed class CoverView : MonoBehaviour
@@ -39,8 +40,27 @@ namespace BallSort.Game.Views
         private float _diameter;
         private TweenCallback<float> _shakeStep;
 
+        // The opening playing: a veil's lift or a lock box's unlock.
+        private Sequence _opening;
+
+        // The veil's sway while closed and its lift (docs/animation-spec.md, 3.2), about a pivot on its axis.
+        private float _rimHeight;
+        private float _veilCentre;
+        private float _liftY;
+        private float _angle;
+        private float _pivotY;
+        private float _alpha = 1f;
+        private float _shade = 1f;
+        private float _swayPhase;
+        private Tween _sway;
+        private Action<CoverView, bool> _liftStarted;
+        private bool _liftWithSound;
+        private TweenCallback<float> _swayStep;
+        private TweenCallback<float> _liftStep;
+        private TweenCallback _beginLift;
+        private TweenCallback _finishLift;
+
         // The unlock (docs/animation-spec.md, 3.3).
-        private Sequence _unlock;
         private BallView _keyBall;
         private TubeView _keyTube;
         private Action<CoverView, LockBeat> _beat;
@@ -69,15 +89,22 @@ namespace BallSort.Game.Views
         public bool IsOpen { get; private set; }
 
         /// <summary>Still drawn over its tubes: closed, or open but still playing its opening.</summary>
-        public bool IsDrawn => !IsOpen || (_unlock != null && _unlock.IsActive());
+        public bool IsDrawn => !IsOpen || (_opening != null && _opening.IsActive());
+
+        /// <summary>A veil's middle, world space (where its lift's smoke puffs).</summary>
+        public Vector3 VeilCentre => transform.TransformPoint(new Vector3(0f, _veilCentre, 0f));
+
+        /// <summary>The covered tube's mouth under a veil, world space.</summary>
+        public Vector3 VeilMouth => transform.TransformPoint(new Vector3(0f, _rimHeight, 0f));
 
         /// <summary>
         /// Makes this a veil that opens on <paramref name="colorId"/>, and forgets any previous tubes.
         /// Add its tube, then fit and close it.
         /// </summary>
-        public void SetupVeil(int colorId, TubeVisualConfig config, ColorPalette palette)
+        public void SetupVeil(int colorId, TubeVisualConfig config, ColorPalette palette, AnimationConfig animation)
         {
             Begin(CoverKind.Veil, colorId);
+            _animation = animation;
             _bodyTint = config.VeilTint;
             _body.sprite = config.VeilSprite;
             _body.color = _bodyTint;
@@ -110,6 +137,7 @@ namespace BallSort.Game.Views
         {
             Kind = kind;
             Id = id;
+            _shade = 1f;
             _tubes.Clear();
             StopMotion();
         }
@@ -119,15 +147,23 @@ namespace BallSort.Game.Views
         /// <summary>Darkens the cover by <paramref name="shade"/> (1 = as drawn), e.g. while the Shuffle booster picks a tube.</summary>
         public void SetShade(float shade)
         {
-            _body.color = Shade(_bodyTint, shade);
-            _icon.color = Shade(_iconTint, shade);
+            _shade = shade;
+            ApplyVeilColours();
             if (Kind == CoverKind.Lock)
             {
                 _lockBox.SetShade(shade);
             }
         }
 
-        private static Color Shade(Color tint, float shade) => new Color(tint.r * shade, tint.g * shade, tint.b * shade, tint.a);
+        // The towel and its sticker, shaded and faded as one.
+        private void ApplyVeilColours()
+        {
+            _body.color = Shade(_bodyTint, _shade, _alpha);
+            _icon.color = Shade(_iconTint, _shade, _alpha);
+        }
+
+        private static Color Shade(Color tint, float shade, float alpha) =>
+            new Color(tint.r * shade, tint.g * shade, tint.b * shade, tint.a * alpha);
 
         /// <summary>
         /// Fits the cover to the covered tubes. A veil hangs from its tube's rim like the art, as wide as
@@ -184,7 +220,9 @@ namespace BallSort.Game.Views
             _body.transform.localScale = new Vector3(scaleX, scaleY, 1f);
             _body.transform.localPosition = new Vector3(0f, tubeHeight, 0f);
             _body.size = new Vector2(SpriteWidth(_body.sprite), veilHeight / scaleY);
-            _icon.transform.localPosition = new Vector3(0f, tubeHeight - veilHeight * 0.5f, 0f);
+            _rimHeight = tubeHeight;
+            _veilCentre = tubeHeight - veilHeight * 0.5f;
+            _icon.transform.localPosition = new Vector3(0f, _veilCentre, 0f);
         }
 
         /// <summary>
@@ -195,13 +233,22 @@ namespace BallSort.Game.Views
         /// </summary>
         public void SetOpen(bool open)
         {
-            KillUnlock();
+            KillOpening();
             ApplyOpen(open);
         }
 
         private void ApplyOpen(bool open)
         {
             IsOpen = open;
+            if (Kind == CoverKind.Veil && !open)
+            {
+                StartSway();
+            }
+            else
+            {
+                StopSway();
+            }
+
             _body.enabled = !open && _body.sprite != null;
             _icon.enabled = !open && _icon.sprite != null;
             if (Kind == CoverKind.Lock)
@@ -234,6 +281,108 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
+        /// Plays a veil's lift (docs/animation-spec.md, 3.2) after <paramref name="delay"/> seconds of board
+        /// time: the towel and its sticker rise, fade and tilt a little mid-way; the tube's balls show from
+        /// its start. The cover counts as open from now on. <paramref name="started"/> hears the start
+        /// (with <paramref name="withSound"/>) unless a tap on the tube skips through it.
+        /// </summary>
+        /// <returns>The lift, to keep as a beat on the tube.</returns>
+        public Tween PlayVeilLift(
+            float delay, float ballDiameter, AnimationConfig animation, bool withSound, Action<CoverView, bool> started)
+        {
+            KillOpening();
+            IsOpen = true;
+            _animation = animation;
+            _diameter = ballDiameter;
+            _liftStarted = started;
+            _liftWithSound = withSound;
+
+            Sequence lift = DOTween.Sequence();
+            lift.InsertCallback(0f, _beginLift);
+            lift.Insert(0f, DOVirtual.Float(0f, 1f, animation.TowelLiftDuration, _liftStep).SetEase(Ease.Linear));
+            lift.OnComplete(_finishLift);
+            lift.SetDelay(delay);
+            _opening = lift.OnBoardClock();
+            return _opening;
+        }
+
+        // The sway stops, the balls under the towel show, and the lift's smoke and sound start.
+        private void BeginLift()
+        {
+            StopSway();
+            _pivotY = _veilCentre;
+            foreach (TubeView tube in _tubes)
+            {
+                tube.SetCovered(false, showBottomBall: false);
+            }
+
+            if (!IsSkipped())
+            {
+                _liftStarted?.Invoke(this, _liftWithSound);
+            }
+        }
+
+        // Smoothstep: rises and fades together; the tilt peaks mid-way, about the towel's middle.
+        private void LiftStep(float u)
+        {
+            float eased = u * u * (3f - 2f * u);
+            _liftY = _animation.TowelRise * _diameter * eased;
+            _angle = _animation.TowelTilt * Mathf.Sin(Mathf.PI * u);
+            _alpha = 1f - eased;
+            ApplyOffset();
+            ApplyVeilColours();
+        }
+
+        private void FinishLift()
+        {
+            _opening = null;
+            ResetVeilPose();
+            ApplyOpen(true);
+        }
+
+        // A closed veil sways from its rim, each with its own phase; the toggle is read every step.
+        private void StartSway()
+        {
+            StopSway();
+            if (_animation == null)
+            {
+                return;
+            }
+
+            float period = Mathf.Max(_animation.TowelSwayPeriod, 0.05f);
+            _swayPhase = UnityEngine.Random.value * 2f * Mathf.PI;
+            _sway = DOVirtual.Float(0f, period, period, _swayStep)
+                .SetEase(Ease.Linear).SetLoops(-1).OnBoardClock();
+        }
+
+        private void SwayStep(float t)
+        {
+            float period = Mathf.Max(_animation.TowelSwayPeriod, 0.05f);
+            _pivotY = _rimHeight;
+            _angle = _animation.TowelSway
+                ? _animation.TowelSwayAngle * Mathf.Sin(2f * Mathf.PI * t / period + _swayPhase)
+                : 0f;
+            ApplyOffset();
+        }
+
+        private void StopSway()
+        {
+            BoardTweens.KillIfActive(_sway);
+            _sway = null;
+            _angle = 0f;
+            ApplyOffset();
+        }
+
+        private void ResetVeilPose()
+        {
+            _liftY = 0f;
+            _angle = 0f;
+            _alpha = 1f;
+            ApplyOffset();
+            ApplyVeilColours();
+        }
+
+        /// <summary>
         /// Plays a lock box's opening (docs/animation-spec.md, 3.3) after <paramref name="delay"/> seconds
         /// of board time: the key leaves <paramref name="keyBall"/>'s hands and flies into the slot, the box
         /// wobbles as it seats and the key fades; then the mid gives way to the two cover halves, which
@@ -248,7 +397,7 @@ namespace BallSort.Game.Views
             BallView keyBall, TubeView keyTube, float delay, float ballDiameter, AnimationConfig animation,
             Action<CoverView, LockBeat> beat)
         {
-            KillUnlock();
+            KillOpening();
             IsOpen = true;
             _animation = animation;
             _diameter = ballDiameter;
@@ -273,8 +422,8 @@ namespace BallSort.Game.Views
             unlock.Insert(fadeOut, DOVirtual.Float(1f, 0f, fade, _boxFadeStep).SetEase(Ease.Linear));
             unlock.OnComplete(_finishUnlock);
             unlock.SetDelay(delay);
-            _unlock = unlock.OnBoardClock();
-            return _unlock;
+            _opening = unlock.OnBoardClock();
+            return _opening;
         }
 
         // The key leaves the ball's hands (or appears in the slot when there is no ball to take it from).
@@ -342,7 +491,7 @@ namespace BallSort.Game.Views
 
         private void FinishUnlock()
         {
-            _unlock = null;
+            _opening = null;
             _keyBall = null;
             _keyTube = null;
             ApplyOpen(true);
@@ -351,34 +500,48 @@ namespace BallSort.Game.Views
         // A step a tap skips through (finishing a tube's beats) stays silent.
         private void Beat(LockBeat beat)
         {
+            if (!IsSkipped())
+            {
+                _beat?.Invoke(this, beat);
+            }
+        }
+
+        private bool IsSkipped()
+        {
             if (_keyTube != null && _keyTube.IsFinishing)
             {
-                return;
+                return true;
             }
 
             foreach (TubeView tube in _tubes)
             {
                 if (tube.IsFinishing)
                 {
-                    return;
+                    return true;
                 }
             }
 
-            _beat?.Invoke(this, beat);
+            return false;
         }
 
-        private void KillUnlock()
+        private void KillOpening()
         {
-            BoardTweens.KillIfActive(_unlock);
-            _unlock = null;
+            BoardTweens.KillIfActive(_opening);
+            _opening = null;
             _keyBall = null;
             _keyTube = null;
         }
 
-        /// <summary>Ends a running shake or opening: the cover is rebuilt or pooled.</summary>
+        /// <summary>Ends a running shake, sway or opening: the cover is rebuilt or pooled.</summary>
         public void StopMotion()
         {
-            KillUnlock();
+            KillOpening();
+            BoardTweens.KillIfActive(_sway);
+            _sway = null;
+            _liftY = 0f;
+            _angle = 0f;
+            _alpha = 1f;
+            ApplyVeilColours();
             BoardTweens.KillIfActive(_shakeTween);
             _shakeX = 0f;
             ApplyOffset();
@@ -391,7 +554,14 @@ namespace BallSort.Game.Views
             ApplyOffset();
         }
 
-        private void ApplyOffset() => transform.localPosition = _home + new Vector3(_shakeX, 0f, 0f);
+        // The shake and lift move the cover; the sway and tilt turn it about a point on its axis.
+        private void ApplyOffset()
+        {
+            Quaternion rotation = Quaternion.Euler(0f, 0f, _angle);
+            var pivot = new Vector3(0f, _pivotY, 0f);
+            transform.localRotation = rotation;
+            transform.localPosition = _home + new Vector3(_shakeX, _liftY, 0f) + pivot - rotation * pivot;
+        }
 
         private static float SpriteWidth(Sprite sprite) => sprite != null ? sprite.bounds.size.x : 1f;
 
@@ -414,12 +584,17 @@ namespace BallSort.Game.Views
             _seatKey = SeatKey;
             _beginOpening = BeginOpening;
             _finishUnlock = FinishUnlock;
+            _swayStep = SwayStep;
+            _liftStep = LiftStep;
+            _beginLift = BeginLift;
+            _finishLift = FinishLift;
         }
 
         private void OnDestroy()
         {
             BoardTweens.KillIfActive(_shakeTween);
-            BoardTweens.KillIfActive(_unlock);
+            BoardTweens.KillIfActive(_opening);
+            BoardTweens.KillIfActive(_sway);
         }
     }
 }

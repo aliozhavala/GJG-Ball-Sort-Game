@@ -130,9 +130,27 @@ namespace BallSort.Game.Views
         [Tooltip("Half-open frame while the eyes open again.")]
         [SerializeField, Min(0f)] private float _blinkOpenDuration = 0.08f;
 
+        [Header("3.1 Hidden reveal")]
+        [Tooltip("A \"?\" ball turns over like a card (horizontal scale |cos|); its colour shows half-way.")]
+        [SerializeField, Min(0.01f)] private float _revealFlipDuration = 0.32f;
+
         [Header("3.2 Veil (towel)")]
-        [Tooltip("A veil opens this long after the last ball of the completing move lands.")]
+        [Tooltip("A veil starts to lift this long after the last ball of the completing move lands.")]
         [SerializeField, Min(0f)] private float _towelDelay = 0.45f;
+        [Tooltip("The lift (smoothstep): the towel rises, fades and tilts a little mid-way.")]
+        [SerializeField, Min(0.01f)] private float _towelLiftDuration = 0.6f;
+        [Tooltip("How far the towel rises, in d.")]
+        [SerializeField, Min(0f)] private float _towelRise = 2.6f;
+        [Tooltip("Tilt at the middle of the lift, in degrees, about the towel's centre.")]
+        [SerializeField] private float _towelTilt = 5f;
+        [Tooltip("When one completion opens several veils, each starts this much after the previous one.")]
+        [SerializeField, Min(0f)] private float _towelStagger = 0.08f;
+        [Tooltip("A closed towel sways gently from its rim.")]
+        [SerializeField] private bool _towelSway = true;
+        [Tooltip("Sway, either way, in degrees.")]
+        [SerializeField, Min(0f)] private float _towelSwayAngle = 1f;
+        [Tooltip("One full sway, there and back (read when the veil closes).")]
+        [SerializeField, Min(0.05f)] private float _towelSwayPeriod = 4f;
 
         [Header("3.3 Lock box")]
         [Tooltip("A found key leaves the ball this long after the last ball lands, when the move also completed a tube.")]
@@ -262,7 +280,15 @@ namespace BallSort.Game.Views
         public float BlinkCloseDuration => _blinkCloseDuration;
         public float BlinkClosedDuration => _blinkClosedDuration;
         public float BlinkOpenDuration => _blinkOpenDuration;
+        public float RevealFlipDuration => _revealFlipDuration;
         public float TowelDelay => _towelDelay;
+        public float TowelLiftDuration => _towelLiftDuration;
+        public float TowelRise => _towelRise;
+        public float TowelTilt => _towelTilt;
+        public float TowelStagger => _towelStagger;
+        public bool TowelSway => _towelSway;
+        public float TowelSwayAngle => _towelSwayAngle;
+        public float TowelSwayPeriod => _towelSwayPeriod;
         public float KeyWaitAfterComplete => _keyWaitAfterComplete;
         public float KeyFlyDuration => _keyFlyDuration;
         public Ease KeyFlyEase => _keyFlyEase;

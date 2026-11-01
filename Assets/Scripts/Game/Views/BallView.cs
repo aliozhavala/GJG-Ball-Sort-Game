@@ -99,6 +99,7 @@ namespace BallSort.Game.Views
         private Tween _faceTween;
         private Tween _blinkTween;
         private Tween _wiggleTween;
+        private Tween _flipTween;
 
         // Where the current blink is: 0 waiting, 1 closing, 2 closed, 3 opening.
         private int _blinkPhase;
@@ -124,6 +125,10 @@ namespace BallSort.Game.Views
         private TweenCallback<float> _bobStep;
         private TweenCallback<float> _wiggleStep;
         private TweenCallback _endWiggle;
+        private TweenCallback<float> _flipStep;
+        private TweenCallback _endFlip;
+        private int _flipColour;
+        private bool _flipTurned;
         private TweenCallback _onDeparted;
         private TweenCallback _onArcEnded;
         private TweenCallback _onLanded;
@@ -196,8 +201,61 @@ namespace BallSort.Game.Views
             StopBlinking();
         }
 
-        /// <summary>Turns a hidden ball face up. A key it carries stays, now visible, until <see cref="RemoveKey"/>.</summary>
-        public void Reveal(int colorId, ColorPalette palette) => ShowColour(colorId, false, palette);
+        /// <summary>
+        /// Turns a hidden ball face up. A key it carries stays, now visible, until <see cref="RemoveKey"/>.
+        /// Animated, it turns over like a card (docs/animation-spec.md, 3.1): its width goes to nothing and
+        /// back, and the colour (and key) shows half-way.
+        /// </summary>
+        public void Reveal(int colorId, ColorPalette palette, bool animate)
+        {
+            FinishReveal();
+            if (!animate)
+            {
+                ShowColour(colorId, false, palette);
+                return;
+            }
+
+            _palette = palette;
+            _flipColour = colorId;
+            _flipTurned = false;
+            _flipTween = DOVirtual.Float(0f, 1f, _animation.RevealFlipDuration, _flipStep)
+                .SetEase(Ease.Linear).OnComplete(_endFlip).OnBoardClock();
+        }
+
+        /// <summary>True while the ball turns face up.</summary>
+        public bool IsFlipping => _flipTween != null && _flipTween.IsActive();
+
+        /// <summary>Ends a reveal flip at once, face up.</summary>
+        public void FinishReveal() => BoardTweens.CompleteIfActive(_flipTween);
+
+        private void FlipStep(float u)
+        {
+            if (!_flipTurned && u >= 0.5f)
+            {
+                Turn();
+            }
+
+            _face.localScale = new Vector3(Mathf.Abs(Mathf.Cos(Mathf.PI * u)), 1f, 1f);
+        }
+
+        private void EndFlip()
+        {
+            _flipTween = null;
+            Turn();
+            _face.localScale = Vector3.one;
+        }
+
+        // Shows the colour, in whatever face the ball holds now (it may have started laughing meanwhile).
+        private void Turn()
+        {
+            if (_flipTurned)
+            {
+                return;
+            }
+
+            _flipTurned = true;
+            ShowColour(_flipColour, false, _palette);
+        }
 
         /// <summary>
         /// The single entry point for the ball's resting face (open, or laughing in a completed tube).
@@ -251,6 +309,7 @@ namespace BallSort.Game.Views
         /// <returns>False when no key was drawn (the mark still goes).</returns>
         public bool TryTakeKey(out Vector3 position, out float width)
         {
+            FinishReveal();
             bool drawn = _keyMark.enabled && gameObject.activeInHierarchy;
             Bounds bounds = _keyMark.bounds;
             position = bounds.center;
@@ -395,6 +454,7 @@ namespace BallSort.Game.Views
             BoardTweens.CompleteIfActive(_hopTween);
             BoardTweens.CompleteIfActive(_bumpTween);
             BoardTweens.CompleteIfActive(_wiggleTween);
+            FinishReveal();
             if (_bobTween != null && _bobTween.IsActive())
             {
                 SetBobbing(false);
@@ -404,6 +464,8 @@ namespace BallSort.Game.Views
         /// <summary>Kills every motion without its callbacks and resets the offsets: the ball is going back to the pool.</summary>
         public void StopMotion()
         {
+            // A reveal is information, not motion: it ends face up.
+            FinishReveal();
             KillTweens();
             _hop = 0f;
             _bump = 0f;
@@ -474,7 +536,7 @@ namespace BallSort.Game.Views
         /// holding no other face (shock) and not already blinking.
         /// </summary>
         public bool CanBlink =>
-            isActiveAndEnabled && _palette != null && _blinkPhase == 0 && CanShowBlinkFrame;
+            isActiveAndEnabled && _palette != null && _blinkPhase == 0 && !IsFlipping && CanShowBlinkFrame;
 
         private bool CanShowBlinkFrame =>
             !_isHidden && _restingExpression == BallExpression.Open && (_faceTween == null || !_faceTween.IsActive());
@@ -775,6 +837,8 @@ namespace BallSort.Game.Views
             _bobStep = BobStep;
             _wiggleStep = WiggleStep;
             _endWiggle = EndWiggle;
+            _flipStep = FlipStep;
+            _endFlip = EndFlip;
             _onDeparted = OnDeparted;
             _onArcEnded = OnArcEnded;
             _onLanded = OnLanded;

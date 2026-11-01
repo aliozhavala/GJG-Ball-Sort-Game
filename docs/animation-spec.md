@@ -2,8 +2,8 @@
 
 What is built from product's `docs/design/animations.md` §2.2–2.6 and the matching sounds of `docs/design/SFX_GUIDE.md`
 §3, plus the UI and booster sounds (SFX guide §5, §6.3, §6.4, §7), purchase feedback and the haptic calls (below). Also built:
-3.3 lock box, 3.4 ice break, 4 shuffle (one tube), 5.1 stuck timing and 6.1 blink. Not built yet: 2.1 intro, 3.1–3.2
-(reveal, towel), undo and add-tube animations, 5.2–5.4 (win, life lost, episode), the other idle and UI loops. Every number is an `AnimationConfig`
+3.1 hidden reveal, 3.2 veil lift, 3.3 lock box, 3.4 ice break, 4 shuffle (one tube), 5.1 stuck timing and 6.1 blink. Not
+built yet: 2.1 intro, undo and add-tube animations, 5.2–5.4 (win, life lost, episode), the other idle and UI loops. Every number is an `AnimationConfig`
 field (Inspector-tunable); sound rules are on `SfxConfig`. Choices that differ from the product document are marked
 **(ours)**.
 
@@ -54,7 +54,7 @@ The moved balls (top first, partial moves included) each fly three segments, bal
   none below `_stretchMinSpeed` **0.15 SW/s**.
 - **Trail** (`_trail` on) during arc and drop: `_trailTime` **0.15 s** (9 frames at 60 fps), ball colour, widening to
   `_trailWidth` **1.4** × radius, alpha up to `_trailAlpha` **0.45**; cleared on landing.
-- The source's new top is revealed (snap until 3.1) when the last moved ball has left it (end of its rise).
+- The source's new top turns face up (3.1) when the last moved ball has left it (end of its rise).
 - **Undo** uses the same flight, all balls reversed, without land sounds (SFX guide §5); its 1.7× speed is §4, later.
 
 ## 2.4 Landing (each ball, at the end of its drop)
@@ -100,11 +100,40 @@ Starts when the completed tube's **last ball lands** (move or undo). From there:
 
 ## Later beats in the same move
 Timed so the order reads right.
-- Veil opens `_towelDelay` **0.45 s** after the last land (a snap until 3.2).
+- Veil lifts `_towelDelay` **0.45 s** after the last land (3.2).
 - The key leaves at the last land (+ `_keyWaitAfterComplete` **0.25 s** if a tube completed), never before a veil the
-  same move opened, and never before a lock box opened earlier in the same move has shown its tubes (a key inside a box
-  that is still opening; no shipped level does it); its lock box opens with it (3.3).
+  same move opened has finished lifting **(ours: the towel is gone, not just starting)**, a lock box opened earlier in
+  the same move has shown its tubes (a key inside a box that is still opening; no shipped level does it), or a ball a
+  shuffle turned face up has finished turning; its lock box opens with it (3.3).
 - Win: the celebration starts once the board has settled.
+
+## 3.1 Hidden reveal
+- **When:** after a move, the moment the last moving ball has left the tube (end of its rise; product's fixed 0.14 s is
+  the same moment, ours follows the flight); after a shuffle, when its balls have landed.
+- **Flip:** the ball's `Face` scales horizontally by |cos(πu)| over `_revealFlipDuration` **0.32 s** (linear u), so it
+  narrows to nothing and widens again; at the midpoint the "?" becomes the creature, in whatever face it holds then
+  (laughing if the reveal completed its tube), with its key in its hands if it carries one. `BallView.Reveal(…, animate)`.
+- **VFX:** pooled `Vfx_RevealPuff`: 10 lilac smoke circles, 0.45–0.6 s, drawn on Balls −1, behind the balls
+  **(ours: on VFX it covered the flip)**.
+- **Sound** `hiddenReveal` and a Light haptic at the flip's start, after a move only: a shuffle's reveal flips and puffs
+  silently (SFX guide 4.1).
+- A ball that is turning never blinks. Touching its tube, snapping or pooling the ball, or its key leaving for the lock
+  box ends the flip at once, face up (the reveal is information, so it is never undone).
+
+## 3.2 Veil lifts
+- **When:** `_towelDelay` **0.45 s** after the completing move's last land; each further veil the same completion
+  opens starts `_towelStagger` **0.08 s** after the previous one. `CoverView.PlayVeilLift`, a beat on the veiled tube.
+- **Lift:** over `_towelLiftDuration` **0.6 s**, smoothstep s = u²(3 − 2u): the towel and its sticker rise
+  `_towelRise` **2.6 d** × s and fade to 1 − s, tilting `_towelTilt` **5°** × sin(πu) about the towel's middle (most
+  mid-way, straight at both ends). The tube's balls show at the lift's start, under the fading towel.
+- **VFX at the start:** pooled `Vfx_TowelPuff` (12 pink smoke circles over the towel's middle, 0.5–0.75 s, alpha 0.45)
+  and `Vfx_TowelSparks` (10 gold sparks up from the tube's mouth).
+- **Sound** `towelPull` and a Heavy haptic, once per completion (the first veil only).
+- **Sway (idle):** a closed towel turns ±`_towelSwayAngle` **1°** about its rim, one full sway per `_towelSwayPeriod`
+  **4 s**, each veil with its own random phase; `_towelSway` turns it off (read every step). A whole-towel turn
+  **(ours: product's "hem sways"; a sliced sprite cannot bend)**. It stops when the lift starts.
+- A tap on the veiled tube during the lift ends it at once (towel gone); a tap before it starts shakes the towel with
+  its tube (2.5).
 
 ## 3.3 Lock box opens
 Ours, replacing product's §3.3 (wobble, splinters, ring, crate scaling up): the key flies into the box's slot, the mid
@@ -195,6 +224,8 @@ Adapted from product's §4 (a board-wide shuffle staggered by tube) to the singl
 | `invalid` | invalid tap | 1 |
 | `tubeCompleteChime` | last ball lands in a completed tube | 2^(min(chain, 12) / 12) × random ±3 % |
 | `tubeCork` | cork seats | random ±3 % |
+| `hiddenReveal` | a hidden ball starts to turn after a move (not after a shuffle) (3.1) | random ±3 % |
+| `towelPull` | the first veil of a completion starts to lift (3.2) | random ±3 % |
 | `lockboxKeyFly` / `lockboxKeyIn` / `lockboxBreak` | lock box: key starts, key seats, covers slide (3.3) | random ±3 % |
 
 Master volume `_sfxVolume` **0.7**; every clip plays at 1.0 into it. Sounds overlap freely on 10 pooled sources (the
@@ -243,9 +274,10 @@ logs each call, to check them.
 | Selection | ball lifts |
 | Medium (`Landing`) | each ball lands (not on undo) |
 | Medium | a lock box's key seats (3.3) |
+| Light | a hidden ball turns face up after a move (3.1) |
 | Warning | invalid tap or move; the stuck bar appearing; a life lost |
 | Success | cork seats; booster bought; lives refilled |
-| Heavy | the ice bursts (3.4); a lock box's covers slide open (3.3) |
+| Heavy | the ice bursts (3.4); a lock box's covers slide open (3.3); a veil lifts (3.2, once per completion) |
 | Light | every button and toggle press (not popups' ✕ or the name pen); each booster applied |
 
-Haptics for sounds not played yet (reveal, towel, win, rewards) come with those sounds.
+Haptics for sounds not played yet (win, rewards) come with those sounds.

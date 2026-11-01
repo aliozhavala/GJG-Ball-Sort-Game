@@ -1113,3 +1113,22 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 - Play mode, editor test visit of `TestLevels/lock_and_key.json` V1 (move tube 0 → 2 frees the key): screenshots of
   the key's flight, the seat and wobble, the covers sliding, the fade and the open box; a one-tube box checked by
   refitting the box to one tube's width (covers start clipped, end clipped at the edges).
+
+## 2026-11-01 — Animations stage 2: veil lift and hidden reveal (docs/animation-spec.md 3.1, 3.2)
+
+- New `Prefabs/VFX/Vfx_RevealPuff.prefab`: `Vfx_IceBreak`'s `Puff` system on its own with a `VfxBurst` (`_root` = it):
+  10 particles, lifetime 0.45–0.6, speed 0.3–0.7, size 0.3–0.55, shape radius 0.25, start colour lilac
+  (0.78, 0.64, 1, 0.6); renderer sorting layer Balls −1 (behind the balls).
+- New `Prefabs/VFX/Vfx_TowelPuff.prefab`: the same puff, 12 particles, lifetime 0.5–0.75, speed 0.3–0.9, size
+  0.5–0.85, radius 0.7, pink (1, 0.64, 0.86, 0.45); VFX −1.
+- New `Prefabs/VFX/Vfx_TowelSparks.prefab`: copy of `Vfx_TubeSparkles`, burst 10, start colour gold (1, 0.82, 0.3);
+  `VfxBurst._mixed` emptied and `_chainScaled` cleared (no colour mix, no chain growth).
+- `Scenes/Level.unity`, `LevelFlow` object's `LevelFeedback`: `_revealPuff`, `_towelPuff`, `_towelSparks` → the three
+  prefabs.
+- `AnimationConfig.asset`: new fields only (code defaults).
+
+### Verification
+- EditMode tests: 1776 passed, 0 failed. Console: no errors; the test fixture's tutorial warning (level 904).
+- Play mode, editor test visit of `TestLevels/veil.json` V5: moves 0 → 2, 1 → 0 (red completes, the veil lifts:
+  screenshots of the start with smoke and sparks, mid-lift with the tilt, the end), then 1 → 4, 1 → 2 (the hidden ball
+  turns: screenshots mid-flip and after).
