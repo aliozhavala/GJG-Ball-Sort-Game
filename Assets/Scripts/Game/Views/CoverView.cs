@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using BallSort.Core.Levels;
 using BallSort.Core.Model;
@@ -38,6 +39,24 @@ namespace BallSort.Game.Views
         private float _diameter;
         private TweenCallback<float> _shakeStep;
 
+        // The unlock (docs/animation-spec.md, 3.3).
+        private Sequence _unlock;
+        private BallView _keyBall;
+        private TubeView _keyTube;
+        private Action<CoverView, LockBeat> _beat;
+        private Vector3 _keyFrom;
+        private float _keyFromWidth;
+        private Vector3 _keyControl;
+        private TweenCallback<float> _keyFlightStep;
+        private TweenCallback<float> _keyFadeStep;
+        private TweenCallback<float> _wobbleStep;
+        private TweenCallback<float> _doorStep;
+        private TweenCallback<float> _boxFadeStep;
+        private TweenCallback _startKeyFlight;
+        private TweenCallback _seatKey;
+        private TweenCallback _beginOpening;
+        private TweenCallback _finishUnlock;
+
         public CoverKind Kind { get; private set; }
 
         /// <summary>The veil's colour id or the lock's id.</summary>
@@ -46,7 +65,11 @@ namespace BallSort.Game.Views
         /// <summary>The covered tubes; one for a veil, every tube of the lock for a lock box.</summary>
         public IReadOnlyList<TubeView> Tubes => _tubes;
 
+        /// <summary>The model's state: open from the moment its opening is scheduled.</summary>
         public bool IsOpen { get; private set; }
+
+        /// <summary>Still drawn over its tubes: closed, or open but still playing its opening.</summary>
+        public bool IsDrawn => !IsOpen || (_unlock != null && _unlock.IsActive());
 
         /// <summary>
         /// Makes this a veil that opens on <paramref name="colorId"/>, and forgets any previous tubes.
@@ -80,7 +103,7 @@ namespace BallSort.Game.Views
             _body.sprite = null;
             _icon.sprite = null;
             _lockBox.gameObject.SetActive(true);
-            _lockBox.Setup(config, locks.GetMid(lockId));
+            _lockBox.Setup(config, locks.GetMid(lockId), locks.GetKey(lockId));
         }
 
         private void Begin(CoverKind kind, int id)
@@ -167,9 +190,16 @@ namespace BallSort.Game.Views
         /// <summary>
         /// The single entry point for a cover's state: closed shows the cover and hides the covered
         /// balls (a veil leaves its tube's bottom ball showing under its hem; a lock box hides them all),
-        /// open hides the cover and shows them again. Snaps for now.
+        /// open hides the cover and shows them again. Snaps, ending an opening still playing; a lock's
+        /// opening is <see cref="PlayUnlock"/>.
         /// </summary>
         public void SetOpen(bool open)
+        {
+            KillUnlock();
+            ApplyOpen(open);
+        }
+
+        private void ApplyOpen(bool open)
         {
             IsOpen = open;
             _body.enabled = !open && _body.sprite != null;
@@ -203,9 +233,152 @@ namespace BallSort.Game.Views
             }
         }
 
-        /// <summary>Ends a running shake: the cover is rebuilt or pooled.</summary>
+        /// <summary>
+        /// Plays a lock box's opening (docs/animation-spec.md, 3.3) after <paramref name="delay"/> seconds
+        /// of board time: the key leaves <paramref name="keyBall"/>'s hands and flies into the slot, the box
+        /// wobbles as it seats and the key fades; then the mid gives way to the two cover halves, which
+        /// slide apart and show the tubes (with the inside behind them), and the rest of the box fades.
+        /// The cover counts as open from now on. <paramref name="beat"/> hears each step that plays in time,
+        /// not those a tap on a tube skips through.
+        /// </summary>
+        /// <param name="keyBall">The ball holding the key, or null to open without the key's flight.</param>
+        /// <param name="keyTube">The key ball's tube, which can finish the opening like the box's own tubes.</param>
+        /// <returns>The opening, to keep as a beat on the box's tubes and the key's.</returns>
+        public Tween PlayUnlock(
+            BallView keyBall, TubeView keyTube, float delay, float ballDiameter, AnimationConfig animation,
+            Action<CoverView, LockBeat> beat)
+        {
+            KillUnlock();
+            IsOpen = true;
+            _animation = animation;
+            _diameter = ballDiameter;
+            _keyBall = keyBall;
+            _keyTube = keyTube;
+            _beat = beat;
+
+            float fly = animation.KeyFlyDuration;
+            float wobble = animation.BoxWobbleDuration;
+            float fade = animation.LockFadeDuration;
+            float open = fly + animation.BoxOpenDelay;
+            float fadeOut = open + animation.BoxSlideDuration + animation.BoxHoldDuration;
+
+            Sequence unlock = DOTween.Sequence();
+            unlock.InsertCallback(0f, _startKeyFlight);
+            unlock.Insert(0f, DOVirtual.Float(0f, 1f, fly, _keyFlightStep).SetEase(animation.KeyFlyEase));
+            unlock.InsertCallback(fly, _seatKey);
+            unlock.Insert(fly, DOVirtual.Float(0f, wobble, wobble, _wobbleStep).SetEase(Ease.Linear));
+            unlock.Insert(fly + animation.KeyHoldDuration, DOVirtual.Float(1f, 0f, fade, _keyFadeStep).SetEase(Ease.Linear));
+            unlock.InsertCallback(open, _beginOpening);
+            unlock.Insert(open, DOVirtual.Float(0f, 1f, animation.BoxSlideDuration, _doorStep).SetEase(animation.BoxSlideEase));
+            unlock.Insert(fadeOut, DOVirtual.Float(1f, 0f, fade, _boxFadeStep).SetEase(Ease.Linear));
+            unlock.OnComplete(_finishUnlock);
+            unlock.SetDelay(delay);
+            _unlock = unlock.OnBoardClock();
+            return _unlock;
+        }
+
+        // The key leaves the ball's hands (or appears in the slot when there is no ball to take it from).
+        private void StartKeyFlight()
+        {
+            Transform box = _lockBox.transform;
+            if (_keyBall != null && _keyBall.TryTakeKey(out Vector3 position, out float width))
+            {
+                _keyFrom = box.InverseTransformPoint(position);
+                _keyFromWidth = width / Mathf.Max(Mathf.Abs(box.lossyScale.x), 0.0001f);
+            }
+            else
+            {
+                _keyFrom = _lockBox.SlotPosition;
+                _keyFromWidth = _lockBox.SeatedKeyWidth;
+            }
+
+            // A quadratic Bezier whose control point sits above the higher end.
+            Vector3 to = _lockBox.SlotPosition;
+            _keyControl = new Vector3(
+                (_keyFrom.x + to.x) * 0.5f, Mathf.Max(_keyFrom.y, to.y) + _animation.KeyArcHeight * _diameter, 0f);
+            _lockBox.SetKeyPose(_keyFrom, _keyFromWidth, 1f);
+            Beat(LockBeat.KeyFlying);
+        }
+
+        private void KeyFlightStep(float u)
+        {
+            float v = 1f - u;
+            Vector3 position = v * v * _keyFrom + 2f * v * u * _keyControl + u * u * _lockBox.SlotPosition;
+            _lockBox.SetKeyPose(position, Mathf.Lerp(_keyFromWidth, _lockBox.SeatedKeyWidth, u), 1f);
+        }
+
+        private void SeatKey() => Beat(LockBeat.KeySeated);
+
+        private void KeyFadeStep(float alpha) =>
+            _lockBox.SetKeyPose(_lockBox.SlotPosition, _lockBox.SeatedKeyWidth, alpha);
+
+        // A damped tilt and squash that dies out by the end of the wobble.
+        private void WobbleStep(float t)
+        {
+            float duration = _animation.BoxWobbleDuration;
+            float envelope = Mathf.Exp(-_animation.BoxWobbleDamping * t) * Mathf.Clamp01(1f - t / duration);
+            float phase = _animation.BoxWobbleFrequency * t;
+            _lockBox.SetWobble(
+                _animation.BoxWobbleAngle * Mathf.Sin(phase) * envelope,
+                _animation.BoxWobbleSquash * Mathf.Cos(phase) * envelope);
+        }
+
+        // The mid gives way to the covers, and the tubes' balls are drawn again behind them.
+        private void BeginOpening()
+        {
+            _lockBox.SetWobble(0f, 0f);
+            _lockBox.BeginOpening();
+            foreach (TubeView tube in _tubes)
+            {
+                tube.SetCovered(false, showBottomBall: false);
+            }
+
+            Beat(LockBeat.Opening);
+        }
+
+        private void DoorStep(float progress) => _lockBox.SetDoors(progress);
+
+        private void BoxFadeStep(float alpha) => _lockBox.SetFade(alpha);
+
+        private void FinishUnlock()
+        {
+            _unlock = null;
+            _keyBall = null;
+            _keyTube = null;
+            ApplyOpen(true);
+        }
+
+        // A step a tap skips through (finishing a tube's beats) stays silent.
+        private void Beat(LockBeat beat)
+        {
+            if (_keyTube != null && _keyTube.IsFinishing)
+            {
+                return;
+            }
+
+            foreach (TubeView tube in _tubes)
+            {
+                if (tube.IsFinishing)
+                {
+                    return;
+                }
+            }
+
+            _beat?.Invoke(this, beat);
+        }
+
+        private void KillUnlock()
+        {
+            BoardTweens.KillIfActive(_unlock);
+            _unlock = null;
+            _keyBall = null;
+            _keyTube = null;
+        }
+
+        /// <summary>Ends a running shake or opening: the cover is rebuilt or pooled.</summary>
         public void StopMotion()
         {
+            KillUnlock();
             BoardTweens.KillIfActive(_shakeTween);
             _shakeX = 0f;
             ApplyOffset();
@@ -232,8 +405,21 @@ namespace BallSort.Game.Views
             }
 
             _shakeStep = ShakeStep;
+            _keyFlightStep = KeyFlightStep;
+            _keyFadeStep = KeyFadeStep;
+            _wobbleStep = WobbleStep;
+            _doorStep = DoorStep;
+            _boxFadeStep = BoxFadeStep;
+            _startKeyFlight = StartKeyFlight;
+            _seatKey = SeatKey;
+            _beginOpening = BeginOpening;
+            _finishUnlock = FinishUnlock;
         }
 
-        private void OnDestroy() => BoardTweens.KillIfActive(_shakeTween);
+        private void OnDestroy()
+        {
+            BoardTweens.KillIfActive(_shakeTween);
+            BoardTweens.KillIfActive(_unlock);
+        }
     }
 }

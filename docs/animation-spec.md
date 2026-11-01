@@ -2,8 +2,8 @@
 
 What is built from product's `docs/design/animations.md` §2.2–2.6 and the matching sounds of `docs/design/SFX_GUIDE.md`
 §3, plus the UI and booster sounds (SFX guide §5, §6.3, §6.4, §7), purchase feedback and the haptic calls (below). Also built:
-3.4 ice break, 4 shuffle (one tube), 5.1 stuck timing and 6.1 blink. Not built yet: 2.1 intro, 3.1–3.3 (reveal, towel,
-lock box), undo and add-tube animations, 5.2–5.4 (win, life lost, episode), the other idle and UI loops. Every number is an `AnimationConfig`
+3.3 lock box, 3.4 ice break, 4 shuffle (one tube), 5.1 stuck timing and 6.1 blink. Not built yet: 2.1 intro, 3.1–3.2
+(reveal, towel), undo and add-tube animations, 5.2–5.4 (win, life lost, episode), the other idle and UI loops. Every number is an `AnimationConfig`
 field (Inspector-tunable); sound rules are on `SfxConfig`. Choices that differ from the product document are marked
 **(ours)**.
 
@@ -13,7 +13,8 @@ field (Inspector-tunable); sound rules are on `SfxConfig`. Choices that differ f
   balls' flights (a ball leaving its tube, the last ball landing), not by fixed timers, so an interrupted flight still
   plays them in order.
 - **Input stays live.** Touching a ball or tube that is still animating finishes its tweens first (lift, flight, landing,
-  pending beats); so does a layout change (added tube).
+  pending beats); so does a layout change (added tube). A beat finished early this way snaps to its end and drops the
+  sounds it had not played yet **(ours)** (the lock box today: `TubeView.IsFinishing`).
 - **Popups** block input until their close animation ends (no popup animation yet: `Popup.IsOpen` still gates input).
 - **Board clock:** every board tween runs on DOTween's manual update, driven by `BoardClock` at `_speed` × the hit-stop
   rate. UI, input, sounds, particles and trails run on normal time. `Time.timeScale` is never touched.
@@ -97,12 +98,38 @@ Starts when the completed tube's **last ball lands** (move or undo). From there:
   the target's clear height (`TubeView.ClearHeight`, mouth + half a ball). So a flight never passes behind a rim, and a
   landing ball tucks behind the target's rim front.
 
-## Later beats in the same move (snaps until §3)
-Timed so the order reads right; §3 will replace the snaps with animations in the same places.
-- Veil opens `_towelDelay` **0.45 s** after the last land.
-- Key mark goes at the last land (+ `_keyWaitAfterComplete` **0.25 s** if a tube completed), never before a veil the
-  same move opened; its door opens right after.
+## Later beats in the same move
+Timed so the order reads right.
+- Veil opens `_towelDelay` **0.45 s** after the last land (a snap until 3.2).
+- The key leaves at the last land (+ `_keyWaitAfterComplete` **0.25 s** if a tube completed), never before a veil the
+  same move opened, and never before a lock box opened earlier in the same move has shown its tubes (a key inside a box
+  that is still opening; no shipped level does it); its lock box opens with it (3.3).
 - Win: the celebration starts once the board has settled.
+
+## 3.3 Lock box opens
+Ours, replacing product's §3.3 (wobble, splinters, ring, crate scaling up): the key flies into the box's slot, the mid
+gives way to the two cover halves, which slide apart like doors, then the box fades. SFX guide 4.3's timings are kept.
+Starts at the key's time (Later beats, above); `BoardView.OnLockOpened` → `CoverView.PlayUnlock` → `LockBoxView`.
+
+| t (from the key's start) | Piece | Values | Sound, haptic |
+|---|---|---|---|
+| 0 | Key flies | leaves the ball's hands (`BallView.TryTakeKey`) and flies a quadratic Bézier to the mid's key slot, its control point `_keyArcHeight` **1.5 d** above the higher end; grows from its size in the hands to the slot's (`TubeVisualConfig._lockSlotKeyWidth` 0.68 of the mid); `_keyFlyDuration` **0.6 s**, `_keyFlyEase` **InOutCubic** | `lockboxKeyFly` |
+| 0.6 | Key seats, box wobbles | the box tilts ±`_boxWobbleAngle` **2°** (sin) and squashes `_boxWobbleSquash` **5 %** wider and lower (cos) about its base, at `_boxWobbleFrequency` **40**, damped by e^(−`_boxWobbleDamping` 12·t) × (1 − t / duration) over `_boxWobbleDuration` **0.25 s** **(ours, asked for)**; the key holds `_keyHoldDuration` **0.1 s**, then fades over `_lockFadeDuration` **0.25 s** | `lockboxKeyIn`, Medium |
+| 0.6 + `_boxOpenDelay` **0.55** | Covers slide | the mid gives way to the two cover halves, meeting in the middle (where their bars end, `_lockCoverInnerEdge`), so the notches show the empty slot; the inside appears behind the tubes and their balls are drawn again. The covers' centres slide to the box's edges over `_boxSlideDuration` **0.45 s**, `_boxSlideEase` **OutCubic** | `lockboxBreak`, Heavy |
+| + slide + `_boxHoldDuration` **0.15** | Box fades | sides, covers and inside fade over `_lockFadeDuration` **0.25 s**; then the cover is open (`CoverView.SetOpen` state) | none |
+
+- **Doors (ours):** each face is the door panel behind its cover: it runs from its side to the cover's centre, so it
+  shrinks as the cover slides out. A `SpriteMask` the size of the box clips the covers at its edges, under the sides
+  (TubeFront 7, over the covers' 6), so the doors slide into the frame. Needed because two covers (2 × 152 px of art)
+  are wider than a one-tube box (261 px): there they start clipped and slide out less, never inwards.
+- **Sound for the seat:** `lockboxKeyIn` (a thump, then the lock's two clicks at 0.40 s) is the best fit of the pack;
+  the box opens 0.55 s after the seat, after the clicks.
+- One sound of each per box, however many tubes it spans. The whole opening lasts about 2.0 s; the board is not
+  settled until it ends, so the stuck bar waits for it.
+- **Interrupting:** the opening is a beat on the box's tubes and on the key's tube. Touching any of them plays it to
+  the end at once (box open, key gone) without its remaining sounds. Restart and pooling end it without playing it.
+- **Invalid tap** on a box's tube while the box is still drawn (closed or opening) shakes the whole cover with its tubes
+  (`CoverView.IsDrawn`).
 
 ## 3.4 Ice break
 Plays with the normal completion (2.6) when a clay (ice) tube completes; an unfinished clay tube keeps its ice.
@@ -168,6 +195,7 @@ Adapted from product's §4 (a board-wide shuffle staggered by tube) to the singl
 | `invalid` | invalid tap | 1 |
 | `tubeCompleteChime` | last ball lands in a completed tube | 2^(min(chain, 12) / 12) × random ±3 % |
 | `tubeCork` | cork seats | random ±3 % |
+| `lockboxKeyFly` / `lockboxKeyIn` / `lockboxBreak` | lock box: key starts, key seats, covers slide (3.3) | random ±3 % |
 
 Master volume `_sfxVolume` **0.7**; every clip plays at 1.0 into it. Sounds overlap freely on 10 pooled sources (the
 oldest is cut when all are busy). The Sound setting off mutes everything, including sounds already playing. Random
@@ -214,9 +242,10 @@ logs each call, to check them.
 |---|---|
 | Selection | ball lifts |
 | Medium (`Landing`) | each ball lands (not on undo) |
+| Medium | a lock box's key seats (3.3) |
 | Warning | invalid tap or move; the stuck bar appearing; a life lost |
 | Success | cork seats; booster bought; lives refilled |
-| Heavy | the ice bursts (3.4) |
+| Heavy | the ice bursts (3.4); a lock box's covers slide open (3.3) |
 | Light | every button and toggle press (not popups' ✕ or the name pen); each booster applied |
 
-Haptics for sounds not played yet (reveal, towel, lock box, win, rewards) come with those sounds.
+Haptics for sounds not played yet (reveal, towel, win, rewards) come with those sounds.

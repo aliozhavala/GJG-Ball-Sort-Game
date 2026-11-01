@@ -1094,3 +1094,22 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 - `Prefabs/Tube.prefab`: `Bottom` SpriteRenderer sorting layer TubeBack 0 → TubeFront 0 (over resting balls, under
   clay, cork and rim front; raised balls stay above it).
 - `Data/Levels/level_100.json`: `tier` `superHard` → `regular` (text edit).
+
+## 2026-11-01 — Animations stage 1: lock box opening (docs/animation-spec.md 3.3)
+
+- New `Art/Sprites/Placeholder/Mask_Square.png` (generated: 100×100 white, Sprite, PPU 100, centre pivot, full rect, no
+  mipmaps): the shape of the lock box's `SpriteMask`.
+- `Prefabs/Cover.prefab`, under `LockBox`:
+  - new child `Mask` (`SpriteMask`, sprite `Mask_Square`, disabled; `LockBoxView` sizes it to the box and enables it
+    while the box opens) → `LockBoxView._mask`;
+  - new child `Key` (SpriteRenderer, Sprite-Unlit-Default, TubeFront 8, disabled) → `LockBoxView._key`;
+  - `CoverLeft`, `CoverRight`: Mask Interaction → Visible Inside Mask;
+  - `SideLeft`, `SideRight`: sorting order 4 → 7 (over the sliding covers).
+- `AnimationConfig.asset`, `TubeVisualConfig.asset`: new fields only (code defaults; nothing edited).
+
+### Verification
+- EditMode tests: 1776 passed, 0 failed. Console: no errors; one warning from the test fixture (level 905 has no
+  tutorial text).
+- Play mode, editor test visit of `TestLevels/lock_and_key.json` V1 (move tube 0 → 2 frees the key): screenshots of
+  the key's flight, the seat and wobble, the covers sliding, the fade and the open box; a one-tube box checked by
+  refitting the box to one tube's width (covers start clipped, end clipped at the edges).

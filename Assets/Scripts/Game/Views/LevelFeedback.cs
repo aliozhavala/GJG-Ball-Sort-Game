@@ -74,6 +74,7 @@ namespace BallSort.Game.Views
             _board.CompletionStarted += PlayTubeCompleted;
             _board.CorkSeated += OnCorkSeated;
             _board.IceBroken += OnIceBroken;
+            _board.LockBeatPlayed += OnLockBeat;
             _celebration.SetActive(false);
 
             Transform effects = board.transform;
@@ -231,6 +232,28 @@ namespace BallSort.Game.Views
             }
         }
 
+        /// <summary>
+        /// A lock box's opening (docs/animation-spec.md, 3.3; SFX guide 4.3): one sound per box at each
+        /// step, the key's flight, its seating (with the box's wobble) and the covers sliding open.
+        /// </summary>
+        private void OnLockBeat(CoverView box, LockBeat beat)
+        {
+            switch (beat)
+            {
+                case LockBeat.KeyFlying:
+                    _audio.Play(Sfx.LockboxKeyFly);
+                    break;
+                case LockBeat.KeySeated:
+                    _audio.Play(Sfx.LockboxKeyIn);
+                    _haptics.Medium();
+                    break;
+                case LockBeat.Opening:
+                    _audio.Play(Sfx.LockboxBreak);
+                    _haptics.Heavy();
+                    break;
+            }
+        }
+
         private void PunchStep(float t) =>
             _board.Layout.SetPunch(1f + _animation.PunchScale * BoardTweens.HalfSine(t, _animation.PunchDuration));
 
@@ -277,6 +300,7 @@ namespace BallSort.Game.Views
                 _board.CompletionStarted -= PlayTubeCompleted;
                 _board.CorkSeated -= OnCorkSeated;
                 _board.IceBroken -= OnIceBroken;
+                _board.LockBeatPlayed -= OnLockBeat;
             }
         }
 

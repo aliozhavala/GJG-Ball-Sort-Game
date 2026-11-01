@@ -63,12 +63,34 @@ namespace BallSort.Game.Views
         private int _liftedTube = -1;
         private Action<BallView> _onBallDeparted;
         private Action<BallView> _onBallLanded;
+        private Action<CoverView, LockBeat> _onLockBeat;
 
         // The move or undo whose events are arriving: where its balls land, and what it has done so far.
         private int _operationTarget = -1;
         private bool _operationCompleted;
         private bool _operationOpenedVeil;
         private bool _operationIsShuffle;
+
+        // Board time after the landing by which the covers this operation opened show their tubes: a key
+        // found later in it waits for them (a key inside a lock box that is still opening, or under a veil).
+        private float _operationCoversShownBy;
+
+        // Keys found in this operation whose lock has not opened yet (the lock opens right after).
+        private readonly List<PendingKey> _pendingKeys = new List<PendingKey>();
+
+        private readonly struct PendingKey
+        {
+            public PendingKey(int lockId, BallView ball, TubeView tube)
+            {
+                LockId = lockId;
+                Ball = ball;
+                Tube = tube;
+            }
+
+            public int LockId { get; }
+            public BallView Ball { get; }
+            public TubeView Tube { get; }
+        }
 #if UNITY_EDITOR
         private bool _tubeConfigChanged;
 #endif
@@ -121,6 +143,9 @@ namespace BallSort.Game.Views
         /// completion: the tube, and where the ice was (world space).
         /// </summary>
         public event Action<TubeView, Vector3> IceBroken;
+
+        /// <summary>A lock box's opening reached a step (key flying, key seated, covers opening), in time.</summary>
+        public event Action<CoverView, LockBeat> LockBeatPlayed;
 
         /// <summary>Shows <paramref name="session"/>'s board and follows its events until destroyed.</summary>
         public void Initialize(LevelSession session)
@@ -222,6 +247,7 @@ namespace BallSort.Game.Views
             _ballBuffer.Clear();
             _liftedTube = -1;
             _operationTarget = -1;
+            _pendingKeys.Clear();
         }
 
         private void Rebuild()
@@ -330,7 +356,7 @@ namespace BallSort.Game.Views
         {
             foreach (CoverView cover in _covers)
             {
-                if (cover.IsOpen)
+                if (!cover.IsDrawn)
                 {
                     continue;
                 }
@@ -391,6 +417,8 @@ namespace BallSort.Game.Views
             _operationCompleted = false;
             _operationOpenedVeil = false;
             _operationIsShuffle = false;
+            _operationCoversShownBy = 0f;
+            _pendingKeys.Clear();
         }
 
         private void OnMoveApplied(MoveEventArgs e)
@@ -548,39 +576,90 @@ namespace BallSort.Game.Views
             }
         }
 
-        // Snaps until the key flight (§3.3).
+        // The key flies with its lock's opening, which comes right after (§3.3).
         private void OnKeyFound(KeyFoundEventArgs e)
         {
             TubeView tube = _tubes[e.TubeIndex];
             BallView ball = tube.Balls[e.SlotIndex];
+            if (TryFindLockBox(e.LockId, out _))
+            {
+                _pendingKeys.Add(new PendingKey(e.LockId, ball, tube));
+                return;
+            }
+
+            // No box drawn for the lock (a level error, logged at build): the mark just goes.
             _singleTube.Clear();
             _singleTube.Add(tube);
             AfterLanding(KeyDelay(), _singleTube, ball.RemoveKey);
         }
 
+        /// <summary>
+        /// The lock box opens (docs/animation-spec.md, 3.3): its key flies from the ball into the slot,
+        /// then the box opens. Touching the box's tubes or the key's tube plays it to the end at once.
+        /// </summary>
         private void OnLockOpened(LockOpenedEventArgs e)
         {
-            if (TryFindLockBox(e.LockId, out CoverView box))
+            if (!TryFindLockBox(e.LockId, out CoverView box))
             {
-                AfterLanding(KeyDelay(), box.Tubes, () => box.SetOpen(true));
+                return;
             }
+
+            BallView keyBall = null;
+            TubeView keyTube = null;
+            for (int i = 0; i < _pendingKeys.Count; i++)
+            {
+                if (_pendingKeys[i].LockId == e.LockId)
+                {
+                    keyBall = _pendingKeys[i].Ball;
+                    keyTube = _pendingKeys[i].Tube;
+                    _pendingKeys.RemoveAt(i);
+                    break;
+                }
+            }
+
+            float delay = KeyDelay();
+            _operationCoversShownBy = Mathf.Max(_operationCoversShownBy, delay + _animation.UnlockRevealTime);
+            var affected = new List<TubeView>(box.Tubes);
+            if (keyTube != null && !affected.Contains(keyTube))
+            {
+                affected.Add(keyTube);
+            }
+
+            float diameter = _tubeConfig.BallDiameter;
+            AfterLanding(affected, () => box.PlayUnlock(keyBall, keyTube, delay, diameter, _animation, _onLockBeat));
         }
 
+        private void OnLockBeat(CoverView box, LockBeat beat) => LockBeatPlayed?.Invoke(box, beat);
+
         /// <summary>
-        /// A key mark leaves (and its lock box opens) at the landing: after the completion's beat when the
-        /// move completed a tube, and never before a veil the same move opened.
+        /// A found key leaves its ball at the landing: after the completion's beat when the move completed
+        /// a tube, never before a veil the same move opened, and not before the covers opened earlier in
+        /// the same move show their tubes (a key inside a lock box that is still opening).
         /// </summary>
         private float KeyDelay()
         {
             float delay = _operationCompleted ? _animation.KeyWaitAfterComplete : 0f;
-            return _operationOpenedVeil ? Mathf.Max(delay, _animation.TowelDelay) : delay;
+            if (_operationOpenedVeil)
+            {
+                delay = Mathf.Max(delay, _animation.TowelDelay);
+            }
+
+            return Mathf.Max(delay, _operationCoversShownBy);
         }
 
         /// <summary>
         /// Plays <paramref name="action"/> <paramref name="delay"/> seconds of board time after the
         /// operation's balls have landed. Touching any of <paramref name="tubes"/> plays it at once.
         /// </summary>
-        private void AfterLanding(float delay, IReadOnlyList<TubeView> tubes, TweenCallback action)
+        private void AfterLanding(float delay, IReadOnlyList<TubeView> tubes, TweenCallback action) =>
+            AfterLanding(tubes, () => DOVirtual.DelayedCall(delay, action, false).OnBoardClock());
+
+        /// <summary>
+        /// Starts the beat <paramref name="play"/> builds (already delayed and on the board clock) once
+        /// the operation's balls have landed, and keeps it with <paramref name="tubes"/>: touching any of
+        /// them plays it at once.
+        /// </summary>
+        private void AfterLanding(IReadOnlyList<TubeView> tubes, Func<Tween> play)
         {
             TubeView target = _operationTarget >= 0 && _operationTarget < _tubes.Count ? _tubes[_operationTarget] : null;
             var affected = new TubeView[tubes.Count];
@@ -591,7 +670,7 @@ namespace BallSort.Game.Views
 
             void Schedule()
             {
-                Tween beat = DOVirtual.DelayedCall(delay, action, false).OnBoardClock();
+                Tween beat = play();
                 foreach (TubeView tube in affected)
                 {
                     tube.AddBeat(beat);
@@ -679,6 +758,7 @@ namespace BallSort.Game.Views
 
             _onBallDeparted = OnBallDeparted;
             _onBallLanded = OnBallLanded;
+            _onLockBeat = OnLockBeat;
             _blinks = new BlinkScheduler(_tubes, _animation);
 
             _tubePool = new ObjectPool<TubeView>(

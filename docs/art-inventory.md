@@ -493,8 +493,11 @@ files stay in `Placeholder/`.
   and resting 0.855 apart instead of 0.91 (`_ballSpacing`: 12 px of the 256 art at the drawn size, about 4.7 %), the
   bottom ball unchanged; tube heights, row pitch and large-tube spans keep the tube geometry (`_slotHeight` 0.91), so
   no tube changed size. A full capacity-4 tube's top ball sits 0.17 units (≈36 px of art) lower.
-- **Lock box:** docs/mechanics.md, Cover visuals. Closed parts on TubeFront 4 (mid 5), the open box's inside on
-  TubeBack −2, its covers on TubeFront 6.
+- **Lock box:** docs/mechanics.md, Cover visuals. Closed parts on TubeFront 4 (mid 5, sides 7), the opening box's
+  inside on TubeBack −2, its covers on TubeFront 6 (clipped to the box by a `SpriteMask`, `Placeholder/Mask_Square`),
+  the flying key on TubeFront 8. Measured for the unlock (docs/animation-spec.md 3.3): the mid's key slot is 108 px
+  wide, centred at 0.52 of the art's height (`TubeVisualConfig._lockSlotCentre`, `_lockSlotKeyWidth` 0.68 of the mid);
+  each cover's bar ends at x 124 of its 152 px (`_lockCoverInnerEdge` 0.816), where the two halves meet.
 - **Key:** the lock's key sprite, untinted, 0.5 ball diameters wide, 0.3 below the body's centre (below the eye,
   between the arms; `ColorPalette._keyMarkSize` / `_keyMarkOffset`).
 - **Veil sticker:** the colour's open-eyes sprite, body 0.55 units wide (`TubeVisualConfig._veilStickerSize`).
@@ -506,8 +509,9 @@ files stay in `Placeholder/`.
 1. **No red lock** (the red key has no named mid; the plain mid has a red lamp, above). Five lock colours today, ids 0–4.
 2. **The face tiles show faint seams** where one tile meets the next (and where the face meets the mid), because the
    face's edges are not drawn to repeat. A face drawn to tile (matching left and right columns) would hide them.
-3. **The open box's cover halves are drawn for a one-tube box** (152 px each, ≈ the mid's width). For boxes over 2–5
-   tubes the unlock animation will have to stretch or tile them (a sliceable cover, plain middle, would help).
+3. **The open box's cover halves are drawn for a one-tube box** (152 px each, ≈ the mid's width). The unlock
+   (docs/animation-spec.md 3.3) uses them as the doors' leading edges, the faces as the door panels, so no stretching
+   is needed.
 4. **Hard levels' labels** use the red outline preset (`Baloo2-Bold SDF Red`, shared with super hard) on the purple
    button; a purple preset would match the art better (left as is, as asked for "x3").
 5. **Keys and veil stickers** are positioned by eye in the Editor (screenshots); the artist's mock-up of a monster

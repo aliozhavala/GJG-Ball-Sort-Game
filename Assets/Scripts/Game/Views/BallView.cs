@@ -242,6 +242,23 @@ namespace BallSort.Game.Views
             UpdateKeyMark();
         }
 
+        /// <summary>
+        /// The ball's key leaves its hands for the lock box (docs/animation-spec.md, 3.3): its mark goes,
+        /// and where it was drawn is given back so the flying key can start there.
+        /// </summary>
+        /// <param name="position">The key mark's centre, world space.</param>
+        /// <param name="width">Its drawn width, world space.</param>
+        /// <returns>False when no key was drawn (the mark still goes).</returns>
+        public bool TryTakeKey(out Vector3 position, out float width)
+        {
+            bool drawn = _keyMark.enabled && gameObject.activeInHierarchy;
+            Bounds bounds = _keyMark.bounds;
+            position = bounds.center;
+            width = bounds.size.x;
+            RemoveKey();
+            return drawn;
+        }
+
         /// <summary>Records which tube and slot this ball now belongs to.</summary>
         public void AssignSlot(int tubeIndex, int slot)
         {

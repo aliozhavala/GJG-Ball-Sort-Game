@@ -130,11 +130,36 @@ namespace BallSort.Game.Views
         [Tooltip("Half-open frame while the eyes open again.")]
         [SerializeField, Min(0f)] private float _blinkOpenDuration = 0.08f;
 
-        [Header("Later beats (snaps until their animations exist)")]
+        [Header("3.2 Veil (towel)")]
         [Tooltip("A veil opens this long after the last ball of the completing move lands.")]
         [SerializeField, Min(0f)] private float _towelDelay = 0.45f;
-        [Tooltip("A found key's mark leaves this long after the last ball lands, when the move also completed a tube.")]
+
+        [Header("3.3 Lock box")]
+        [Tooltip("A found key leaves the ball this long after the last ball lands, when the move also completed a tube.")]
         [SerializeField, Min(0f)] private float _keyWaitAfterComplete = 0.25f;
+        [Tooltip("The key's flight from the ball's hands into the box's slot.")]
+        [SerializeField, Min(0.01f)] private float _keyFlyDuration = 0.6f;
+        [SerializeField] private Ease _keyFlyEase = Ease.InOutCubic;
+        [Tooltip("The flight's curve: its control point sits this far above the higher end, in d (the peak is about half).")]
+        [SerializeField, Min(0f)] private float _keyArcHeight = 1.5f;
+        [Tooltip("The seated key stays this long before it fades.")]
+        [SerializeField, Min(0f)] private float _keyHoldDuration = 0.1f;
+        [Tooltip("The seated key's fade, and the open box's at the end.")]
+        [SerializeField, Min(0.01f)] private float _lockFadeDuration = 0.25f;
+        [Tooltip("When the key seats, the box wobbles: tilt, in degrees, damped.")]
+        [SerializeField, Min(0f)] private float _boxWobbleAngle = 2f;
+        [Tooltip("When the key seats, the box squashes: 0.05 = 5 % wider and lower at first, damped.")]
+        [SerializeField, Min(0f)] private float _boxWobbleSquash = 0.05f;
+        [SerializeField, Min(0.01f)] private float _boxWobbleDuration = 0.25f;
+        [SerializeField, Min(0f)] private float _boxWobbleFrequency = 40f;
+        [SerializeField, Min(0f)] private float _boxWobbleDamping = 12f;
+        [Tooltip("The box opens this long after the key seats (the lock's two clicks; SFX guide 4.3).")]
+        [SerializeField, Min(0f)] private float _boxOpenDelay = 0.55f;
+        [Tooltip("The cover halves slide apart to the box's edges.")]
+        [SerializeField, Min(0.01f)] private float _boxSlideDuration = 0.45f;
+        [SerializeField] private Ease _boxSlideEase = Ease.OutCubic;
+        [Tooltip("The open box stays this long before it fades.")]
+        [SerializeField, Min(0f)] private float _boxHoldDuration = 0.15f;
 
         [Header("4 Shuffle (one tube)")]
         [Tooltip("The shuffle's flights play this many times faster than a move's (a booster's flights).")]
@@ -239,6 +264,23 @@ namespace BallSort.Game.Views
         public float BlinkOpenDuration => _blinkOpenDuration;
         public float TowelDelay => _towelDelay;
         public float KeyWaitAfterComplete => _keyWaitAfterComplete;
+        public float KeyFlyDuration => _keyFlyDuration;
+        public Ease KeyFlyEase => _keyFlyEase;
+        public float KeyArcHeight => _keyArcHeight;
+        public float KeyHoldDuration => _keyHoldDuration;
+        public float LockFadeDuration => _lockFadeDuration;
+        public float BoxWobbleAngle => _boxWobbleAngle;
+        public float BoxWobbleSquash => _boxWobbleSquash;
+        public float BoxWobbleDuration => _boxWobbleDuration;
+        public float BoxWobbleFrequency => _boxWobbleFrequency;
+        public float BoxWobbleDamping => _boxWobbleDamping;
+        public float BoxOpenDelay => _boxOpenDelay;
+        public float BoxSlideDuration => _boxSlideDuration;
+        public Ease BoxSlideEase => _boxSlideEase;
+        public float BoxHoldDuration => _boxHoldDuration;
+
+        /// <summary>From the key's start to the moment the box's covers have slid open (the tubes show).</summary>
+        public float UnlockRevealTime => _keyFlyDuration + _boxOpenDelay + _boxSlideDuration;
         public float ShuffleSpeed => _shuffleSpeed;
         public float ShuffleStagger => _shuffleStagger;
         public float ShuffleRiseHeight => _shuffleRiseHeight;

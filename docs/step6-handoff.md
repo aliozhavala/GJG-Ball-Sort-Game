@@ -29,7 +29,7 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 | `TubeVisualConfig._claySprite` (+ `_clayScale` 1.1) | Clay (ice) at the base, over the balls inside, 1.1× the tube's drawn width; gone on completion | **Art** (`Mechanics/Clay_Ice`) |
 | `TubeVisualConfig._veilSprite` (+ `_veilHeightScale` 0.92, `_veilStickerSize`) | Veil hanging from the rim, its hem across the bottom ball; sticker = the colour's open-eyes ball | **Art** (`Mechanics/Veil_Towel`) |
 | `TubeVisualConfig._lockSideSprite` / `_lockFaceSprite` (+ `_lockBoxPadding`) | Closed lock box: sides, tiled face (`LockBoxView`) | **Art** (`Mechanics/LockBox/*`) |
-| `TubeVisualConfig._lockInsideSprite` / `_lockCoverSprite` | Open lock box: inside behind the tubes, two cover halves (hidden until the unlock animation) | **Art** |
+| `TubeVisualConfig._lockInsideSprite` / `_lockCoverSprite` | Opening lock box: inside behind the tubes, two cover halves sliding apart (docs/animation-spec.md 3.3) | **Art** |
 | `LockPalette` | Per lock id (5, ids 0–4): the box's mid section and the key | **Art** (`LockBox_Mid_<Colour>`, `Key_<Colour>`) |
 | `EpisodeConfig._episodes[n]._levelBackground` → `Level.unity/Background` | Level background per episode | **Art** (`Backgrounds/Level_Ep<N>_*`) |
 
@@ -76,8 +76,8 @@ values, rules and our deviations from product's document are in docs/animation-s
 | Select / deselect lift | `TubeView.Lift` / `Lower` → `BallView.MoveTo` (depth from `BallView.SetMouth`) | **animated** (docs/animation-spec.md 2.2) |
 | Ball move (fly + drop, staggered), landing | `BoardView.Transfer` (on `MoveApplied`, `MoveUndone` reversed) → `BallView.MoveTo(BallFlight)`; landing in `BallView` / `TubeView.NotifyLanded` | **animated** (2.3, 2.4) |
 | Reveal flip | `BallView.Reveal` (on `BallRevealed`, once the moving balls have left the tube) | snap, timed |
-| Key mark leaves | `BallView.RemoveKey` → `UpdateKeyMark` (on `KeyFound`, after the landing) | snap, timed |
-| Veil / door opens | `CoverView.SetOpen` (on `TubeUnveiled` / `LockOpened`, after the landing); it also shows the covered balls | snap, timed |
+| Key flies, lock box opens | `CoverView.PlayUnlock` → `LockBoxView` (on `KeyFound` then `LockOpened`, after the landing); key leaves via `BallView.TryTakeKey` | **animated** (docs/animation-spec.md 3.3) |
+| Veil opens | `CoverView.SetOpen` (on `TubeUnveiled`, after the landing); it also shows the covered balls | snap, timed |
 | Cork drops, glow, balls laugh and dance | `TubeView.ShowCompleted` (when the tube's last ball lands, also after an undo that completes) + `LevelFeedback.PlayTubeCompleted` (VFX) and cork seat (hit-stop, punch) | **animated** (2.6) |
 | Blinking | `BlinkScheduler` (on `BoardView`: one random ball every 2–5 s) → `BallView.TryBlink` (`HalfOpen` → `Closed` → `HalfOpen` → resting face); sprites in `ColorPalette` | **animated** (docs/animation-spec.md 6.1) |
 | Invalid move | `LevelFeedback.PlayInvalidMove` (from `TubeInput.InvalidMove`) → `BoardView.ShowInvalid` | **animated** (2.5: shake, shock face) |
@@ -97,7 +97,7 @@ Sounds: `AudioService` (on `AppRoot`, passed by the bootstraps to `LevelFlow` �
 `HomeFlow` → `HomeScreen`), `Play(Sfx, pitch)`; one slot per sound in `SfxConfig`. Hooked so far: select, deselect,
 land, invalid, completion chime, cork (from `LevelFeedback`, on `BoardView`'s presentation events), the three booster
 sounds, button, Play, reward jingle, coin gain and life lost (docs/animation-spec.md, Boosters, buttons and purchases).
-Not played yet: reveal, towel, the three lock box sounds, fanfare, title stamp (ice: docs/animation-spec.md 3.4). Haptics: `HapticsService` on
+the three lock box sounds (3.3). Not played yet: reveal, towel, fanfare, title stamp (ice: docs/animation-spec.md 3.4). Haptics: `HapticsService` on
 `AppRoot`, called next to the sounds, vibrates nothing yet (docs/animation-spec.md, Haptics).
 
 Event order within one operation (documented on `LevelSession`); animations must play in this order:
@@ -142,7 +142,7 @@ TODOs:
   hard tier button; for the animations, glow, shock faces and VFX sprites (docs/art-inventory.md, Pending for
   animations).
 - The leaderboard is fixed data (no backend, no scores); More Lives offers no way to get lives.
-- Veil / door opening animations (`CoverView.SetOpen` snaps today). The clay's break on completion is built
+- Veil opening animation (`CoverView.SetOpen` snaps today; the lock box opens animated, docs/animation-spec.md 3.3). The clay's break on completion is built
   (docs/animation-spec.md 3.4).
 - Consider adding "start position not stuck" to `LevelValidator` (today only `ShippedLevelTests` checks it).
 - Re-measure the stuck check on a device.

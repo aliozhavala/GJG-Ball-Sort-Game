@@ -109,6 +109,13 @@ namespace BallSort.Game.Views
         [Tooltip("How far the box reaches past the covered tubes: x beyond the outer rims, y below the base " +
             "and above the rim.")]
         [SerializeField] private Vector2 _lockBoxPadding = new Vector2(0.08f, 0.1f);
+        [Tooltip("Centre of the mid's triangular key slot, as a fraction of the mid art (0,0 bottom left, 1,1 top right).")]
+        [SerializeField] private Vector2 _lockSlotCentre = new Vector2(0.5f, 0.518f);
+        [Tooltip("Width of the key seated in the slot, as a fraction of the mid's width.")]
+        [SerializeField, Range(0.05f, 1f)] private float _lockSlotKeyWidth = 0.68f;
+        [Tooltip("Where the cover art's bar ends on the side that meets the other half (the notch side), as a " +
+            "fraction of the cover sprite's width: the halves meet there, not at the sprite's transparent edge.")]
+        [SerializeField, Range(0.5f, 1f)] private float _lockCoverInnerEdge = 0.816f;
 
         [Header("Clay (ice at the base of a clay tube: over the balls in it, under balls in flight)")]
         [Tooltip("Scaled to the tube's drawn width (its rim) times Clay Scale, keeping its proportions.")]
@@ -164,6 +171,9 @@ namespace BallSort.Game.Views
         public Sprite LockInsideSprite => _lockInsideSprite;
         public Sprite LockCoverSprite => _lockCoverSprite;
         public Vector2 LockBoxPadding => _lockBoxPadding;
+        public Vector2 LockSlotCentre => _lockSlotCentre;
+        public float LockSlotKeyWidth => _lockSlotKeyWidth;
+        public float LockCoverInnerEdge => _lockCoverInnerEdge;
         public Sprite ClaySprite => _claySprite;
         public Color ClayTint => _clayTint;
         public float ClayScale => _clayScale;

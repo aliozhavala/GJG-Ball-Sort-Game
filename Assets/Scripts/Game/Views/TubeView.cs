@@ -380,13 +380,27 @@ namespace BallSort.Game.Views
 
             _departures = 0;
             Run(_afterDeparture);
-            while (_beats.Count > 0)
+            IsFinishing = true;
+            try
             {
-                Tween beat = _beats[0];
-                _beats.RemoveAt(0);
-                BoardTweens.CompleteIfActive(beat);
+                while (_beats.Count > 0)
+                {
+                    Tween beat = _beats[0];
+                    _beats.RemoveAt(0);
+                    BoardTweens.CompleteIfActive(beat);
+                }
+            }
+            finally
+            {
+                IsFinishing = false;
             }
         }
+
+        /// <summary>
+        /// True while <see cref="FinishPending"/> plays the tube's beats at once: their steps happen, but
+        /// a sound they would have played in time is dropped.
+        /// </summary>
+        public bool IsFinishing { get; private set; }
 
         /// <summary>The invalid-move shake (docs/animation-spec.md, 2.5).</summary>
         public void Shake()
