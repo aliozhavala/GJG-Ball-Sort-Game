@@ -12,9 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82a805a4615dd7c4fb011bd265d22bbc, type: 3}
   m_Name: LockPalette
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Views.LockPalette
-  _tints:
-  - {r: 0.55, g: 1, b: 0.78, a: 1}
-  - {r: 0.8, g: 0.64, b: 1, a: 1}
-  - {r: 1, g: 0.74, b: 0.58, a: 1}
-  - {r: 1, g: 0.2, b: 1, a: 1}
-  _unknownTint: {r: 0, g: 0, b: 0, a: 1}
+  _locks:
+  - _name: Green
+    _mid: {fileID: 21300000, guid: 6daef793d229fff47881fde4c6dee052, type: 3}
+    _key: {fileID: 21300000, guid: 6df9d31c1b7029a4492255a996b8a9ad, type: 3}
+  - _name: Purple
+    _mid: {fileID: 21300000, guid: a2b6fc3058761d44eb88abeb3069a20a, type: 3}
+    _key: {fileID: 21300000, guid: 664a40f83529de64185213facbfee4b2, type: 3}
+  - _name: Yellow
+    _mid: {fileID: 21300000, guid: 6eed7868bef7a7140b7428e166199563, type: 3}
+    _key: {fileID: 21300000, guid: 6972e3cc1d4f8dd4fbac7ed2774395e4, type: 3}
+  - _name: Pink
+    _mid: {fileID: 21300000, guid: e6130d85c09305a4e992d2275134da6e, type: 3}
+    _key: {fileID: 21300000, guid: eed3aef1824d6fa45b7608468867f00d, type: 3}
+  - _name: Blue
+    _mid: {fileID: 21300000, guid: e0f4b60a6b2e3d342b15f213ff0bfc08, type: 3}
+    _key: {fileID: 21300000, guid: 150bda79bf283c2428cd275bf8303e2a, type: 3}

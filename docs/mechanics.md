@@ -8,12 +8,12 @@ A tube is **completed** when it is full, all its balls are revealed, and it hold
 Validation: for each color, its ball count must equal the capacity of some tube, and for each capacity value, the number of colors with that count must not exceed the number of tubes with that capacity.
 
 ## Covers: veil and lock
-A **covered** tube is neither a move source nor a target, and its contents are drawn covered (not visible). A tube has at most one cover. Any tube can be covered, large tubes included. When the cover is removed, the tube behaves normally and its balls follow their own `hidden` flags. Removing a cover is permanent (never undone).
+A **covered** tube is neither a move source nor a target, and its contents are drawn covered (not visible). A tube has at most one cover. A veil may cover any tube, large tubes included; a lock covers only capacity-4 tubes (Lock and key, below). When the cover is removed, the tube behaves normally and its balls follow their own `hidden` flags. Removing a cover is permanent (never undone).
 - Validation: a covered tube must not already hold a finished set (it would complete the moment its cover opened, and removing a cover never completes a tube).
 
 ### Cover visuals
-- **Veil:** the towel hangs from the rim over the tube, shortened by scaling it vertically (`TubeVisualConfig._veilHeightScale`, 0.92) so its hem crosses the bottom ball: that ball's lower half shows below the hem, drawn as it would be uncovered ("?" if hidden, its key mark if revealed and keyed). Every other ball in the tube is hidden (not drawn, so the towel may be translucent). On taller tubes the hem stays at the same height and the stripes stretch.
-- **Lock:** the door hides every ball of every tube it covers.
+- **Veil:** the towel hangs from the rim over the tube, shortened by scaling it vertically (`TubeVisualConfig._veilHeightScale`, 0.92) so its hem crosses the bottom ball: that ball's lower half shows below the hem, drawn as it would be uncovered ("?" if hidden, its key if revealed and keyed). Every other ball in the tube is hidden (not drawn, so the towel may be translucent). On taller tubes the hem stays at the same height and the stripes stretch. In the veil's middle sits a sticker: the open-eyes ball of the colour that opens it (`ColorPalette`, body `TubeVisualConfig._veilStickerSize` wide).
+- **Lock:** one lock box across all the lock's tubes hides every ball in them (`LockBoxView`, part of the lock's `CoverView`). Closed: `LockBox_Side` at both edges (the left one mirrored), `LockBox_Face` tiled from each side towards the centre (mirrored on the right) and the lock's coloured `LockBox_Mid_<Colour>` (lamp and triangular key slot) in the centre. Every part is drawn at one scale, so the box is as tall as a capacity-4 tube from below its base to above its rim, plus `TubeVisualConfig._lockBoxPadding`, and as wide as the tubes' outer rims plus that padding; only the face changes with the width. The open box (`LockBox_Inside` behind the tubes, two `LockBox_Cover` halves that slide apart) has its renderers placed and hidden until the unlock animation exists.
 - Opening a cover shows all the tube's balls (`CoverView.SetOpen`, the single entry point). Showing the bottom ball changes no rule: a veiled tube is still neither a source nor a target.
 
 ### Veil
@@ -22,12 +22,13 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 - Validation: the veil color exists in the level.
 
 ### Lock and key
-- A **lock** covers one or more tubes that are **adjacent in the same grid row** and have the **same capacity**: one door spans them all, so they share a height. A lock may cover large tubes, but never a mix of large and capacity-4 tubes. Locks have an `id`; their color comes from a separate lock palette (never confused with ball colors).
+- A **lock** covers one or more tubes that are **adjacent in the same grid row** and all have **capacity 4**: one lock box spans them all, and its art is drawn one row high, so a lock never covers a large tube. Locks have an `id`; their colour (the box's mid section and the key) comes from a separate lock palette (`LockPalette`, never confused with ball colours).
 - A **key** sits on one specific ball and opens the lock with the same id.
-- A key is **found** when its ball is part of its tube's selectable run (revealed, top run, tube not covered/clay). Check after every move, undo, reveal and cover removal. Found → the lock opens, the key mark disappears from the ball.
+- A key is **found** when its ball is part of its tube's selectable run (revealed, top run, tube not covered/clay). Check after every move, undo, reveal and cover removal. Found → the lock opens, the key disappears from the ball.
 - Consequences: a key on a hidden ball can't be found until revealed; a key inside a covered tube can't be found until that tube is uncovered.
-- A key on a hidden ball is **invisible** (no key mark) until the ball is revealed. A key's ball is only revealed by becoming the top of a tube: the tube a move just left, or a tube the Shuffle booster rearranged. Either tube is open and not clay, so revealing the ball also finds the key, in the same operation. Its events fire `BallRevealed`, then `KeyFound`, then `LockOpened` (order documented on `BoardState`), and the step 6 animations must play them in that order: the ball flips and shows its key, the key mark leaves, then the door opens.
-- Validation: every lock has exactly one key and every key's lock exists; no key is in a selectable run at level start; lock tubes are adjacent in one row and have the same capacity; no key in a clay tube; lock ids are unique; a ball holds at most one key; no key inside a tube covered by its own lock.
+- A key is drawn in the monster's hands on the ball carrying it: the lock's key sprite (`LockPalette`), untinted, `ColorPalette._keyMarkSize` wide at `_keyMarkOffset` (below the eye, between the arms).
+- A key on a hidden ball is **invisible** (no key drawn) until the ball is revealed. A key's ball is only revealed by becoming the top of a tube: the tube a move just left, or a tube the Shuffle booster rearranged. Either tube is open and not clay, so revealing the ball also finds the key, in the same operation. Its events fire `BallRevealed`, then `KeyFound`, then `LockOpened` (order documented on `BoardState`), and the step 6 animations must play them in that order: the ball flips and shows its key, the key leaves, then the lock box opens.
+- Validation: every lock has exactly one key and every key's lock exists; no key is in a selectable run at level start; lock tubes are adjacent in one row and each has capacity 4 (every other capacity is reported per tube); the delivered levels 1–100 break none of it (checked 2026-11-01: 105 locks over 1–5 tubes, all capacity 4); no key in a clay tube; lock ids are unique; a ball holds at most one key; no key inside a tube covered by its own lock.
 - Level design note: put keys on the top ball of a run so the visual matches.
 
 ## Clay
@@ -39,7 +40,7 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 ## Large tubes
 - Normal tubes have capacity 4. Large tubes span grid rows: capacity **5–10 spans 2 rows**, **11–16 spans 3 rows**.
 - A large tube is **bottom-aligned** with the bottom row of its span; capacity 10 (2 rows) and 16 (3 rows) also align with the top row exactly.
-- Apart from capacity and layout, a large tube is an ordinary tube: it **need not be clay** and may hold hidden balls, keys or a cover like any other.
+- Apart from capacity and layout, a large tube is an ordinary tube: it **need not be clay** and may hold hidden balls, keys or a veil like any other. It cannot be locked (Lock and key).
 
 ## Board layout (grid)
 - Every level has an explicit `layout.grid`: rows of cells (top row first), each cell a tube index or `null`. Max **3 rows**, max **6 cells per row** in level files (added tubes may extend a row to 8 during play).
@@ -66,7 +67,7 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 The Shuffle booster rearranges **one tube the player picks** (the pick itself: docs/screens.md, Boosters). Rules in
 `ShuffleRules`, applied by `LevelSession.TryShuffleTube`.
 - **What the player sees decides, never hidden colours.** A ball's *look* is "?" when hidden, otherwise its colour plus
-  its key mark if it carries a key (each lock's mark has its own colour). A hidden ball's key is invisible, so it does
+  its key if it carries one (each lock's key has its own colour). A hidden ball's key is invisible, so it does
   not count. Nothing here reads the colour of a hidden ball, so neither the pick nor the result can leak it.
 - **Eligible tube:** not covered (veil or lock), not clay, not completed, and holding at least two balls that look
   different. With none eligible the booster is refused ("No tube to shuffle") and nothing is spent.

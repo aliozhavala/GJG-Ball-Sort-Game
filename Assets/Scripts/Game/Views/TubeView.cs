@@ -107,7 +107,7 @@ namespace BallSort.Game.Views
         /// The height in ball space above which a ball's centre is out of the tube: its bottom has cleared
         /// the mouth, so it draws above every tube.
         /// </summary>
-        public float ClearHeight => BodyHeight + _config.BallDiameter * 0.5f;
+        public float ClearHeight => BodyHeight + _config.BallSize * 0.5f;
 
         /// <summary>Where a lifted ball's centre sits, in ball space: above the mouth by the lift height.</summary>
         public Vector3 LiftPoint => new Vector3(0f, BodyHeight + _animation.LiftHeight * _config.BallDiameter, 0f);
@@ -602,7 +602,7 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>A ball's position in <paramref name="slot"/>, in ball space.</summary>
-        public Vector3 SlotPosition(int slot) => new Vector3(0f, _config.SlotY(slot), 0f);
+        public Vector3 SlotPosition(int slot) => new Vector3(0f, _config.BallY(slot), 0f);
 
         private bool HasActiveBeat()
         {

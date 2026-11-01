@@ -83,7 +83,6 @@ namespace BallSort.Game.Views
         // Shuffle's dimming (1 = as drawn), and the tints it multiplies.
         private float _shade = 1f;
         private Color _bodyTint = Color.white;
-        private Color _keyTint = Color.white;
         private float _diameter = 1f;
 
         // Position = moved position + bounce offsets, all in the parent's (board) units.
@@ -180,13 +179,14 @@ namespace BallSort.Game.Views
             _hiddenMark.sprite = palette.HiddenMarkSprite;
             _hiddenMark.transform.localScale = Vector3.one * (palette.HiddenMarkSize / SpriteWidth(palette.HiddenMarkSprite));
 
-            _keyMark.sprite = palette.KeyMarkSprite;
-            _keyMark.transform.localScale = Vector3.one * (palette.KeyMarkSize / SpriteWidth(palette.KeyMarkSprite));
+            // The key is the lock's own art (no tint), held in the monster's hands.
+            Sprite key = ball.KeyLockId != Ball.NoKey ? locks.GetKey(ball.KeyLockId) : null;
+            _keyMark.sprite = key;
+            _keyMark.transform.localScale = Vector3.one * (palette.KeyMarkSize / SpriteWidth(key));
             _keyMark.transform.localPosition = palette.KeyMarkOffset;
-            _keyTint = locks.GetTint(ball.KeyLockId);
             _shade = 1f;
             _hiddenMark.color = Color.white;
-            _keyMark.color = _keyTint;
+            _keyMark.color = Color.white;
             _keyLockId = ball.KeyLockId;
 
             _restingExpression = BallExpression.Open;
@@ -230,7 +230,7 @@ namespace BallSort.Game.Views
             _shade = shade;
             _body.color = Shaded(_bodyTint);
             _hiddenMark.color = Shaded(Color.white);
-            _keyMark.color = Shaded(_keyTint);
+            _keyMark.color = Shaded(Color.white);
         }
 
         private Color Shaded(Color tint) => new Color(tint.r * _shade, tint.g * _shade, tint.b * _shade, tint.a);

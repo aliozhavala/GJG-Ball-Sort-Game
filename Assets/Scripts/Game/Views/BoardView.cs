@@ -23,7 +23,7 @@ namespace BallSort.Game.Views
     /// a cover opens, a tube completes, a tube is appended). Tubes, balls and covers are pooled, so nothing is instantiated
     /// or destroyed once the pools are warm.
     /// <para>
-    /// Covers are separate views over the tubes: one per veil, one door per lock across all of its
+    /// Covers are separate views over the tubes: one per veil, one lock box per lock across all of its
     /// tubes. They are refitted after every layout change.
     /// </para>
     /// <para>
@@ -33,7 +33,7 @@ namespace BallSort.Game.Views
     /// Moves and undos fly their balls (docs/animation-spec.md). The session's later events in the same
     /// operation play in their order, timed off the flights: the source's new top is revealed once the
     /// last moving ball has left it, a completion plays when the tube's last ball lands, and veils,
-    /// keys and doors follow the landing. The model is never waited on: only the views lag behind
+    /// keys and lock boxes follow the landing. The model is never waited on: only the views lag behind
     /// it, and touching a tube plays what it is waiting for at once.
     /// </para>
     /// </remarks>
@@ -245,7 +245,7 @@ namespace BallSort.Game.Views
                 for (int slot = 0; slot < tube.Count; slot++)
                 {
                     BallView ballView = _ballPool.Get();
-                    ballView.Show(tube[slot], _palette, _lockPalette, _tubeConfig.BallDiameter);
+                    ballView.Show(tube[slot], _palette, _lockPalette, _tubeConfig.BallSize);
                     tubeView.AddBall(ballView);
                 }
 
@@ -284,47 +284,45 @@ namespace BallSort.Game.Views
         /// </summary>
         private CoverView GetOrSpawnCover(TubeCover cover)
         {
-            if (cover.Kind == CoverKind.Lock && TryFindDoor(cover.Id, out CoverView door))
+            if (cover.Kind == CoverKind.Lock && TryFindLockBox(cover.Id, out CoverView box))
             {
-                return door;
+                return box;
             }
 
             CoverView view = _coverPool.Get();
             if (cover.Kind == CoverKind.Veil)
             {
                 view.name = $"Veil {cover.Id}";
-                view.Setup(CoverKind.Veil, cover.Id, _tubeConfig.VeilSprite, _tubeConfig.VeilTint,
-                    _tubeConfig.VeilBadgeSprite, _palette.GetColor(cover.Id), _tubeConfig.VeilBadgeSize);
+                view.SetupVeil(cover.Id, _tubeConfig, _palette);
             }
             else
             {
                 if (cover.Id >= _lockPalette.Count)
                 {
                     Debug.LogError(
-                        $"{_session.Level.Name} uses lock {cover.Id} but {_lockPalette.name} defines {_lockPalette.Count} lock colours.", this);
+                        $"{_session.Level.Name} uses lock {cover.Id} but {_lockPalette.name} defines {_lockPalette.Count} locks.", this);
                 }
 
-                view.name = $"Door {cover.Id}";
-                view.Setup(CoverKind.Lock, cover.Id, _tubeConfig.DoorSprite, _tubeConfig.DoorTint,
-                    _tubeConfig.LockIconSprite, _lockPalette.GetTint(cover.Id), _tubeConfig.LockIconSize);
+                view.name = $"Lock box {cover.Id}";
+                view.SetupLock(cover.Id, _tubeConfig, _lockPalette);
             }
 
             _covers.Add(view);
             return view;
         }
 
-        private bool TryFindDoor(int lockId, out CoverView door)
+        private bool TryFindLockBox(int lockId, out CoverView box)
         {
             foreach (CoverView cover in _covers)
             {
                 if (cover.Kind == CoverKind.Lock && cover.Id == lockId)
                 {
-                    door = cover;
+                    box = cover;
                     return true;
                 }
             }
 
-            door = null;
+            box = null;
             return false;
         }
 
@@ -562,14 +560,14 @@ namespace BallSort.Game.Views
 
         private void OnLockOpened(LockOpenedEventArgs e)
         {
-            if (TryFindDoor(e.LockId, out CoverView door))
+            if (TryFindLockBox(e.LockId, out CoverView box))
             {
-                AfterLanding(KeyDelay(), door.Tubes, () => door.SetOpen(true));
+                AfterLanding(KeyDelay(), box.Tubes, () => box.SetOpen(true));
             }
         }
 
         /// <summary>
-        /// A key mark leaves (and its door opens) at the landing: after the completion's beat when the
+        /// A key mark leaves (and its lock box opens) at the landing: after the completion's beat when the
         /// move completed a tube, and never before a veil the same move opened.
         /// </summary>
         private float KeyDelay()
@@ -616,7 +614,7 @@ namespace BallSort.Game.Views
             SpawnTube(e.TubeIndex, e.Capacity, isClay: false);
             _layout.Arrange(_session.Grid, _tubes, _tubeConfig);
 
-            // Re-centring can move the covered tubes; doors and veils follow them.
+            // Re-centring can move the covered tubes; lock boxes and veils follow them.
             foreach (CoverView cover in _covers)
             {
                 cover.FitToTubes(_tubeConfig);

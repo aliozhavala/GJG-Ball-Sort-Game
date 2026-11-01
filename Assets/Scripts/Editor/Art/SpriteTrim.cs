@@ -51,6 +51,41 @@ namespace BallSort.Editor.Art
             }
         }
 
+        /// <summary>
+        /// Trims every PNG directly inside <paramref name="folder"/> to its own columns and to the rows
+        /// holding all their content, so parts drawn in place on one canvas keep one height and line up
+        /// top and bottom when laid side by side. They must share one canvas height.
+        /// </summary>
+        public static void TrimSharedRows(string folder, StringBuilder report)
+        {
+            List<string> paths = PngsIn(folder);
+            var images = new List<PixelImage>();
+            var columns = new List<RectInt>();
+            int yMin = int.MaxValue;
+            int yMax = int.MinValue;
+            foreach (string path in paths)
+            {
+                PixelImage image = PixelImage.Load(path);
+                if (images.Count > 0 && image.Height != images[0].Height)
+                {
+                    report.AppendLine($"{folder}: files differ in height, so they cannot share their rows; skipped.");
+                    return;
+                }
+
+                RectInt bounds = image.ContentBounds();
+                yMin = Mathf.Min(yMin, bounds.yMin);
+                yMax = Mathf.Max(yMax, bounds.yMax);
+                images.Add(image);
+                columns.Add(bounds);
+            }
+
+            for (int i = 0; i < paths.Count; i++)
+            {
+                var rect = new RectInt(columns[i].x, yMin, columns[i].width, yMax - yMin);
+                Apply(paths[i], images[i], PadToMultipleOf4(rect), report);
+            }
+        }
+
         public static int PaddingToMultipleOf4(int size) => (4 - size % 4) % 4;
 
         /// <summary>Grows <paramref name="rect"/> evenly on both sides to whole multiples of 4.</summary>

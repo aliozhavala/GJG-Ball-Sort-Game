@@ -28,6 +28,8 @@ namespace BallSort.Editor.Art
             var borders = new Dictionary<string, Vector4>();
 
             MoveDeliveries(report);
+            ReplaceDeliveries(report);
+            RemoveEmptyIncoming(report);
 
             foreach (string folder in SpriteRules.TrimEach)
             {
@@ -37,6 +39,11 @@ namespace BallSort.Editor.Art
             foreach (string folder in SpriteRules.TrimShared)
             {
                 SpriteTrim.TrimShared(folder, report);
+            }
+
+            foreach (string folder in SpriteRules.TrimSharedRows)
+            {
+                SpriteTrim.TrimSharedRows(folder, report);
             }
 
             TubeArtTrim.Trim(pivots, borders, report);
@@ -69,6 +76,64 @@ namespace BallSort.Editor.Art
                 EnsureFolder(Path.GetDirectoryName(to)?.Replace('\\', '/'));
                 string error = AssetDatabase.MoveAsset(source, to);
                 report.AppendLine(string.IsNullOrEmpty(error) ? $"Moved {source} → {to}" : $"{source}: {error}");
+            }
+        }
+
+        /// <summary>
+        /// Copies each delivered replacement over the file it replaces (<see cref="SpriteRules.Replacements"/>),
+        /// so the file keeps its <c>.meta</c>, GUID and references, then puts the delivered copy in the
+        /// trash. A replacement whose target does not exist is reported and left in Incoming.
+        /// </summary>
+        private static void ReplaceDeliveries(StringBuilder report)
+        {
+            foreach ((string from, string to) in SpriteRules.Replacements)
+            {
+                string source = $"{SpriteRules.Incoming}/{from}";
+                if (!File.Exists(source))
+                {
+                    continue;
+                }
+
+                if (!File.Exists(to))
+                {
+                    report.AppendLine($"{source}: {to} does not exist, nothing to replace; left in Incoming.");
+                    continue;
+                }
+
+                File.Copy(source, to, true);
+                AssetDatabase.ImportAsset(to, ImportAssetOptions.ForceUpdate);
+                AssetDatabase.MoveAssetToTrash(source);
+                report.AppendLine($"Replaced {to} with {source}");
+            }
+        }
+
+        /// <summary>Removes folders under Incoming (and Incoming itself) that the moves have emptied.</summary>
+        private static void RemoveEmptyIncoming(StringBuilder report)
+        {
+            if (!AssetDatabase.IsValidFolder(SpriteRules.Incoming))
+            {
+                return;
+            }
+
+            foreach (string folder in AssetDatabase.GetSubFolders(SpriteRules.Incoming))
+            {
+                TrashIfEmpty(folder, report);
+            }
+
+            TrashIfEmpty(SpriteRules.Incoming, report);
+        }
+
+        private static void TrashIfEmpty(string folder, StringBuilder report)
+        {
+            foreach (string sub in AssetDatabase.GetSubFolders(folder))
+            {
+                TrashIfEmpty(sub, report);
+            }
+
+            if (Directory.GetFiles(folder).Length == 0 && Directory.GetDirectories(folder).Length == 0)
+            {
+                AssetDatabase.MoveAssetToTrash(folder);
+                report.AppendLine($"Removed the empty folder {folder}");
             }
         }
 
@@ -137,8 +202,7 @@ namespace BallSort.Editor.Art
 
             // Pivots and borders not named anywhere keep what the importer already has, e.g. the tube
             // pivots written by an earlier run.
-            if (pivots.TryGetValue(path, out Vector2 pivot) || SpriteRules.PivotOverrides.TryGetValue(name, out pivot) ||
-                TryGetFolderPivot(rule, out pivot))
+            if (pivots.TryGetValue(path, out Vector2 pivot) || TryGetFolderPivot(rule, out pivot))
             {
                 settings.spriteAlignment = (int)SpriteAlignment.Custom;
                 settings.spritePivot = pivot;

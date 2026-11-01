@@ -15,21 +15,22 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 
 | Slot | For | Now |
 |---|---|---|
-| `ColorPalette._entries[0..9]` `_open` / `_halfOpen` / `_closed` / `_laugh` | Monster per colour id, one sprite per `BallExpression` (sprite tint white, `_spriteSize` 1.46: the art is wider than the body) | **Art** (`Balls/Ball_<Colour>_<Face>`) |
+| `ColorPalette._entries[0..9]` `_open` / `_halfOpen` / `_closed` / `_laugh` | Monster per colour id, one sprite per `BallExpression` (sprite tint white; every ball sprite drawn at `ColorPalette._artSpriteSize` 1.46: the art is wider than the body) | **Art** (`Balls/Ball_<Colour>_<Face>`, reworked 2026-11-01) |
 | `ColorPalette._entries[10..11]` | Colour ids without art | `Ball_Circle`, tinted |
-| `ColorPalette._entries[n]._color` | The colour itself (veil badge) | sampled from the art |
-| `ColorPalette._hiddenSprite` (+ `_hiddenSpriteSize` 1.31) | Hidden ball, "?" drawn in | **Art** (`Ball_Hidden`) |
+| `ColorPalette._entries[n]._color` | The colour itself (glow, trail, droplets, plain cork) | sampled from the art |
+| `ColorPalette._hiddenSprite` | Hidden ball, "?" drawn in, the monsters' size | **Art** (`Ball_Hidden`) |
 | `ColorPalette._hiddenMarkSprite` | Separate "?" | empty (the art has it) |
-| `ColorPalette._keyMarkSprite` | Key on a keyed ball (tint from `LockPalette`) | `Key_Icon` |
+| `LockPalette` entry `_key` (+ `ColorPalette._keyMarkSize` / `_keyMarkOffset`) | Key in the hands of a keyed ball | **Art** (`Mechanics/Keys/Key_<Colour>`) |
 | `TubeVisualConfig._rimBackSprite` / `_rimFrontSprite` / `_middleSprite` / `_bottomSprite` | Tube: rim back behind the balls, rim front over them and the cork, middle stretched to the tube's height | **Art** (`Tubes/Tube_*`) |
 | `TubeVisualConfig._outlineSprite` | Whole tube, 9-sliced; the invalid-tap flash | **Art** (`Tube_Full`) |
 | `TubeVisualConfig._frontSprite` | Glass front over the balls (optional) | empty (missing art) |
 | `ColorPalette._entries[n]._cork` | Cork on a tube completed in colour n (untinted) | **Art** (`Tubes/Corks/Cork_<Colour>`, ids 0–9) |
 | `TubeVisualConfig._capSprite` | Plain cork, tinted in the colour, for colours without their own (ids 10–11) | **Art** (`Tubes/Corks/Cork_Plain`) |
 | `TubeVisualConfig._claySprite` (+ `_clayScale` 1.1) | Clay (ice) at the base, over the balls inside, 1.1× the tube's drawn width; gone on completion | **Art** (`Mechanics/Clay_Ice`) |
-| `TubeVisualConfig._veilSprite` (+ `_veilHeightScale` 0.92) / `_veilBadgeSprite` | Veil hanging from the rim, its hem across the bottom ball / badge in the veil's colour | **Art** (`Mechanics/Veil_Towel`) / `Veil_Badge` |
-| `TubeVisualConfig._doorSprite` / `_lockIconSprite` | Lock door / lock icon (tint from `LockPalette`) | `Tube_9Sliced` / `Lock_Icon` |
-| `LockPalette` | Lock colours (4, ids 0–3); colours only | — |
+| `TubeVisualConfig._veilSprite` (+ `_veilHeightScale` 0.92, `_veilStickerSize`) | Veil hanging from the rim, its hem across the bottom ball; sticker = the colour's open-eyes ball | **Art** (`Mechanics/Veil_Towel`) |
+| `TubeVisualConfig._lockSideSprite` / `_lockFaceSprite` (+ `_lockBoxPadding`) | Closed lock box: sides, tiled face (`LockBoxView`) | **Art** (`Mechanics/LockBox/*`) |
+| `TubeVisualConfig._lockInsideSprite` / `_lockCoverSprite` | Open lock box: inside behind the tubes, two cover halves (hidden until the unlock animation) | **Art** |
+| `LockPalette` | Per lock id (5, ids 0–4): the box's mid section and the key | **Art** (`LockBox_Mid_<Colour>`, `Key_<Colour>`) |
 | `EpisodeConfig._episodes[n]._levelBackground` → `Level.unity/Background` | Level background per episode | **Art** (`Backgrounds/Level_Ep<N>_*`) |
 
 ### Level HUD (`LevelCanvas`)
@@ -37,14 +38,15 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 |---|---|---|
 | `EpisodeConfig._episodes[n]._mascotFrame` → `TopBar/MascotFrame` | Scientist in a frame, top left (255×255) | **Art** (`Episodes/MascotFrame_Ep<N>_*`) |
 | `TopBar/SettingsButton` | Settings button, top right | **Art** (`Button_Settings`) |
-| `BoosterBar/{Undo,Shuffle,AddTube}Button` + `/Badge` | Booster buttons and count badges | `UISprite` + text labels, `Knob` badge (missing art) |
+| `BoosterBar/{Undo,Shuffle,AddTube}Button` + `/Badge` | Booster buttons and count badges | **Art** (`UI/Boosters/Booster_*`, no label); `Knob` badge (missing art) |
 | `BoosterBar/*Button/BuyBadge` | Buy badge at 0 | **Art** (`Icon_Plus`) |
-| `BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture` | Booster picture in the Buy popup | generated `Placeholder/UI/Booster_*` |
+| `BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture` | Booster picture in the Buy popup | **Art** (the booster buttons) |
 | `StuckPanel/Buttons/GiveUpButton` / `PlayOnButton` | Stuck bar buttons | **Art** (`Button_Red` / `Button_Yellow`) |
 | `Celebration` | Win celebration | text only |
 | Popups (`Prefabs/UI`) | Close buttons; Win Continue; Are You Sure Confirm; Settings' Restart and Home | **Art** (`Button_Close`, `Button_Green`, `Button_Red`) |
 | Popups (`Prefabs/UI`) | Panels (`Popup_Panel`; Settings `Settings_Panel`), switch knobs (`SettingSwitch`), More Lives heart, Are You Sure broken heart, Buy popup coin and balance pill | **Art** (docs/art-inventory.md §8) |
 | `Toast` | Toast background | `UISprite` |
+| `WinPopup/Panel/Picture` | Win picture between the title and the reward (no panel art; static) | **Art** (`UI/Win/Win_Picture`) |
 | `WinPopup/Panel/Reward`, `StuckPanel` Play on label | Coin after the amount | **Art** (`Icon_Coin` through the TMP sprite asset `Art/Atlases/Icon_Coin_TMP`) |
 | `TutorialConfig._entries[i]._image` → `TutorialPopup/Panel/Picture` | Optional tutorial picture (hidden when empty) | none |
 
@@ -55,7 +57,7 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 | `TopBar/AvatarButton` (+ `AvatarFrame`, `/Mask/Picture`) | The picked avatar (`AvatarConfig`) in its frame | **Art** (`AvatarConfig._frame` = `UI/AvatarFrames/Avatar_Frame_Empty`, `UI/Avatars/Avatar_0N`); mask `Placeholder/Ball_Circle` |
 | `TopBar/Lives`, `TopBar/Coins` | Displays, sliced; count on the heart / coin side, text on the pill | **Art** (`Display_Lives`, `Display_Coins`) |
 | `TopBar/SettingsButton` | Settings | **Art** (`Button_Settings`) |
-| `HomePage/LevelButton` + `/TierArt` | Level button; hard / super hard art with the multiplier on its tag (`LevelTierLook`) | **Art** (`Button_Green`; `Button_SuperHard` for both hard tiers until a hard version arrives) |
+| `HomePage/LevelButton` + `/TierArt` | Level button; hard / super hard art with the multiplier on its tag (`LevelTierLook`) | **Art** (`Button_Green`, `Button_Hard`, `Button_SuperHard`) |
 | `BottomNav` (`HomeTabs._bar`, `_tabs[n]._barSprite`; `BottomBar`) | Bar in three versions, full screen width; invisible tap areas (`/TapAreas`) over its sections, above the safe-area inset | **Art** (`UI/Home/BottomBar_*`) |
 | `ShopPage/Scroll/Viewport/Content` | Header, panel, three bundle cards | **Art** (`UI/Shop/*`) |
 | `LeaderboardPage` (`Scroll/.../Header`, `Panel`, rows from `RowTemplate`, `Podium1–3`) | Leaderboard page; bots in `LeaderboardConfig` | **Art** (`UI/Leaderboard/*`) |

@@ -115,44 +115,27 @@ namespace BallSort.Core.Levels
                     errors.Add($"{where}: tubes {string.Join(", ", lockDto.Tubes)} must sit next to each other in one grid row.");
                 }
 
-                // One door spans every tube of a lock, so they must share a height.
-                if (tubesValid && !HaveOneCapacity(variant, lockDto.Tubes, out int capacity, out int otherCapacity))
+                // The lock box is drawn for capacity-4 tubes (one row high), so a lock covers nothing else.
+                if (tubesValid)
                 {
-                    errors.Add($"{where}: tubes {string.Join(", ", lockDto.Tubes)} mix capacities {capacity} and {otherCapacity}; all tubes under one lock must have the same capacity.");
+                    ValidateLockCapacities(variant, lockDto.Tubes, where, errors);
                 }
             }
 
             return lockIndexById;
         }
 
-        /// <summary>
-        /// True when every listed tube has the same capacity. Otherwise returns the first capacity and
-        /// the first one that differs from it. Null tubes are skipped (reported elsewhere).
-        /// </summary>
-        private static bool HaveOneCapacity(LevelVariantDto variant, List<int> tubes, out int capacity, out int otherCapacity)
+        /// <summary>Reports each listed tube whose capacity is not the normal one. Null tubes are skipped (reported elsewhere).</summary>
+        private static void ValidateLockCapacities(LevelVariantDto variant, List<int> tubes, string where, List<string> errors)
         {
-            capacity = -1;
-            otherCapacity = -1;
             foreach (int index in tubes)
             {
                 TubeDto tube = variant.Tubes[index];
-                if (tube == null)
+                if (tube != null && tube.Capacity != LevelLayout.NormalCapacity)
                 {
-                    continue;
-                }
-
-                if (capacity < 0)
-                {
-                    capacity = tube.Capacity;
-                }
-                else if (tube.Capacity != capacity)
-                {
-                    otherCapacity = tube.Capacity;
-                    return false;
+                    errors.Add($"{where}: tube {index} has capacity {tube.Capacity}; a lock covers only capacity-{LevelLayout.NormalCapacity} tubes.");
                 }
             }
-
-            return true;
         }
 
         private static void ValidateVeil(TubeDto tube, int index, int colors, bool hasLock, int lockId, List<string> errors)

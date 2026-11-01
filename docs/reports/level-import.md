@@ -84,7 +84,7 @@ Levels 1–4 are left out above: all five variants are the same puzzle (some wit
 ### Tiers and tutorial flags
 
 - **Tiers:** every level has one, and the pattern is clear: regular, with hard on 14, 24, … 94 and super hard on 19, 29, … 99, plus 100. Nothing looks missing.
-- **One to check: level 100** is super hard, but your difficulty score rates its V1 at 0.66, lower than every other super hard level from 29 on (0.68–0.93) and lower than hard levels 54, 64, 84, 94. If it is meant as the finale, it may need tightening; otherwise "hard" may fit better.
+- **Settled 2026-11-01: level 100 is regular** (its file's `tier` changed from super hard; it pays 20). Original note: it was super hard, but your difficulty score rates its V1 at 0.66, lower than every other super hard level from 29 on (0.68–0.93) and lower than hard levels 54, 64, 84, 94. If it is meant as the finale, it may need tightening; otherwise "hard" may fit better.
 - **Tutorial flags:** set on 1, 7, 20, 30, 55, 80. Each mechanic's first level is flagged: hidden balls (7), clay and large tubes together (20), veil (30), lock & key (80); level 55 is the first clay tube of normal size. Nothing looks missing.
 - Small notes: level 20 introduces two mechanics at once (clay and a large tube). Every large tube in the set is also clay, so players never meet a large tube they can take balls from (allowed, just so you know). Level 51 is the first 3-row tube (capacity 16) and is not flagged as a tutorial; flag it if it should be.
 
@@ -200,7 +200,7 @@ Tubes / colours are the same in every variant of a level. V1–V5 are the shorte
 | 97 | Regular |  | 12 / 9 | hidden balls, clay, large tube | 37 | 33 | 35 | 36 | 33 |
 | 98 | Regular |  | 13 / 8 | hidden balls, veil, clay, large tube | 38 | 38 | 35 | 34 | 32 |
 | 99 | Super hard |  | 12 / 10 | hidden balls, lock & key | 35 | 33 | 34 | 33 | 30 |
-| 100 | Super hard |  | 13 / 10 | hidden balls, veil, lock & key, clay | 34 | 33 | 33 | 31 | 34 |
+| 100 | Regular (was super hard) |  | 13 / 10 | hidden balls, veil, lock & key, clay | 34 | 33 | 33 | 31 | 34 |
 
 ## How this was checked
 

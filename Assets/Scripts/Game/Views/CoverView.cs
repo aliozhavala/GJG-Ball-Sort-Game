@@ -7,8 +7,8 @@ using UnityEngine;
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// One cover on screen: a veil over one tube, or a lock's door across all of its tubes. A sliced
-    /// body with an icon in its centre (the veil's colour badge or the lock icon).
+    /// One cover on screen: a veil over one tube (the towel with a sticker of the ball colour that opens
+    /// it), or a lock's box across all of its tubes (<see cref="LockBoxView"/>).
     /// </summary>
     /// <remarks>
     /// Pooled by <see cref="BoardView"/> and parented to the board root next to the tubes, so it can
@@ -21,8 +21,12 @@ namespace BallSort.Game.Views
     /// </remarks>
     public sealed class CoverView : MonoBehaviour
     {
+        [Tooltip("The veil's towel.")]
         [SerializeField] private SpriteRenderer _body;
+        [Tooltip("The sticker on the veil: the open-eyes ball of the colour that opens it.")]
         [SerializeField] private SpriteRenderer _icon;
+        [Tooltip("The lock box, used by locks only.")]
+        [SerializeField] private LockBoxView _lockBox;
 
         private readonly List<TubeView> _tubes = new List<TubeView>();
         private Color _bodyTint = Color.white;
@@ -39,28 +43,52 @@ namespace BallSort.Game.Views
         /// <summary>The veil's colour id or the lock's id.</summary>
         public int Id { get; private set; }
 
-        /// <summary>The covered tubes; one for a veil, every tube of the lock for a door.</summary>
+        /// <summary>The covered tubes; one for a veil, every tube of the lock for a lock box.</summary>
         public IReadOnlyList<TubeView> Tubes => _tubes;
 
         public bool IsOpen { get; private set; }
 
-        /// <summary>Styles the cover and forgets any previous tubes. Add tubes, then fit and close it.</summary>
-        /// <param name="iconSize">Width of the icon in board units.</param>
-        public void Setup(CoverKind kind, int id, Sprite body, Color bodyTint, Sprite icon, Color iconTint, float iconSize)
+        /// <summary>
+        /// Makes this a veil that opens on <paramref name="colorId"/>, and forgets any previous tubes.
+        /// Add its tube, then fit and close it.
+        /// </summary>
+        public void SetupVeil(int colorId, TubeVisualConfig config, ColorPalette palette)
+        {
+            Begin(CoverKind.Veil, colorId);
+            _bodyTint = config.VeilTint;
+            _body.sprite = config.VeilSprite;
+            _body.color = _bodyTint;
+            _body.drawMode = SpriteDrawMode.Sliced;
+
+            // The sticker is the colour's own ball, so its body is Veil Sticker Size wide.
+            Sprite sticker = palette.GetSprite(colorId, BallExpression.Open);
+            float stickerWidth = config.VeilStickerSize * palette.GetSpriteSize(colorId);
+            _iconTint = palette.GetSpriteTint(colorId);
+            _icon.sprite = sticker;
+            _icon.color = _iconTint;
+            _icon.transform.localScale = Vector3.one * (stickerWidth / SpriteWidth(sticker));
+            _lockBox.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Makes this lock <paramref name="lockId"/>'s box (its mid from <paramref name="locks"/>), and
+        /// forgets any previous tubes. Add its tubes, then fit and close it.
+        /// </summary>
+        public void SetupLock(int lockId, TubeVisualConfig config, LockPalette locks)
+        {
+            Begin(CoverKind.Lock, lockId);
+            _body.sprite = null;
+            _icon.sprite = null;
+            _lockBox.gameObject.SetActive(true);
+            _lockBox.Setup(config, locks.GetMid(lockId));
+        }
+
+        private void Begin(CoverKind kind, int id)
         {
             Kind = kind;
             Id = id;
             _tubes.Clear();
             StopMotion();
-
-            _bodyTint = bodyTint;
-            _iconTint = iconTint;
-            _body.sprite = body;
-            _body.color = bodyTint;
-            _body.drawMode = SpriteDrawMode.Sliced;
-            _icon.sprite = icon;
-            _icon.color = iconTint;
-            _icon.transform.localScale = Vector3.one * (iconSize / SpriteWidth(icon));
         }
 
         public void AddTube(TubeView tube) => _tubes.Add(tube);
@@ -70,17 +98,21 @@ namespace BallSort.Game.Views
         {
             _body.color = Shade(_bodyTint, shade);
             _icon.color = Shade(_iconTint, shade);
+            if (Kind == CoverKind.Lock)
+            {
+                _lockBox.SetShade(shade);
+            }
         }
 
         private static Color Shade(Color tint, float shade) => new Color(tint.r * shade, tint.g * shade, tint.b * shade, tint.a);
 
         /// <summary>
-        /// Fits the body to the covered tubes. A veil hangs from its tube's rim like the art, as wide as
-        /// drawn, shortened by <see cref="TubeVisualConfig.VeilHeightScale"/>. A door spans from
-        /// the left edge of the leftmost tube to the right edge of the rightmost, as tall as the
-        /// tallest, standing on their base line.
+        /// Fits the cover to the covered tubes. A veil hangs from its tube's rim like the art, as wide as
+        /// drawn, shortened by <see cref="TubeVisualConfig.VeilHeightScale"/>. A lock box spans from
+        /// the left rim of the leftmost tube to the right rim of the rightmost and from below their base
+        /// to above their rims (<see cref="TubeVisualConfig.LockBoxPadding"/>).
         /// </summary>
-        /// <remarks>A lock's tubes sit next to each other in one row and share a capacity (docs/mechanics.md).</remarks>
+        /// <remarks>A lock's tubes sit next to each other in one row and all have capacity 4 (docs/mechanics.md).</remarks>
         public void FitToTubes(TubeVisualConfig config)
         {
             if (_tubes.Count == 0)
@@ -107,18 +139,17 @@ namespace BallSort.Game.Views
                 return;
             }
 
-            var centre = new Vector3(0f, height * 0.5f, 0f);
-            _body.transform.localScale = Vector3.one;
-            _body.size = new Vector2(right - left + config.TubeWidth, height);
-            _body.transform.localPosition = centre;
-            _icon.transform.localPosition = centre;
+            Vector2 padding = config.LockBoxPadding;
+            float rimWidth = SpriteWidth(config.RimBackSprite) * config.ArtScale;
+            _lockBox.transform.localPosition = new Vector3(0f, -padding.y, 0f);
+            _lockBox.Fit(right - left + rimWidth + 2f * padding.x, height + 2f * padding.y);
         }
 
         /// <remarks>
         /// Drawn at the tube art's scale, squashed vertically by the height scale, so on a capacity-4
         /// tube its hem crosses the bottom ball and that ball's lower half shows. Its hem stays at that
-        /// height on taller tubes: only the stripes between the domed top and the hem stretch. The badge
-        /// sits in the veil's middle.
+        /// height on taller tubes: only the stripes between the domed top and the hem stretch. The
+        /// sticker sits in the veil's middle.
         /// </remarks>
         private void FitVeil(TubeVisualConfig config, float tubeHeight)
         {
@@ -135,7 +166,7 @@ namespace BallSort.Game.Views
 
         /// <summary>
         /// The single entry point for a cover's state: closed shows the cover and hides the covered
-        /// balls (a veil leaves its tube's bottom ball showing under its hem; a door hides them all),
+        /// balls (a veil leaves its tube's bottom ball showing under its hem; a lock box hides them all),
         /// open hides the cover and shows them again. Snaps for now.
         /// </summary>
         public void SetOpen(bool open)
@@ -143,6 +174,11 @@ namespace BallSort.Game.Views
             IsOpen = open;
             _body.enabled = !open && _body.sprite != null;
             _icon.enabled = !open && _icon.sprite != null;
+            if (Kind == CoverKind.Lock)
+            {
+                _lockBox.SetClosed(!open);
+            }
+
             foreach (TubeView tube in _tubes)
             {
                 tube.SetCovered(!open, showBottomBall: Kind == CoverKind.Veil);
@@ -190,9 +226,9 @@ namespace BallSort.Game.Views
 
         private void Awake()
         {
-            if (_body == null || _icon == null)
+            if (_body == null || _icon == null || _lockBox == null)
             {
-                Debug.LogError($"{name}: body and icon must be assigned.", this);
+                Debug.LogError($"{name}: body, icon and lock box must be assigned.", this);
             }
 
             _shakeStep = ShakeStep;

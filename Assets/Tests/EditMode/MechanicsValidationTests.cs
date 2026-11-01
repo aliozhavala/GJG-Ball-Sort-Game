@@ -114,18 +114,27 @@ namespace BallSort.Tests.EditMode
                 .WithGrid(new int?[] { 4, 5, 0, 1 }, new int?[] { 2, 5, 3 });
 
         [Test]
-        public void ALockOverALargeTube_IsValid()
+        public void ALockOverALargeTube_IsReported()
         {
-            Assert.That(Validate(LargeTubeLockLevel(5)), Is.Empty);
+            Assert.That(Validate(LargeTubeLockLevel(5)), Is.EqualTo(new[]
+            {
+                $"{Name}: locks[0]: tube 5 has capacity 6; a lock covers only capacity-4 tubes.",
+            }));
         }
 
         [Test]
-        public void ALockOverTubesOfDifferentCapacities_IsReported()
+        public void ALockOverACapacity4TubeAndALargeTube_ReportsOnlyTheLargeTube()
         {
             Assert.That(Validate(LargeTubeLockLevel(4, 5)), Is.EqualTo(new[]
             {
-                $"{Name}: locks[0]: tubes 4, 5 mix capacities 4 and 6; all tubes under one lock must have the same capacity.",
+                $"{Name}: locks[0]: tube 5 has capacity 6; a lock covers only capacity-4 tubes.",
             }));
+        }
+
+        [Test]
+        public void ALockOverACapacity4TubeNextToALargeTube_IsValid()
+        {
+            Assert.That(Validate(LargeTubeLockLevel(4)), Is.Empty);
         }
 
         [Test]

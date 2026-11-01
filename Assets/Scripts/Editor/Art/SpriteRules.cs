@@ -19,6 +19,12 @@ namespace BallSort.Editor.Art
         /// <summary>Art kept in the project for later, outside every rule (not trimmed, not referenced).</summary>
         public const string Unused = "Assets/Art/Unused";
 
+        /// <summary>The lock box's parts, delivered on one canvas: they share their rows (<see cref="TrimSharedRows"/>).</summary>
+        public const string LockBox = Root + "/Mechanics/LockBox";
+
+        /// <summary>One key per lock colour, drawn on the ball that carries it.</summary>
+        public const string Keys = Root + "/Mechanics/Keys";
+
         /// <summary>
         /// Delivered files (relative to <see cref="Incoming"/>) and where they belong, renamed to the
         /// project's names. <see cref="SpritePreparation"/> moves each one that is still in Incoming,
@@ -26,6 +32,45 @@ namespace BallSort.Editor.Art
         /// </summary>
         public static readonly (string From, string To)[] Deliveries =
         {
+            // Fourth delivery (2026-11-01): hard tier button, booster buttons, win picture, lock box, keys.
+            ("buttons/button_hard.png", Root + "/UI/Buttons/Button_Hard.png"),
+            ("buttons/button_undo.png", Root + "/UI/Boosters/Booster_Undo.png"),
+            ("buttons/button_shuffle.png", Root + "/UI/Boosters/Booster_Shuffle.png"),
+            ("buttons/button_tube.png", Root + "/UI/Boosters/Booster_AddTube.png"),
+            ("win pop-up/ingame_win.png", Root + "/UI/Win/Win_Picture.png"),
+            ("lock and key stuff/tube_lock_default_side.png", LockBox + "/LockBox_Side.png"),
+            ("lock and key stuff/tube_lock_default_face.png", LockBox + "/LockBox_Face.png"),
+            ("lock and key stuff/tube_lock_default_inside.png", LockBox + "/LockBox_Inside.png"),
+            ("lock and key stuff/tube_lock_default_cover.png", LockBox + "/LockBox_Cover.png"),
+            ("lock and key stuff/tube_lock_default_mid_blue.png", LockBox + "/LockBox_Mid_Blue.png"),
+            ("lock and key stuff/tube_lock_default_mid_green.png", LockBox + "/LockBox_Mid_Green.png"),
+            ("lock and key stuff/tube_lock_default_mid_pink.png", LockBox + "/LockBox_Mid_Pink.png"),
+            ("lock and key stuff/tube_lock_default_mid_purple.png", LockBox + "/LockBox_Mid_Purple.png"),
+            ("lock and key stuff/tube_lock_default_mid_yellow.png", LockBox + "/LockBox_Mid_Yellow.png"),
+            ("lock and key stuff/tube_lock_key_blue.png", Keys + "/Key_Blue.png"),
+            ("lock and key stuff/tube_lock_key_green.png", Keys + "/Key_Green.png"),
+            ("lock and key stuff/tube_lock_key_pink.png", Keys + "/Key_Pink.png"),
+            ("lock and key stuff/tube_lock_key_purple.png", Keys + "/Key_Purple.png"),
+            ("lock and key stuff/tube_lock_key_yellow.png", Keys + "/Key_Yellow.png"),
+            // The red key has no named mid section yet, so no lock uses it (the plain mid has a red lamp).
+            ("lock and key stuff/tube_lock_key_red.png", Keys + "/Key_Red.png"),
+            // Kept for later, untouched.
+            ("lock and key stuff/tube_lock_default_mid.png", Unused + "/LockBox_Mid_Plain.png"),
+            ("lock and key stuff/tube_lock_default_mid_inside.png", Unused + "/LockBox_Mid_Inside.png"),
+            ("lock and key stuff/tube_lock_default_side_inside.png", Unused + "/LockBox_Side_Inside.png"),
+            ("lock and key stuff/tube_lock_default.png", Unused + "/LockBox_Single.png"),
+            ("lock and key stuff/tube_lock_default_2bottle.png", Unused + "/LockBox_Double.png"),
+            ("lock and key stuff/tube_lock_default_2bottle_inside.png", Unused + "/LockBox_Double_Inside.png"),
+            ("lock and key stuff/tube_lock_default_blue.png", Unused + "/LockBox_Single_Blue.png"),
+            ("lock and key stuff/tube_lock_default_green.png", Unused + "/LockBox_Single_Green.png"),
+            ("lock and key stuff/tube_lock_default_pink.png", Unused + "/LockBox_Single_Pink.png"),
+            ("lock and key stuff/tube_lock_default_purple.png", Unused + "/LockBox_Single_Purple.png"),
+            ("lock and key stuff/tube_lock_default_yellow.png", Unused + "/LockBox_Single_Yellow.png"),
+            // Tube parts found with the lock art: possibly a redrawn tube (docs/art-inventory.md, section 11).
+            ("lock and key stuff/tube_full_default.png", Unused + "/Tube_Full_Redraw.png"),
+            ("lock and key stuff/tube_mid.png", Unused + "/Tube_Middle_Redraw.png"),
+            ("lock and key stuff/tube_up_back.png", Unused + "/Tube_RimBack_Redraw.png"),
+            ("lock and key stuff/tube_up_front.png", Unused + "/Tube_RimFront_Redraw.png"),
             // Third delivery (2026-10-31): icons, popups, settings, leaderboard, super hard button.
             ("button/button_superhard.png", Root + "/UI/Buttons/Button_SuperHard.png"),
             ("button/button_settings_off.png", Root + "/UI/Settings/Toggle_Off.png"),
@@ -54,6 +99,57 @@ namespace BallSort.Editor.Art
             ("pop-up menus/ingame5_menu.png", Unused + "/Popup_Panel_Cream.png"),
         };
 
+        /// <summary>
+        /// Delivered files that replace art already in place, under the same project names. The new
+        /// pixels are copied over the old file, so its <c>.meta</c>, GUID and every reference stay; the
+        /// delivered copy then goes to the trash (the old pixels stay in git).
+        /// </summary>
+        public static readonly (string From, string To)[] Replacements =
+        {
+            // Fourth delivery: reworked monsters (one body size and centre) and the hidden ball at their size.
+            ("balls reworked/monster_blue_01.png", Root + "/Balls/Ball_Blue_Open.png"),
+            ("balls reworked/monster_blue_02.png", Root + "/Balls/Ball_Blue_HalfOpen.png"),
+            ("balls reworked/monster_blue_03.png", Root + "/Balls/Ball_Blue_Closed.png"),
+            ("balls reworked/monster_blue_04.png", Root + "/Balls/Ball_Blue_Laugh.png"),
+            ("balls reworked/monster_brown_01.png", Root + "/Balls/Ball_Brown_Open.png"),
+            ("balls reworked/monster_brown_02.png", Root + "/Balls/Ball_Brown_HalfOpen.png"),
+            ("balls reworked/monster_brown_03.png", Root + "/Balls/Ball_Brown_Closed.png"),
+            ("balls reworked/monster_brown_04.png", Root + "/Balls/Ball_Brown_Laugh.png"),
+            ("balls reworked/monster_green_01.png", Root + "/Balls/Ball_Green_Open.png"),
+            ("balls reworked/monster_green_02.png", Root + "/Balls/Ball_Green_HalfOpen.png"),
+            ("balls reworked/monster_green_03.png", Root + "/Balls/Ball_Green_Closed.png"),
+            ("balls reworked/monster_green_04.png", Root + "/Balls/Ball_Green_Laugh.png"),
+            ("balls reworked/monster_lilac_01.png", Root + "/Balls/Ball_Lilac_Open.png"),
+            ("balls reworked/monster_lilac_02.png", Root + "/Balls/Ball_Lilac_HalfOpen.png"),
+            ("balls reworked/monster_lilac_03.png", Root + "/Balls/Ball_Lilac_Closed.png"),
+            ("balls reworked/monster_lilac_04.png", Root + "/Balls/Ball_Lilac_Laugh.png"),
+            ("balls reworked/monster_orange_01.png", Root + "/Balls/Ball_Orange_Open.png"),
+            ("balls reworked/monster_orange_02.png", Root + "/Balls/Ball_Orange_HalfOpen.png"),
+            ("balls reworked/monster_orange_03.png", Root + "/Balls/Ball_Orange_Closed.png"),
+            ("balls reworked/monster_orange_04.png", Root + "/Balls/Ball_Orange_Laugh.png"),
+            ("balls reworked/monster_pink_01.png", Root + "/Balls/Ball_Pink_Open.png"),
+            ("balls reworked/monster_pink_02.png", Root + "/Balls/Ball_Pink_HalfOpen.png"),
+            ("balls reworked/monster_pink_03.png", Root + "/Balls/Ball_Pink_Closed.png"),
+            ("balls reworked/monster_pink_04.png", Root + "/Balls/Ball_Pink_Laugh.png"),
+            ("balls reworked/monster_purple_01.png", Root + "/Balls/Ball_Purple_Open.png"),
+            ("balls reworked/monster_purple_02.png", Root + "/Balls/Ball_Purple_HalfOpen.png"),
+            ("balls reworked/monster_purple_03.png", Root + "/Balls/Ball_Purple_Closed.png"),
+            ("balls reworked/monster_purple_04.png", Root + "/Balls/Ball_Purple_Laugh.png"),
+            ("balls reworked/monster_red_01.png", Root + "/Balls/Ball_Red_Open.png"),
+            ("balls reworked/monster_red_02.png", Root + "/Balls/Ball_Red_HalfOpen.png"),
+            ("balls reworked/monster_red_03.png", Root + "/Balls/Ball_Red_Closed.png"),
+            ("balls reworked/monster_red_04.png", Root + "/Balls/Ball_Red_Laugh.png"),
+            ("balls reworked/monster_turq_01.png", Root + "/Balls/Ball_Turquoise_Open.png"),
+            ("balls reworked/monster_turq_02.png", Root + "/Balls/Ball_Turquoise_HalfOpen.png"),
+            ("balls reworked/monster_turq_03.png", Root + "/Balls/Ball_Turquoise_Closed.png"),
+            ("balls reworked/monster_turq_04.png", Root + "/Balls/Ball_Turquoise_Laugh.png"),
+            ("balls reworked/monster_yellow_01.png", Root + "/Balls/Ball_Yellow_Open.png"),
+            ("balls reworked/monster_yellow_02.png", Root + "/Balls/Ball_Yellow_HalfOpen.png"),
+            ("balls reworked/monster_yellow_03.png", Root + "/Balls/Ball_Yellow_Closed.png"),
+            ("balls reworked/monster_yellow_04.png", Root + "/Balls/Ball_Yellow_Laugh.png"),
+            ("balls reworked/monster_black_01.png", Root + "/Balls/Ball_Hidden.png"),
+        };
+
         /// <summary>One value for every sprite, so sizes in world units compare like the art does.</summary>
         public const float PixelsPerUnit = 100f;
 
@@ -67,6 +163,8 @@ namespace BallSort.Editor.Art
             Root + "/UI/Icons",
             Root + "/UI/Popups",
             Root + "/UI/Leaderboard",
+            Root + "/UI/Boosters",
+            Root + "/UI/Win",
         };
 
         /// <summary>
@@ -79,6 +177,17 @@ namespace BallSort.Editor.Art
             Root + "/UI/AvatarFrames",
             Root + "/UI/Settings",
             Root + "/Episodes",
+            Keys,
+        };
+
+        /// <summary>
+        /// Folders of parts drawn in place on one canvas and laid side by side in the game: each file is
+        /// cut to its own columns but to the rows of all of them, so every part has the same height and
+        /// the parts line up top and bottom.
+        /// </summary>
+        public static readonly string[] TrimSharedRows =
+        {
+            LockBox,
         };
 
         /// <summary>
@@ -99,13 +208,17 @@ namespace BallSort.Editor.Art
 
         public static readonly FolderImport[] Imports =
         {
-            // Monsters: the pivot is the round body's centre, measured on the delivered art (130, 148
-            // from the top left of 256), so appendages do not shift a ball in its slot.
+            // Monsters and the hidden ball: the pivot is the round body's centre, the same in every file
+            // of the reworked art (128, 139 from the top left of 256), so appendages do not shift a ball
+            // in its slot.
             new FolderImport(Root + "/Balls", 256, TextureImporterFormat.ASTC_4x4,
-                tightMesh: true, pivot: new Vector2(130f / 256f, 1f - 148f / 256f)),
+                tightMesh: true, pivot: new Vector2(128f / 256f, 1f - 139f / 256f)),
             new FolderImport(Root + "/Tubes", 1024, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Corks, 256, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/Mechanics", 1024, TextureImporterFormat.ASTC_4x4),
+            // Lock box parts stand on the box's base line, placed from their centres (CoverView).
+            new FolderImport(LockBox, 1024, TextureImporterFormat.ASTC_4x4, pivot: new Vector2(0.5f, 0f)),
+            new FolderImport(Keys, 256, TextureImporterFormat.ASTC_4x4, tightMesh: true, pivot: new Vector2(0.5f, 0.5f)),
             new FolderImport(Root + "/UI/Buttons", 1024, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/UI/Displays", 1024, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/UI/Home", 1024, TextureImporterFormat.ASTC_6x6),
@@ -117,17 +230,13 @@ namespace BallSort.Editor.Art
             new FolderImport(Root + "/UI/Popups", 1024, TextureImporterFormat.ASTC_6x6),
             new FolderImport(Root + "/UI/Settings", 256, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/UI/Leaderboard", 1024, TextureImporterFormat.ASTC_6x6),
+            // Booster buttons are shown ≈ 200–330 px (the bar and the Buy popup).
+            new FolderImport(Root + "/UI/Boosters", 512, TextureImporterFormat.ASTC_4x4),
+            new FolderImport(Root + "/UI/Win", 1024, TextureImporterFormat.ASTC_6x6),
             // Player pictures: opaque squares shown at most ≈300 px (masked to a circle in their frame).
             new FolderImport(Root + "/UI/Avatars", 512, TextureImporterFormat.ASTC_6x6, opaque: true),
             new FolderImport(Root + "/Episodes", 1024, TextureImporterFormat.ASTC_6x6),
             new FolderImport(Root + "/Backgrounds", 2048, TextureImporterFormat.ASTC_6x6, opaque: true),
-        };
-
-        /// <summary>Pivots that differ from their folder's, by file name.</summary>
-        public static readonly Dictionary<string, Vector2> PivotOverrides = new Dictionary<string, Vector2>
-        {
-            // The hidden ball is drawn bigger, centred at (128, 144).
-            ["Ball_Hidden"] = new Vector2(0.5f, 1f - 144f / 256f),
         };
 
         /// <summary>
@@ -144,6 +253,8 @@ namespace BallSort.Editor.Art
             // pill matches the green button's width; the right end keeps the tilted tag. No top or bottom
             // border: it is drawn at its own aspect's height (LevelTierLook).
             ["Button_SuperHard"] = new Vector4(150f, 0f, 320f, 0f),
+            // The hard button is drawn on the super hard one's canvas, pill and tag in the same place.
+            ["Button_Hard"] = new Vector4(150f, 0f, 320f, 0f),
             // The coin or heart is part of the left end.
             ["Display_Coins"] = new Vector4(380f, 150f, 120f, 150f),
             ["Display_Lives"] = new Vector4(400f, 140f, 120f, 140f),
@@ -156,6 +267,8 @@ namespace BallSort.Editor.Art
             // frame stay; the box's plain middle (rows 470–800) stretches to fit the rows. It is never
             // stretched sideways (scaled uniformly to its width), so it has no side borders.
             ["Leaderboard_Panel"] = new Vector4(0f, 130f, 0f, 470f),
+            // Open lock box's back wall: its rounded frame ends stay, the plain middle stretches across the box.
+            ["LockBox_Inside"] = new Vector4(32f, 0f, 32f, 0f),
         };
     }
 }

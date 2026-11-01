@@ -1,7 +1,7 @@
 # Art inventory (step 6)
 
 What the artist delivered (82 PNGs in the first delivery, 2026-10-30; 20 in the second, 2026-10-31, section 7; 24 in
-the third, the same day, section 8), where
+the third, the same day, section 8; 76 in the fourth, 2026-11-01, section 11), where
 each file went, what is wrong with it, and what art is still missing. Measured on the delivered files: size, alpha, content bounds, and whether the parts can be
 stretched or tiled. The **Missing art** section is the list for the artist. The untouched originals are in git (commit
 "Art: first delivery from the artist…"); the files in `Assets/Art/Sprites/` are trimmed (section 5).
@@ -74,7 +74,7 @@ Home backgrounds: episodes 1, 3 and 4 use episode 2's (`Home_Ep2_Summer`) until 
 
 | Group | Canvas | Content | Notes |
 |---|---|---|---|
-| Balls (41) | 256×256 | body ≈175 px round, centred at (130, 148) from the top left in every colour | Appendages (antennae, horns) reach up to 6–61 px from the top; arms make them ≈199 px wide. The four expressions of a colour have identical bounds. |
+| Balls (41) | 256×256 | body ≈175 px round, centred at (130, 148) from the top left in every colour (replaced by the reworked art, section 11) | Appendages (antennae, horns) reach up to 6–61 px from the top; arms make them ≈199 px wide. The four expressions of a colour have identical bounds. |
 | Hidden ball | 256×256 | ≈195×200, centre (128, 144) | Bigger than the monsters (see problems). |
 | Tube parts (4) | 320×640, shared | full tube x 74–253, y 18–623 | Body (walls) x 93–237 = 145 px, rim 180 px, inside 127 px, walls 8–10 px. Top + middle + bottom composite exactly into `tube_full_default`. Inside is fully transparent. |
 | Clay (ice) | 320×640, shared with the tube | 307×178 at x 9–315, y 459–636 | Drawn for the bottom of a capacity-4 tube; reaches 13 px below the tube's base. |
@@ -118,8 +118,8 @@ Stretch and tile tests:
    tubes' bottoms. It is opaque, so **drawn in front it hides the bottom ball** almost completely (only the horns
    show); drawn behind, the ball stays readable but sits in front of the ice. A narrower version, or one with a
    see-through middle, would fix both.
-6. **The hidden ball is ≈12 % bigger than the monsters** (≈195×200 vs ≈175 px body): a revealed ball visibly shrinks.
-   We can scale it down in config; the artist may prefer to redraw it at the monsters' size.
+6. ~~**The hidden ball is ≈12 % bigger than the monsters**~~: redrawn at the monsters' size in the fourth delivery
+   (section 11); the size correction is gone.
 7. **Monster appendages reach into the slot above** (horns, antennae up to the canvas top) and arms are wider than the
    tube's inside (≈199 vs 127 px at art scale). Fine with no glass front (the tube is behind the balls), but upper
    balls must draw over lower ones so horns tuck behind the ball above.
@@ -156,33 +156,30 @@ trimmed to the content (no empty canvas), PNG with transparency, and keep swap s
 shared canvas size.
 
 **Board (Level scene)**
-- **Lock door**: covers 1–3 adjacent tubes of the same height, so it must stretch in both directions (9-sliceable:
-  plain middle, details in the corners/edges). Neutral colour (tinted per lock) or 4 coloured versions.
-- **Lock icon** on the door, and **key mark** on a ball carrying a key (both tinted per lock, so light/white art).
-- **Veil badge** (optional): the circle in the veil's colour we draw on the towel; ours stays meanwhile.
+- ~~Lock door, lock icon, key mark~~: arrived as the lock box and keys (section 11). Still wanted: a **red mid** for
+  the red key (or confirm the plain mid is red), a **face drawn to tile** without seams, **cover halves** that stretch
+  for boxes over several tubes (section 11, problems).
+- ~~Veil badge~~: replaced by a sticker of the ball in the veil's colour (no new art needed).
 - **Ball colours 11 and 12** (ids 10–11; optional: the levels use 10 colours).
 - **Clay ice at the tube's width**: the delivered ice is drawn 2.1× the tube's body, so the game scales it to 1.1× the
   tube's drawn width (rim, `_clayScale`), and draws it over the balls in the clay tube (they sit in the ice). Please
   redraw it about the rim's width (180 px at the tube canvas's scale), keeping its height, ideally with a see-through
   middle so the bottom ball stays readable (problem 5). Its melt on completion needs art or VFX too.
-- **Monster body sizes**: every PNG is 256×256, but the round bodies (without arms, feet, horns or antennae) differ
-  between colours, roughly 170–190 px wide (lilac smallest, orange and turquoise largest), so some monsters look bigger
-  in the tubes. Please draw every body at one size (e.g. 175 px) on the same centre; the game does not correct it.
-- **Hidden ball size**: please redraw it at the monsters' size (≈175 px body on the 256 canvas, same centre); the game
-  scales it down meanwhile (`ColorPalette._hiddenSpriteSize`) (problem 6). Blink frames optional.
+- ~~Monster body sizes, hidden ball size~~: fixed by the reworked balls (section 11). Hidden ball blink frames
+  optional.
 - **Glass front layer for the tubes**: a translucent glass/highlight layer drawn over the balls, on the same canvas and
   in the same three parts (top, middle, bottom) as the tube, so it stretches the same way (problem 8).
 - **Confirm episode 5's scientist upside down** in his frame: intended (zero gravity) or a mistake? (problem 10)
 - **VFX** (step 6 animations): tube-complete sparkle, win celebration, invalid-move effect.
 
 **Level HUD**
-- **Booster icons**: Undo, Shuffle, Add tube, and a **count badge** (the buttons show text today). The same icons
-  (or bigger pictures) fill the Buy popup's picture: `BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture`,
-  generated placeholders `Placeholder/UI/Booster_*.png` today. The buy badge at 0 is `Icon_Plus` (section 8).
+- ~~Booster icons~~: arrived as whole buttons (section 11), also used as the Buy popup's pictures. Still missing:
+  the **count badge** (a tinted `Knob` today). The buy badge at 0 is `Icon_Plus` (section 8). The generated
+  `Placeholder/UI/Booster_*.png` are no longer referenced.
 - **Booster bar background** (bottom strip of the Level scene).
 - **Level title plate** behind "Level N" (optional).
 - **Stuck banner** ("No more useful moves") background.
-- **Win celebration** title ("Well done!").
+- **Win celebration** title ("Well done!"). The Win panel's picture arrived (section 11).
 
 **Popups (Home and Level)**
 - ~~Popup panel, toggles, standalone coin and heart, green plus~~: arrived in the third delivery (section 8).
@@ -192,8 +189,7 @@ shared canvas size.
 
 **Home**
 - **Home backgrounds for episodes 1, 3 and 4** (Lab, Ice, Lava).
-- **Hard tier button**: only the super hard button arrived (section 8), so hard levels use it too, with "x3" on its
-  tag. A hard version (e.g. orange or yellow, same canvas and tag) drops into `LevelTierLook._hardSprite`.
+- ~~Hard tier button~~: arrived (section 11).
 - ~~Leaderboard page, coin bundle art~~: arrived in the third delivery (section 8). The three bundle cards below the
   shop panel still have no title art (we write it in text).
 - **Avatar frame opening**: the frame's middle is a filled disc, so the picture is masked to a circle over it (74 % of
@@ -209,12 +205,17 @@ One menu item makes delivered art ready; it can be run any time, files already t
   place under its project name through `AssetDatabase.MoveAsset` (`.meta` and GUID kept), folders created as needed. A
   destination that already exists is not overwritten (reported instead). Files kept for later go to `Assets/Art/Unused/`,
   which no rule touches.
+- **Replace deliveries** (`SpriteRules.Replacements`): a delivered file that replaces art in place is copied over the
+  existing file (its `.meta`, GUID and references stay) and the delivered copy goes to the trash. A replacement whose
+  target does not exist stays in Incoming (reported). Folders the moves emptied, and Incoming itself, are removed.
 - **Trim each** (`UI/Buttons`, `UI/Displays`, `UI/Shop`, `UI/Avatar`, `UI/Icons`, `UI/Popups`, `UI/Leaderboard`): every
   file cut to its drawn pixels. The avatar
   pictures (`UI/Avatars`) are opaque squares and are not trimmed; they import at most 512 px, without alpha.
-- **Trim shared** (`UI/Home`, `UI/AvatarFrames`, `UI/Settings`, `Episodes`): a folder is one swap set, cut to one rectangle holding
-  all its files' content, so the bottom bar's versions, the plain and selected avatar frames and the five mascot frames
-  line up.
+- **Trim shared** (`UI/Home`, `UI/AvatarFrames`, `UI/Settings`, `Episodes`, `Mechanics/Keys`): a folder is one swap set, cut to one rectangle holding
+  all its files' content, so the bottom bar's versions, the plain and selected avatar frames, the five mascot frames
+  and the keys line up. `UI/Boosters` and `UI/Win` are trimmed each.
+- **Trim shared rows** (`Mechanics/LockBox`): parts drawn in place on one canvas and laid side by side in the game: each
+  file is cut to its own columns but to the rows of all of them, so the lock box's parts share one height.
 - **Tube** (`Tubes/*`, `Tubes/Corks/*`, `Mechanics/Clay_Ice`, `Mechanics/Veil_Towel`, while they still share the
   delivery canvas): the parts are cut into bands that do not overlap (rim 100, middle 420, bottom 88 px, all 180 px
   wide), and every piece gets a pivot on the walls' centre line (rim halves, veil and corks at the rim's top, middle at
@@ -224,8 +225,9 @@ One menu item makes delivered art ready; it can be run any time, files already t
 - Sizes are padded to multiples of 4 (block compression), then the import settings are applied per folder
   (`SpriteRules`): Sprite, Single, 100 PPU, no mipmaps, clamp, bilinear; max size 256 (balls), 1024 (tube, mechanics,
   UI, frames), 2048 (backgrounds, no alpha); Android and iOS ASTC 4×4 (balls, tube, mechanics, buttons, displays) or
-  6×6 (bar, shop, frames, backgrounds). Ball pivots sit on the body's centre; 9-slice borders for the pills, displays
-  and veil are in `SpriteRules.Borders`.
+  6×6 (bar, shop, frames, backgrounds). Ball pivots sit on the body's centre (128, 139 of the reworked art, one pivot
+  for the folder); lock box parts on their bottom centre; 9-slice borders for the pills, displays, veil and the open
+  lock box's inside are in `SpriteRules.Borders`.
 
 **New delivery:** a replacement: copy the new PNG over the old file of the same name in `Assets/Art/Sprites/` (the
 `.meta` and every reference survive), run Prepare Sprites, check the screens. New files: drop them in
@@ -427,3 +429,86 @@ hidden ball (it never blinks: its colour is unknown, and its art has no eyes to 
 | Smoke puff | `Vfx_IceBreak/Puff` texture sheet | `Placeholder/Ball_Circle` | Soft white cloud, transparent edges. |
 
 **Stage 5 (shuffle):** no new art.
+
+## 11. Fourth delivery (2026-11-01)
+
+76 PNGs in four folders, organised by **Prepare Sprites** (`SpriteRules.Deliveries` and, new, `SpriteRules.Replacements`):
+41 replace existing files, 20 are new files (19 in slots, plus `Key_Red`) and 15 went to `Art/Unused/`. `Assets/Art/Incoming/` was
+empty afterwards and the tool removed it.
+
+**Replacements** (copied over the old file, so `.meta`, GUID and every reference stay; the delivered copy goes to the
+trash, the old pixels stay in git):
+
+| Incoming | Replaces | Slot |
+|---|---|---|
+| `balls reworked/monster_<colour>_01…04.png` | `Balls/Ball_<Colour>_Open`, `_HalfOpen`, `_Closed`, `_Laugh` (`turq` → `Turquoise`) | `ColorPalette` entries 0–9 (blinking and laughing unchanged) |
+| `balls reworked/monster_black_01.png` | `Balls/Ball_Hidden` | `ColorPalette._hiddenSprite` (the "?" is drawn in) |
+
+**New files**
+
+| Incoming | New path | Slot |
+|---|---|---|
+| `buttons/button_hard.png` | `UI/Buttons/Button_Hard.png` | `LevelTierLook._hardSprite` (borders 150 / 0 / 320 / 0, like super hard); "x3" label unchanged |
+| `buttons/button_undo.png`, `button_shuffle.png`, `button_tube.png` | `UI/Boosters/Booster_Undo.png`, `Booster_Shuffle.png`, `Booster_AddTube.png` | `BoosterBar/{Undo,Shuffle,AddTube}Button` Image and `BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture` (Buy popup) |
+| `win pop-up/ingame_win.png` | `UI/Win/Win_Picture.png` | `WinPopup/Panel/Picture` |
+| `lock and key stuff/tube_lock_default_side.png` | `Mechanics/LockBox/LockBox_Side.png` | `TubeVisualConfig._lockSideSprite` (the right edge as drawn; mirrored on the left) |
+| `…/tube_lock_default_face.png` | `Mechanics/LockBox/LockBox_Face.png` | `TubeVisualConfig._lockFaceSprite` (tiled) |
+| `…/tube_lock_default_mid_<colour>.png` (blue, green, pink, purple, yellow) | `Mechanics/LockBox/LockBox_Mid_<Colour>.png` | `LockPalette` entry `_mid` |
+| `…/tube_lock_default_inside.png` | `Mechanics/LockBox/LockBox_Inside.png` | `TubeVisualConfig._lockInsideSprite` (open box, behind the tubes; borders 32 / 0 / 32 / 0) |
+| `…/tube_lock_default_cover.png` | `Mechanics/LockBox/LockBox_Cover.png` | `TubeVisualConfig._lockCoverSprite` (open box: the left half as drawn, the right one mirrored) |
+| `…/tube_lock_key_<colour>.png` (blue, green, pink, purple, yellow) | `Mechanics/Keys/Key_<Colour>.png` | `LockPalette` entry `_key` |
+| `…/tube_lock_key_red.png` | `Mechanics/Keys/Key_Red.png` | none yet: no red mid, so no red lock (first sent to Unused by mistake, moved here and cut to the keys' shared rectangle) |
+
+**Lock ids → colours** (`LockPalette`, closest to the old tints): 0 Green, 1 Purple, 2 Yellow, 3 Pink, 4 Blue. The
+delivered levels use ids 0–2. The tints, the door (`Tube_9Sliced`), the lock icon (`Placeholder/Lock_Icon`), the key
+mark (`Placeholder/Key_Icon`) and the veil badge (`Placeholder/Veil_Badge`) are no longer referenced; the placeholder
+files stay in `Placeholder/`.
+
+**To `Art/Unused/`** (not referenced):
+- `tube_lock_default_mid` → `LockBox_Mid_Plain` (it has a **red** lamp: with `Keys/Key_Red` it would make a sixth lock
+  colour; confirm with the artist).
+- `tube_lock_default_mid_inside`, `_side_inside` → `LockBox_Mid_Inside`, `LockBox_Side_Inside` (open box parts in
+  pieces; the brief uses the whole `inside`).
+- `tube_lock_default`, `_blue`, `_green`, `_pink`, `_purple`, `_yellow` → `LockBox_Single`, `LockBox_Single_<Colour>`;
+  `tube_lock_default_2bottle`, `_2bottle_inside` → `LockBox_Double`, `LockBox_Double_Inside` (whole one- and two-tube
+  boxes: reference mock-ups; the game builds the box from parts).
+- `tube_full_default`, `tube_mid`, `tube_up_back`, `tube_up_front` → `Tube_Full_Redraw`, `Tube_Middle_Redraw`,
+  `Tube_RimBack_Redraw`, `Tube_RimFront_Redraw`: **possibly a redrawn tube; confirm with artist.** They are on the
+  320×640 tube canvas, but sit higher on it than the tube in use (rim back rows 16–42, front 42–100, full tube 16–623).
+
+**Measurements**
+
+| Group | Canvas | Content | Notes |
+|---|---|---|---|
+| Reworked balls (41) | 256×256 | round body ≈155–165 px, centred at (128, 139) in every colour and the hidden ball | One pivot for the folder now (128, 139); the hidden ball's pivot override and its own size (1.31) are gone. Bodies measured by morphological opening (arms, horns and antennae removed): the old monsters measure the same ≈155 px this way, centred at (128–131, 136–147); the old hidden ball ≈190 px. |
+| Booster buttons (3) | 1000×1000 | 780×792 trimmed, identical bounds | Rounded squares with the icon drawn in; imported at 512. |
+| Button_Hard | 1000×1000 | 884×480 trimmed | The super hard button's canvas: pill rows 49–475, tag at the top right. |
+| Win picture | 1000×1000 | full (soft glow, alpha 14–26 at the corners) | No banner or ribbon space. |
+| Lock box parts (9) | 1000×1000, shared | rows 141–838 → 704 px tall after trimming (`TrimSharedRows`) | Side 36, face 176, mid 164, inside 204, cover 152 px wide. Pivot bottom centre. |
+| Keys (5) | 1000×1000, shared | 152×144 (one rectangle; yellow's drip is 9 px taller) | Triangular gem in a metal frame, the shape of the mid's key slot. |
+
+**How the game uses them**
+- **Balls:** one `ColorPalette._artSpriteSize` (1.46, the canvas in body diameters) for every ball sprite, hidden
+  included; only the default placeholder sprite draws at 1. Drawn 0.9× their previous size (`TubeVisualConfig._ballScale`)
+  and resting 0.855 apart instead of 0.91 (`_ballSpacing`: 12 px of the 256 art at the drawn size, about 4.7 %), the
+  bottom ball unchanged; tube heights, row pitch and large-tube spans keep the tube geometry (`_slotHeight` 0.91), so
+  no tube changed size. A full capacity-4 tube's top ball sits 0.17 units (≈36 px of art) lower.
+- **Lock box:** docs/mechanics.md, Cover visuals. Closed parts on TubeFront 4 (mid 5), the open box's inside on
+  TubeBack −2, its covers on TubeFront 6.
+- **Key:** the lock's key sprite, untinted, 0.5 ball diameters wide, 0.3 below the body's centre (below the eye,
+  between the arms; `ColorPalette._keyMarkSize` / `_keyMarkOffset`).
+- **Veil sticker:** the colour's open-eyes sprite, body 0.55 units wide (`TubeVisualConfig._veilStickerSize`).
+- **Tube bottom over the balls** (decided after review): the tube's bottom part (`Tube_Bottom`) moved from TubeBack to
+  TubeFront 0, so its glass and rounded base draw over the resting balls; balls raised for a lift or a flight still draw
+  over every tube part.
+
+**Problems found**
+1. **No red lock** (the red key has no named mid; the plain mid has a red lamp, above). Five lock colours today, ids 0–4.
+2. **The face tiles show faint seams** where one tile meets the next (and where the face meets the mid), because the
+   face's edges are not drawn to repeat. A face drawn to tile (matching left and right columns) would hide them.
+3. **The open box's cover halves are drawn for a one-tube box** (152 px each, ≈ the mid's width). For boxes over 2–5
+   tubes the unlock animation will have to stretch or tile them (a sliceable cover, plain middle, would help).
+4. **Hard levels' labels** use the red outline preset (`Baloo2-Bold SDF Red`, shared with super hard) on the purple
+   button; a purple preset would match the art better (left as is, as asked for "x3").
+5. **Keys and veil stickers** are positioned by eye in the Editor (screenshots); the artist's mock-up of a monster
+   holding a key would let us match it exactly.

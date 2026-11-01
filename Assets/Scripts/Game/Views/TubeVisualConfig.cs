@@ -19,9 +19,12 @@ namespace BallSort.Game.Views
     /// the balls, the front over them and over the cork.
     /// </para>
     /// <para>
-    /// Ball spacing is <see cref="BottomOffset"/> and <see cref="SlotHeight"/>. Tube heights and the row
-    /// pitch (<c>LevelLayout.RowPitchSlots</c> slots) both follow from them, so capacity-10 and -16 tubes
-    /// still reach the top row of their span whatever the values. Changing them in the Inspector during
+    /// Tube geometry and ball layout are separate. Tube heights and the row pitch
+    /// (<c>LevelLayout.RowPitchSlots</c> slots) follow from the geometry values (<see cref="BottomOffset"/>,
+    /// <see cref="SlotHeight"/>, <see cref="BallDiameter"/>, top padding), so capacity-10 and -16 tubes
+    /// still reach the top row of their span whatever the values. The balls are drawn
+    /// <see cref="BallSize"/> wide and rest <see cref="BallSpacing"/> apart from the bottom slot up
+    /// (<see cref="BallY"/>), which never changes a tube. Changing any of them in the Inspector during
     /// Play mode re-lays the board out (<see cref="Changed"/>).
     /// </para>
     /// </remarks>
@@ -59,16 +62,26 @@ namespace BallSort.Game.Views
         [Tooltip("How far the glow reaches past the tube's body on every side.")]
         [SerializeField, Min(0f)] private float _glowPadding = 0.12f;
 
-        [Header("Geometry")]
+        [Header("Tube geometry (tube heights, row pitch, large-tube spans)")]
         [Tooltip("Width of the tube body.")]
         [SerializeField, Min(0.1f)] private float _tubeWidth = 1.1f;
-        [Tooltip("Vertical distance between ball centres. Tube heights and row spacing follow from it.")]
+        [Tooltip("Height each ball slot adds to a tube. Tube heights and row spacing follow from it; " +
+            "where the balls rest is Ball Spacing.")]
         [SerializeField, Min(0.1f)] private float _slotHeight = 0.91f;
-        [Tooltip("Height of the bottom ball's centre above the tube's base.")]
+        [Tooltip("Height of the bottom slot's centre above the tube's base; the bottom ball rests there.")]
         [SerializeField, Min(0f)] private float _bottomOffset = 0.59f;
-        [Tooltip("Space between the top slot's ball edge and the tube's rim.")]
+        [Tooltip("Space between the top slot's edge and the tube's rim.")]
         [SerializeField, Min(0f)] private float _topPadding = 0.15f;
+        [Tooltip("Size of a ball slot: sets the tube's height above its top slot, the lift and the motion " +
+            "amplitudes. The balls themselves are drawn Ball Scale times this.")]
         [SerializeField, Min(0.1f)] private float _ballDiameter = 0.9f;
+
+        [Header("Balls (drawn size and resting spacing; they never change the tube)")]
+        [Tooltip("Drawn ball size as a fraction of the slot's Ball Diameter.")]
+        [SerializeField, Range(0.5f, 1.2f)] private float _ballScale = 0.9f;
+        [Tooltip("Distance between the centres of resting balls, from the bottom ball (at Bottom Offset) up. " +
+            "At most Slot Height, so the top ball stays inside the tube.")]
+        [SerializeField, Min(0.1f)] private float _ballSpacing = 0.855f;
 
         [Header("Spacing")]
         [Tooltip("Gap between neighbouring tubes. Rows are spaced by the grid rule (two ball slots), not here.")]
@@ -81,16 +94,21 @@ namespace BallSort.Game.Views
         [Tooltip("Vertical scale of the veil art: shortens it so its hem crosses the bottom ball, whose lower half " +
             "shows. Taller tubes add their extra height to the stripes.")]
         [SerializeField, Range(0.3f, 1f)] private float _veilHeightScale = 0.85f;
-        [Tooltip("Drawn in the veil's centre, tinted with the ball colour that opens it.")]
-        [SerializeField] private Sprite _veilBadgeSprite;
-        [SerializeField, Min(0.05f)] private float _veilBadgeSize = 0.8f;
+        [Tooltip("Body width of the sticker on the veil: the open-eyes ball of the colour that opens it.")]
+        [SerializeField, Min(0.05f)] private float _veilStickerSize = 0.55f;
 
-        [Header("Door (9-sliced; one per lock, across all of its tubes)")]
-        [SerializeField] private Sprite _doorSprite;
-        [SerializeField] private Color _doorTint = new Color(0.22f, 0.26f, 0.33f);
-        [Tooltip("Drawn in the door's centre, tinted from the LockPalette.")]
-        [SerializeField] private Sprite _lockIconSprite;
-        [SerializeField, Min(0.05f)] private float _lockIconSize = 1f;
+        [Header("Lock box (one per lock, across its capacity-4 tubes; the coloured mid comes from the LockPalette)")]
+        [Tooltip("The box's right edge as drawn; mirrored for the left edge.")]
+        [SerializeField] private Sprite _lockSideSprite;
+        [Tooltip("Plain front, tiled from each side to the mid (mirrored on the right).")]
+        [SerializeField] private Sprite _lockFaceSprite;
+        [Tooltip("Open box: the back wall behind the tubes, stretched across the box.")]
+        [SerializeField] private Sprite _lockInsideSprite;
+        [Tooltip("Open box: one of the two front halves that slide apart (the right one mirrored).")]
+        [SerializeField] private Sprite _lockCoverSprite;
+        [Tooltip("How far the box reaches past the covered tubes: x beyond the outer rims, y below the base " +
+            "and above the rim.")]
+        [SerializeField] private Vector2 _lockBoxPadding = new Vector2(0.08f, 0.1f);
 
         [Header("Clay (ice at the base of a clay tube: over the balls in it, under balls in flight)")]
         [Tooltip("Scaled to the tube's drawn width (its rim) times Clay Scale, keeping its proportions.")]
@@ -130,16 +148,22 @@ namespace BallSort.Game.Views
         public float SlotHeight => _slotHeight;
         public float BottomOffset => _bottomOffset;
         public float BallDiameter => _ballDiameter;
+
+        /// <summary>Drawn ball diameter (the round body): <see cref="BallDiameter"/> × the ball scale.</summary>
+        public float BallSize => _ballDiameter * _ballScale;
+
+        /// <summary>Distance between the centres of resting balls.</summary>
+        public float BallSpacing => _ballSpacing;
         public float HorizontalSpacing => _horizontalSpacing;
         public Sprite VeilSprite => _veilSprite;
         public Color VeilTint => _veilTint;
         public float VeilHeightScale => _veilHeightScale;
-        public Sprite VeilBadgeSprite => _veilBadgeSprite;
-        public float VeilBadgeSize => _veilBadgeSize;
-        public Sprite DoorSprite => _doorSprite;
-        public Color DoorTint => _doorTint;
-        public Sprite LockIconSprite => _lockIconSprite;
-        public float LockIconSize => _lockIconSize;
+        public float VeilStickerSize => _veilStickerSize;
+        public Sprite LockSideSprite => _lockSideSprite;
+        public Sprite LockFaceSprite => _lockFaceSprite;
+        public Sprite LockInsideSprite => _lockInsideSprite;
+        public Sprite LockCoverSprite => _lockCoverSprite;
+        public Vector2 LockBoxPadding => _lockBoxPadding;
         public Sprite ClaySprite => _claySprite;
         public Color ClayTint => _clayTint;
         public float ClayScale => _clayScale;
@@ -150,11 +174,12 @@ namespace BallSort.Game.Views
         public float ArtScale =>
             _bottomSprite != null ? _tubeWidth * _bottomSprite.pixelsPerUnit / _artBodyWidth : 1f;
 
-        /// <summary>Local y of a ball's centre in <paramref name="slotIndex"/>, measured from the tube base.</summary>
-        public float SlotY(int slotIndex) => _bottomOffset + slotIndex * _slotHeight;
+        /// <summary>Local y of a resting ball's centre in <paramref name="slotIndex"/>, measured from the tube base.</summary>
+        public float BallY(int slotIndex) => _bottomOffset + slotIndex * _ballSpacing;
 
-        /// <summary>Body height of a tube that holds <paramref name="capacity"/> balls.</summary>
-        public float TubeHeight(int capacity) => SlotY(capacity - 1) + _ballDiameter * 0.5f + _topPadding;
+        /// <summary>Body height of a tube that holds <paramref name="capacity"/> balls (tube geometry only).</summary>
+        public float TubeHeight(int capacity) =>
+            _bottomOffset + (capacity - 1) * _slotHeight + _ballDiameter * 0.5f + _topPadding;
 
         private void OnValidate()
         {
@@ -165,9 +190,14 @@ namespace BallSort.Game.Views
             }
 
             // Covered balls are hidden either way, so a missing cover sprite would show an empty tube.
-            if (_veilSprite == null || _doorSprite == null || _claySprite == null)
+            if (_veilSprite == null || _lockSideSprite == null || _lockFaceSprite == null || _claySprite == null)
             {
-                Debug.LogWarning($"{name}: veil, door and clay sprites must be assigned.", this);
+                Debug.LogWarning($"{name}: veil, lock box side and face, and clay sprites must be assigned.", this);
+            }
+
+            if (_ballSpacing > _slotHeight)
+            {
+                Debug.LogWarning($"{name}: Ball Spacing is more than Slot Height, so a full tube's top ball rises past its slot.", this);
             }
 
             Changed?.Invoke();

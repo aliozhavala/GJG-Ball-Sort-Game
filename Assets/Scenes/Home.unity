@@ -9427,7 +9427,7 @@ MonoBehaviour:
   _label: {fileID: 285500167}
   _regularLabelMaterial: {fileID: 2100000, guid: 973c0cd1db9cf5e48818a0e4bc116dd2, type: 2}
   _tierLabelMaterial: {fileID: 2100000, guid: 9429851bb0bb0ae49a5fb3f4b7160001, type: 2}
-  _hardSprite: {fileID: 21300000, guid: c4d9001360186e2458edd0e24f3d21b5, type: 3}
+  _hardSprite: {fileID: 21300000, guid: 7a179cac266ea7c4683309236df26bd3, type: 3}
   _hardMultiplier: x3
   _superHardSprite: {fileID: 21300000, guid: c4d9001360186e2458edd0e24f3d21b5, type: 3}
   _superHardMultiplier: x5

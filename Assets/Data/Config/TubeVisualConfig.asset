@@ -31,16 +31,20 @@ MonoBehaviour:
   _bottomOffset: 0.59
   _topPadding: 0.15
   _ballDiameter: 0.9
+  _ballScale: 0.9
+  _ballSpacing: 0.855
   _horizontalSpacing: 0.45
   _veilSprite: {fileID: 21300000, guid: d28c1bb3d10027d45bfd3c81e57016c1, type: 3}
   _veilTint: {r: 1, g: 1, b: 1, a: 1}
   _veilHeightScale: 0.92
-  _veilBadgeSprite: {fileID: 21300000, guid: 83b96e5eb5e915a4aaa53cf1d752d237, type: 3}
-  _veilBadgeSize: 0.8
-  _doorSprite: {fileID: 21300000, guid: 7770bd4a35ee54144b430d61cd7331c0, type: 3}
-  _doorTint: {r: 0.22, g: 0.26, b: 0.33, a: 1}
-  _lockIconSprite: {fileID: 21300000, guid: aaa5f5764fc1db6498ba3066f29996b9, type: 3}
-  _lockIconSize: 1
+  _veilStickerSize: 0.55
+  _lockSideSprite: {fileID: 21300000, guid: b0d9b83acb582f849ac92a0b4eb44775, type: 3}
+  _lockFaceSprite: {fileID: 21300000, guid: f5348509e57730a4dac7395ab4dc8c84, type: 3}
+  _lockInsideSprite: {fileID: 21300000, guid: d2ade351037fd414cb915b2edb3ad056, type: 3}
+  _lockCoverSprite: {fileID: 21300000, guid: 9f02d5042a9a6f843888dc202c1fa33b, type: 3}
+  _lockBoxPadding: {x: 0.08, y: 0.1}
   _claySprite: {fileID: 21300000, guid: 1685ddd8ef66c334faa10e004b5b6ab7, type: 3}
   _clayTint: {r: 1, g: 1, b: 1, a: 1}
   _clayScale: 1.1
+  _shuffleHighlightTint: {r: 1, g: 0.95, b: 0.55, a: 0.9}
+  _shuffleDimShade: 0.45

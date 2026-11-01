@@ -1038,3 +1038,59 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
   (`_shuffleSpeed` 1.7, `_shuffleStagger` 0.05, `_shuffleRiseHeight` 0.4, `_shuffleArcHeight` 0.3, `_shuffleWiggleAngle`
   8, `_shuffleWiggleDuration` 0.4, `_shuffleWiggleFrequency` 30, `_shuffleWiggleDamping` 8).
 - Verification: the animation checked by hand in Play mode; EditMode tests 1775 passed, 0 failed; console: no errors.
+
+## 2026-11-01 — Fourth art delivery: reworked balls, lock box and keys, booster and hard buttons, win picture
+
+### Assets (Ball Sort ▸ Art ▸ Prepare Sprites)
+- 41 replaced in place (pixels copied over, `.meta`/GUID kept; import settings re-applied, pivot now (128, 139) of
+  256): `Art/Sprites/Balls/Ball_<Colour>_{Open,HalfOpen,Closed,Laugh}.png` (10 colours) and `Ball_Hidden.png`.
+- 19 new: `Art/Sprites/UI/Buttons/Button_Hard.png`; `Art/Sprites/UI/Boosters/Booster_{Undo,Shuffle,AddTube}.png`;
+  `Art/Sprites/UI/Win/Win_Picture.png`; `Art/Sprites/Mechanics/LockBox/LockBox_{Side,Face,Inside,Cover}.png` and
+  `LockBox_Mid_{Blue,Green,Pink,Purple,Yellow}.png`; `Art/Sprites/Mechanics/Keys/Key_{Blue,Green,Pink,Purple,Yellow}.png`.
+- 16 to `Art/Unused/`: `Key_Red`, `LockBox_Mid_Plain`, `LockBox_Mid_Inside`, `LockBox_Side_Inside`, `LockBox_Single`,
+  `LockBox_Single_{Blue,Green,Pink,Purple,Yellow}`, `LockBox_Double`, `LockBox_Double_Inside`,
+  `Tube_{Full,Middle,RimBack,RimFront}_Redraw`.
+- `Assets/Art/Incoming/` (emptied) removed by the tool.
+
+### Config assets
+- `Data/Config/TubeVisualConfig.asset`: `_lockSideSprite` → `LockBox_Side`, `_lockFaceSprite` → `LockBox_Face`,
+  `_lockInsideSprite` → `LockBox_Inside`, `_lockCoverSprite` → `LockBox_Cover`; new fields at their code defaults:
+  `_ballScale` 0.9, `_ballSpacing` 0.855, `_veilStickerSize` 0.55, `_lockBoxPadding` (0.08, 0.1). Removed fields
+  (`_veilBadgeSprite`/`Size`, `_doorSprite`/`Tint`, `_lockIconSprite`/`Size`) dropped on save. Tube geometry unchanged.
+- `Data/Config/ColorPalette.asset`: `_artSpriteSize` 1.4628571 (replaces the per-entry `_spriteSize` and
+  `_hiddenSpriteSize`, dropped on save); `_keyMarkSize` 0.75 → 0.5, `_keyMarkOffset` (0.25, −0.25) → (0, −0.3);
+  `_keyMarkSprite` removed.
+- `Data/Config/LockPalette.asset`: `_tints` replaced by `_locks` (5): Green, Purple, Yellow, Pink, Blue, each with its
+  `LockBox_Mid_<Colour>` and `Key_<Colour>`.
+
+### Prefabs
+- `Prefabs/Cover.prefab`: new child `LockBox` (`LockBoxView`) with SpriteRenderers `SideLeft`, `SideRight`, `FaceLeft`,
+  `FaceRight` (TubeFront 4), `Mid` (TubeFront 5), `Inside` (TubeBack −2), `CoverLeft`, `CoverRight` (TubeFront 6), all
+  Sprite-Unlit-Default, disabled; `CoverView._lockBox` → it.
+- `Prefabs/UI/WinPopup.prefab`: `Panel` Image disabled (no panel art), its layout padding 60/60/0/0, spacing 24; new
+  child `Picture` (Image `Win_Picture`, preserve aspect, no raycast, LayoutElement preferred height 700) between `Title`
+  and `Reward`; `Title` font size 80 (max 80), preferred height 120.
+
+### Level.unity
+- `LevelCanvas/.../BoosterBar/{Undo,Shuffle,AddTube}Button`: Image → `Booster_Undo` / `Booster_Shuffle` /
+  `Booster_AddTube`, white, Simple, preserve aspect, size 150×152; `Label` children deactivated.
+- `BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture` → the same three sprites.
+
+### Home.unity
+- `LevelTierLook._hardSprite` → `Button_Hard` (was `Button_SuperHard`).
+
+### Verification
+- EditMode tests: 1776 passed, 0 failed. Validate Levels (runner, fast solve): 100 levels, 500 variants, 0 invalid,
+  0 unsolved. Console: no errors or warnings.
+- Screenshots in Play mode (editor test visits, save restored afterwards): level 84 (two 3-tube lock boxes, keys),
+  31 (veils with stickers), 9 (hidden balls), the booster bar, the Buy popup (Shuffle), the Win panel, Home on a hard
+  level (14).
+
+## 2026-11-01 — Review fixes: red key, tube bottom over balls, level 100 tier
+
+- `Art/Unused/Key_Red.png` → `Art/Sprites/Mechanics/Keys/Key_Red.png` (`AssetDatabase.MoveAsset`), cut to the keys'
+  shared 152×144 rectangle (same offset as the others, checked against `Key_Blue`'s alpha); Prepare Sprites applied the
+  Keys import settings. Not referenced (no red lock). `SpriteRules.Deliveries` now sends it to `Keys`.
+- `Prefabs/Tube.prefab`: `Bottom` SpriteRenderer sorting layer TubeBack 0 → TubeFront 0 (over resting balls, under
+  clay, cork and rim front; raised balls stay above it).
+- `Data/Levels/level_100.json`: `tier` `superHard` → `regular` (text edit).

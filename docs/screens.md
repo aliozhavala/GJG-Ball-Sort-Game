@@ -40,10 +40,10 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - **Center:** big **Level button** (green) showing `Level N`, low on the page just above the bottom bar (about a quarter
   of the screen up), so the episode illustration stays visible. If `AllLevelsComplete`: shows `All levels complete` and
   replays level 100. Its look depends on the level's tier (`LevelTierLook`): regular levels show the green button;
-  hard and super hard levels show the red tier button (`Button_SuperHard`, drawn over the button as `TierArt`, its pill
-  stretched to the green button's size) with the reward multiplier written on its tilted tag at the tag's angle:
-  "x3" for hard, "x5" for super hard (rewards 60 and 100 against 20). Hard uses the super hard art until its own
-  arrives (docs/art-inventory.md, section 8). At 0 lives it opens the More Lives popup instead of loading the level.
+  hard and super hard levels show their tier button (`Button_Hard`, purple, and `Button_SuperHard`, red; drawn over
+  the button as `TierArt`, the pill stretched to the green button's size; both share one canvas, so the tag sits in the
+  same place) with the reward multiplier written on its tilted tag at the tag's angle: "x3" for hard, "x5" for super
+  hard (rewards 60 and 100 against 20). At 0 lives it opens the More Lives popup instead of loading the level.
 - **Bottom nav:** Shop · Home · Leaderboard, the order of the bar art. One bar image in three versions, each with its
   tab raised; selecting a tab swaps the bar to its version. Three invisible tap areas match the drawn sections
   (41 / 19 / 41 % of the bar's width). Home is selected on arriving. Every tab stays interactable (`HomeTabs` enforces it).
@@ -87,8 +87,9 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   **Top-center:** `Level N` (shrinks rather than reach the frame or the button). **Top-right:** settings button, as on
   Home. No avatar, coins, or lives here.
 - **Middle:** the board (tubes laid out on the level's grid).
-- **Bottom:** booster bar — Undo, Shuffle, Add tube — each with its remaining count, or at 0 a green plus in the count
-  badge's place (no separate button): tapping that booster opens the Buy popup.
+- **Bottom:** booster bar — Undo, Shuffle, Add tube, each drawn by its button art (`UI/Boosters/Booster_*`, 150×152,
+  no text label) — each with its remaining count on the badge at its top right corner, or at 0 a green plus in the
+  count badge's place (no separate button): tapping that booster opens the Buy popup.
 - **Input:** tap a tube to select it (its top ball lifts above the mouth; the rest of the run follows when it moves), tap it again to deselect, tap another tube to
   move. An illegal move, or a tap on a tube that can't be selected, plays invalid-move feedback and clears the
   selection. Tapping empty space deselects. The selection is also dropped on undo, add tube, Play on, restart,
@@ -131,7 +132,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   - Play on is disabled (still showing its price) if coins < 900 or every row already has 8 cells. Give up is then the only choice.
 
 ### Win
-- Input locks, progress + reward are saved and the level-in-progress mark is cleared (one save), short placeholder celebration (~1 s, e.g. "Well done!" text), then the **Win panel**: "Level N complete", `+20 ●` (the tier's reward), **Continue** → Home. A win never costs a life.
+- Input locks, progress + reward are saved and the level-in-progress mark is cleared (one save), short placeholder celebration (~1 s, e.g. "Well done!" text), then the **Win panel**: no panel art, the win picture (`UI/Win/Win_Picture`, the scientist hugging the monsters) in the middle of the dimmed screen, "Level N complete" just above it (the art has no banner or ribbon to write on, so the title never crosses the picture's edge), `+20 ●` (the tier's reward) and **Continue** → Home below it. Static for now (its animation is next). A win never costs a life.
 
 ## Buying
 Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyBooster`, `TryRefillLives` and `AddCoins`
@@ -140,8 +141,8 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   yellow button showing only the price next to `Icon_Coin`, and the ✕.
   - **Boosters** (Level, from a booster at 0): "Buy Undo" 300, "Buy Shuffle" 300, "Buy Add tube" 900. Under the title,
     the coin balance in a small copy of Home's coins pill (`CoinsDisplay`, bound to the wallet while shown, so it is
-    always current); then the booster's picture (`BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture`,
-    generated placeholders until booster art arrives). One purchase adds 1 booster and closes the popup, and the badge
+    always current); then the booster's picture (`BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture`:
+    the booster button art, the same as in the bar). One purchase adds 1 booster and closes the popup, and the badge
     shows the count again.
   - **Hearts** (Home, from the plus on the lives pill, shown only below the maximum): "Refill hearts" with `Icon_Heart`
     as the picture (no coin balance: Home's top bar shows it), 900 refills the lives to the maximum and stops the
@@ -229,7 +230,7 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   `StuckPanel._playOnFormat`); the label needs that sprite asset assigned.
 - Buttons (art, 9-sliced so they stretch to any width): green for Continue and the Level button; red for Give up, Are
   You Sure's Confirm and Settings' Restart and Home; yellow for Play on, Buy and the shop's prices; the round ✕ closes every
-  popup; the round gear is both settings buttons; the round pen edits the name. The booster buttons keep placeholders.
+  popup; the round gear is both settings buttons; the round pen edits the name; the booster buttons are square art with their icon (no label).
 - Canvas Scaler 1080×1920, match 0.5; `SafeArea` on root panels.
 - **Text:** every label is Baloo 2 Bold (`Baloo2-Bold SDF`, the TMP default; FONTS.md's ExtraBold read too heavy under
   an outline), a static atlas (docs/art-inventory.md, section 9); a typed name's other characters come from the
@@ -251,6 +252,6 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   buttons on `LevelTierLook`, the switch knobs on each `SettingSwitch`, the leaderboard rows on `LeaderboardPage`, the
   Buy popup's booster pictures on `BoosterBar` and its heart on `HomeScreen`, and everything else is an `Image` on its
   screen or popup object. Which slots hold final art and which still hold placeholders (Unity's built-in UI sprites,
-  tinted, and generated ones in `Art/Sprites/Placeholder/UI/`: the booster pictures, and the heart on Home's lives pill)
+  tinted, and generated ones in `Art/Sprites/Placeholder/UI/`: the heart on Home's lives pill)
   is listed in docs/art-inventory.md. Home backgrounds exist for
   episodes 2 and 5; episodes 1, 3 and 4 use episode 2's until theirs arrive.
