@@ -1132,3 +1132,21 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 - Play mode, editor test visit of `TestLevels/veil.json` V5: moves 0 → 2, 1 → 0 (red completes, the veil lifts:
   screenshots of the start with smoke and sparks, mid-lift with the tilt, the end), then 1 → 4, 1 → 2 (the hidden ball
   turns: screenshots mid-flip and after).
+
+## 2026-11-01 — Animations stage 3: level win (docs/animation-spec.md 5.2)
+
+- `Prefabs/UI/WinPopup.prefab`, root: new `WinPanelAnimation` (`_animation` → `AnimationConfig`, `_dim` → the root's
+  Image, `_picture` → `Panel/Picture`, `_title` → `Panel/Title`, `_reward` → `Panel/Reward`, `_continue` →
+  `Panel/ContinueButton`); `WinPopup._entrance` → it.
+- New `Prefabs/VFX/Vfx_WinConfetti.prefab`: copy of `Vfx_Confetti`, burst 40, start speed 7–11.
+- `Scenes/Level.unity`: `LevelCanvas/Celebration` (the "Well done!" placeholder label) deleted; `LevelFeedback`:
+  `_celebration` gone (field removed), `_winConfetti` → `Vfx_WinConfetti`, `_winConfettiInset` (0.04, 0.04),
+  `_winConfettiAngle` 30 (defaults).
+- `AnimationConfig.asset`: `_celebrationDuration` removed, the win fields added (code defaults).
+
+### Verification
+- EditMode tests: 1776 passed, 0 failed. Console: no errors; the test fixture's tutorial warning (level 905).
+- Play mode, editor test visit of `TestLevels/lock_and_key.json` V1 solved by the solver: screenshots (UI included) of
+  the board celebration and corner confetti, the dim and picture pop, the title's letters, the panel at rest with
+  Continue. Skip checked by calling `WinPanelAnimation.Skip` three times: Card, then Reward raised once each at the
+  skip, the stamp dropped, Continue live at the end.

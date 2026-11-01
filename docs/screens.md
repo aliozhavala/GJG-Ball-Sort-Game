@@ -132,7 +132,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   - Play on is disabled (still showing its price) if coins < 900 or every row already has 8 cells. Give up is then the only choice.
 
 ### Win
-- Input locks, progress + reward are saved and the level-in-progress mark is cleared (one save), short placeholder celebration (~1 s, e.g. "Well done!" text), then the **Win panel**: no panel art, the win picture (`UI/Win/Win_Picture`, the scientist hugging the monsters) in the middle of the dimmed screen, "Level N complete" just above it (the art has no banner or ribbon to write on, so the title never crosses the picture's edge), `+20 ●` (the tier's reward) and **Continue** → Home below it. Static for now (its animation is next). A win never costs a life.
+- Input locks, progress + reward are saved and the level-in-progress mark is cleared (one save), the board celebrates (tubes bump, balls hop, confetti from the bottom corners), then the **Win panel**: no panel art, the win picture (`UI/Win/Win_Picture`, the scientist hugging the monsters) in the middle of the dimmed screen, "Level N complete" just above it (the art has no banner or ribbon to write on, so the title never crosses the picture's edge), `+20 ●` (the tier's reward) and **Continue** → Home below it. It enters animated (dim, picture pop, title letter by letter, reward, Continue last; a tap skips to the next step; docs/animation-spec.md 5.2). A win never costs a life.
 
 ## Buying
 Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyBooster`, `TryRefillLives` and `AddCoins`

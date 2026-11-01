@@ -179,7 +179,6 @@ shared canvas size.
 - **Booster bar background** (bottom strip of the Level scene).
 - **Level title plate** behind "Level N" (optional).
 - **Stuck banner** ("No more useful moves") background.
-- **Win celebration** title ("Well done!"). The Win panel's picture arrived (section 11).
 
 **Popups (Home and Level)**
 - ~~Popup panel, toggles, standalone coin and heart, green plus~~: arrived in the third delivery (section 8).
@@ -391,8 +390,8 @@ Units are TMP's (fractions of the 15 px padding at 64 pt; the shadow offset of t
 The colours are the art's own darker edges (the buttons' lips and outlines). Labels that were dark on light (the Shop
 and Leaderboard plate titles, Play on) are white now; the hint lines keep their muted blue-grey (`#9EA8C7`) under a Body
 outline, a step below the main text. The Level button's label swaps Green / Red with its art (`LevelTierLook`). The
-celebration ("Well done!") also has FONTS.md's gradient, `#FFF6C2` → `#FF9500` top to bottom (TMP vertex gradient;
-two stops, so the middle yellow is approximated). Toast and the avatar menu's name field stay plain (dark backgrounds
+celebration label ("Well done!") had FONTS.md's gradient, `#FFF6C2` → `#FF9500`; it was removed with the win animation
+(docs/animation-spec.md 5.2). Toast and the avatar menu's name field stay plain (dark backgrounds
 of their own).
 
 **Typed names: system font fallback.** A name can hold any character. `SystemFontFallback` (on `AppRoot`) builds TMP

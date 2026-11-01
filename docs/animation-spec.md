@@ -2,8 +2,8 @@
 
 What is built from product's `docs/design/animations.md` §2.2–2.6 and the matching sounds of `docs/design/SFX_GUIDE.md`
 §3, plus the UI and booster sounds (SFX guide §5, §6.3, §6.4, §7), purchase feedback and the haptic calls (below). Also built:
-3.1 hidden reveal, 3.2 veil lift, 3.3 lock box, 3.4 ice break, 4 shuffle (one tube), 5.1 stuck timing and 6.1 blink. Not
-built yet: 2.1 intro, undo and add-tube animations, 5.2–5.4 (win, life lost, episode), the other idle and UI loops. Every number is an `AnimationConfig`
+3.1 hidden reveal, 3.2 veil lift, 3.3 lock box, 3.4 ice break, 4 shuffle (one tube), 5.1 stuck timing, 5.2 level win and
+6.1 blink. Not built yet: 2.1 intro, undo and add-tube animations, 5.3–5.4 (life lost, episode), the other idle and UI loops. Every number is an `AnimationConfig`
 field (Inspector-tunable); sound rules are on `SfxConfig`. Choices that differ from the product document are marked
 **(ours)**.
 
@@ -15,7 +15,8 @@ field (Inspector-tunable); sound rules are on `SfxConfig`. Choices that differ f
 - **Input stays live.** Touching a ball or tube that is still animating finishes its tweens first (lift, flight, landing,
   pending beats); so does a layout change (added tube). A beat finished early this way snaps to its end and drops the
   sounds it had not played yet **(ours)** (the lock box today: `TubeView.IsFinishing`).
-- **Popups** block input until their close animation ends (no popup animation yet: `Popup.IsOpen` still gates input).
+- **Popups** block input while open (`Popup.IsOpen`; a closing animation would have to keep blocking until it ends).
+  The Win panel's entrance (5.2) takes taps only to skip it; Continue takes taps once the entrance has ended.
 - **Board clock:** every board tween runs on DOTween's manual update, driven by `BoardClock` at `_speed` × the hit-stop
   rate. UI, input, sounds, particles and trails run on normal time. `Time.timeScale` is never touched.
 - **Units:** **d** = ball diameter (`TubeVisualConfig.BallDiameter`, board units, so motion scales with the board);
@@ -105,7 +106,7 @@ Timed so the order reads right.
   same move opened has finished lifting **(ours: the towel is gone, not just starting)**, a lock box opened earlier in
   the same move has shown its tubes (a key inside a box that is still opening; no shipped level does it), or a ball a
   shuffle turned face up has finished turning; its lock box opens with it (3.3).
-- Win: the celebration starts once the board has settled.
+- Win: the celebration starts once the board has settled (5.2).
 
 ## 3.1 Hidden reveal
 - **When:** after a move, the moment the last moving ball has left the tube (end of its rise; product's fixed 0.14 s is
@@ -215,6 +216,31 @@ Adapted from product's §4 (a board-wide shuffle staggered by tube) to the singl
   animations.md §5.1's 0.4 s after the board settles is used instead: settling already includes the cork's beat and
   the veil and key delays.
 
+## 5.2 Level win
+Product's §5.2 and SFX guide 6.1, on our Win panel: the dimmed screen, the win picture (`Win_Picture`), "Level N
+complete" above it, the reward and Continue below it, all in one panel **(ours: product's logo that shrinks away before a
+separate reward card is not built; the picture is the panel)**. Steps start from the board having **settled** (S: the
+last ball landed, the last cork seated), like the stuck bar, rather than product's fixed 0.9 s.
+
+| When | Piece | Values | Sound, haptic |
+|---|---|---|---|
+| S + `_winCelebrationDelay` **0.3** | Board celebration (`BoardView.PlayWinCelebration`, board clock) | every tube bumps (2.4), left to right by screen position, `_winTubeStagger` **0.06 s** apart; every ball hops (2.4), `_winHopSpread` **0.4 s** later at the right edge than the left; pooled `Vfx_WinConfetti` (40 pieces, the tube confetti faster) from both bottom corners, leaning `LevelFeedback._winConfettiAngle` **30°** inwards, `_winConfettiInset` **0.04** of the screen in. The balls already laugh (every tube is completed or empty) | none (SFX guide 8) |
+| O = + `_winOverlayDelay` **0.7** | Panel opens (`WinPanelAnimation`, real time at `_speed`) | the dim fades 0 → its alpha (60 %) over `_winDimDuration` **0.35 s** (OutQuad); the picture pops over `_winPicturePopDuration` **0.7 s**: scale 0.1 → 1.15 and rotation −10° → 3° in the first 60 % (OutQuad), then → 1 and 0° (InOutSine) | `winFanfare`, Win |
+| C = O + `_winCardDelay` **1.0** | Title | each visible letter grows from nothing about its centre (OutBack) over `_winLetterDuration` **0.3 s**, the first `_winTitleStart` **0.2 s** after C, then `_winLetterStagger` **0.065 s** apart (TMP vertices) | `rewardJingle`, Success |
+| C + `_winStampBase` **0.18** + 0.065 × letters | Title stamp | (SFX guide's formula) | `winTitleStamp` |
+| C + `_winRewardDelay` **0.95** | Reward | scale 0.35 → 1 over `_winPopDuration` **0.45 s**, OutBack (hidden and silent when the win pays nothing: editor test visits) | `coinGain`, Light |
+| C + `_winContinueDelay` **1.3** | Continue | the same pop; takes taps once it ends (its graphics are no raycast targets before) | `uiButton` when pressed |
+
+- **Card delay (ours, agreed):** the SFX guide waits 3.34 s, timed to the fireworks' beats; with no fireworks the
+  picture would sit alone too long. The fanfare (3.7 s) plays on under the title and reward.
+- **Tap to skip:** a tap anywhere on the panel jumps to the next step (title, reward, then the end), plays that step's
+  sound and haptic at once and never the ones it passed over (`WinPopup.OnPointerClick` → `WinPanelAnimation.Skip`;
+  no button, so no click). The board celebration (before the panel) is not skippable: there is nothing to tap yet.
+- With a long title the stamp follows the formula and can come after the coins ("Level 12 complete", 15 letters:
+  C + 1.16 s).
+- **Not built:** fireworks (no VFX; particles do not draw on the Overlay canvas), light rays, glow and sparkle loops,
+  the coin pile (no art), pre-loading Home. Feedback: `LevelFeedback.PlayWinStep` on `WinPopup.StepStarted`.
+
 ## Sounds (`SfxConfig`, played through `AudioService`)
 | Sound | When | Pitch |
 |---|---|---|
@@ -226,6 +252,7 @@ Adapted from product's §4 (a board-wide shuffle staggered by tube) to the singl
 | `tubeCork` | cork seats | random ±3 % |
 | `hiddenReveal` | a hidden ball starts to turn after a move (not after a shuffle) (3.1) | random ±3 % |
 | `towelPull` | the first veil of a completion starts to lift (3.2) | random ±3 % |
+| `winFanfare` / `rewardJingle` / `winTitleStamp` / `coinGain` | Win panel: opens, title starts, title stamp, reward (5.2) | random ±3 % |
 | `lockboxKeyFly` / `lockboxKeyIn` / `lockboxBreak` | lock box: key starts, key seats, covers slide (3.3) | random ±3 % |
 
 Master volume `_sfxVolume` **0.7**; every clip plays at 1.0 into it. Sounds overlap freely on 10 pooled sources (the
@@ -274,10 +301,12 @@ logs each call, to check them.
 | Selection | ball lifts |
 | Medium (`Landing`) | each ball lands (not on undo) |
 | Medium | a lock box's key seats (3.3) |
-| Light | a hidden ball turns face up after a move (3.1) |
+| Light | a hidden ball turns face up after a move (3.1); the Win panel's reward (5.2) |
+| Win | the Win panel opens (5.2) |
+| Success | the Win panel's title starts (5.2) |
 | Warning | invalid tap or move; the stuck bar appearing; a life lost |
 | Success | cork seats; booster bought; lives refilled |
 | Heavy | the ice bursts (3.4); a lock box's covers slide open (3.3); a veil lifts (3.2, once per completion) |
 | Light | every button and toggle press (not popups' ✕ or the name pen); each booster applied |
 
-Haptics for sounds not played yet (win, rewards) come with those sounds.
+The calls cover every sound the game plays today.

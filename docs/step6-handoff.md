@@ -42,7 +42,6 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 | `BoosterBar/*Button/BuyBadge` | Buy badge at 0 | **Art** (`Icon_Plus`) |
 | `BoosterBar._undoPicture` / `_shufflePicture` / `_addTubePicture` | Booster picture in the Buy popup | **Art** (the booster buttons) |
 | `StuckPanel/Buttons/GiveUpButton` / `PlayOnButton` | Stuck bar buttons | **Art** (`Button_Red` / `Button_Yellow`) |
-| `Celebration` | Win celebration | text only |
 | Popups (`Prefabs/UI`) | Close buttons; Win Continue; Are You Sure Confirm; Settings' Restart and Home | **Art** (`Button_Close`, `Button_Green`, `Button_Red`) |
 | Popups (`Prefabs/UI`) | Panels (`Popup_Panel`; Settings `Settings_Panel`), switch knobs (`SettingSwitch`), More Lives heart, Are You Sure broken heart, Buy popup coin and balance pill | **Art** (docs/art-inventory.md §8) |
 | `Toast` | Toast background | `UISprite` |
@@ -81,7 +80,7 @@ values, rules and our deviations from product's document are in docs/animation-s
 | Cork drops, glow, balls laugh and dance | `TubeView.ShowCompleted` (when the tube's last ball lands, also after an undo that completes) + `LevelFeedback.PlayTubeCompleted` (VFX) and cork seat (hit-stop, punch) | **animated** (2.6) |
 | Blinking | `BlinkScheduler` (on `BoardView`: one random ball every 2–5 s) → `BallView.TryBlink` (`HalfOpen` → `Closed` → `HalfOpen` → resting face); sprites in `ColorPalette` | **animated** (docs/animation-spec.md 6.1) |
 | Invalid move | `LevelFeedback.PlayInvalidMove` (from `TubeInput.InvalidMove`) → `BoardView.ShowInvalid` | **animated** (2.5: shake, shock face) |
-| Celebration | `LevelFeedback.PlayCelebrationAsync` (awaited before the Win panel) | label for 1 s, once the board has settled |
+| Win celebration and panel | `LevelFeedback.PlayCelebrationAsync` (awaited before the Win panel) → `BoardView.PlayWinCelebration`; `WinPopup.Show` → `WinPanelAnimation` | **animated** (docs/animation-spec.md 5.2) |
 | Added tube, re-centring | `BoardView.OnTubeAdded` | snap |
 | Restart | `BoardView.Rebuild` (on `Restarted`) | rebuild |
 | Shuffle (one tube) | `BoardView.OnShuffled` (on `Shuffled`: the tube, its new order and `FromSlots`) → `TubeView.Reorder`, `BallView.MoveTo(BallFlight)` / `Wiggle` | **animated** (docs/animation-spec.md 4) |
@@ -97,7 +96,7 @@ Sounds: `AudioService` (on `AppRoot`, passed by the bootstraps to `LevelFlow` �
 `HomeFlow` → `HomeScreen`), `Play(Sfx, pitch)`; one slot per sound in `SfxConfig`. Hooked so far: select, deselect,
 land, invalid, completion chime, cork (from `LevelFeedback`, on `BoardView`'s presentation events), the three booster
 sounds, button, Play, reward jingle, coin gain and life lost (docs/animation-spec.md, Boosters, buttons and purchases).
-the three lock box sounds (3.3), reveal (3.1), towel (3.2). Not played yet: fanfare, title stamp (ice: docs/animation-spec.md 3.4). Haptics: `HapticsService` on
+the three lock box sounds (3.3), reveal (3.1), towel (3.2), fanfare, reward jingle, title stamp and coins on the Win panel (5.2); ice: docs/animation-spec.md 3.4. Haptics: `HapticsService` on
 `AppRoot`, called next to the sounds, vibrates nothing yet (docs/animation-spec.md, Haptics).
 
 Event order within one operation (documented on `LevelSession`); animations must play in this order:

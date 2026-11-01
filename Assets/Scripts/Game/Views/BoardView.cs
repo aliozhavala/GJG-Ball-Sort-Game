@@ -216,6 +216,38 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
+        /// The board's part of the win (docs/animation-spec.md, 5.2): every tube bumps, left to right, and
+        /// every ball hops, later the further right it is, so a wave runs across the board. The balls
+        /// already laugh (every tube is completed or empty).
+        /// </summary>
+        public void PlayWinCelebration()
+        {
+            float left = float.MaxValue;
+            float right = float.MinValue;
+            foreach (TubeView tube in _tubes)
+            {
+                float x = tube.transform.position.x;
+                left = Mathf.Min(left, x);
+                right = Mathf.Max(right, x);
+            }
+
+            // Tubes in screen order from left to right (rows interleave), bumping one stagger apart.
+            var order = new List<TubeView>(_tubes);
+            order.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
+            float width = Mathf.Max(right - left, 0.0001f);
+            for (int i = 0; i < order.Count; i++)
+            {
+                TubeView tube = order[i];
+                tube.Bump(i * _animation.WinTubeStagger);
+                float hopDelay = _animation.WinHopSpread * (tube.transform.position.x - left) / width;
+                for (int slot = 0; slot < tube.Balls.Count; slot++)
+                {
+                    tube.Balls[slot].Hop(hopDelay);
+                }
+            }
+        }
+
+        /// <summary>
         /// While the Shuffle booster waits for a pick (<paramref name="picking"/>), highlights the tubes it
         /// can pick and dims the rest, covers included; otherwise draws every tube as usual.
         /// </summary>

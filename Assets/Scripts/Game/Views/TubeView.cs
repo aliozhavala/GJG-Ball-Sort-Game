@@ -411,13 +411,16 @@ namespace BallSort.Game.Views
                 .SetEase(Ease.Linear).OnComplete(_clearShake).OnBoardClock();
         }
 
-        /// <summary>The tube rises a little and settles, when a ball lands in it.</summary>
-        public void Bump()
+        /// <summary>
+        /// The tube rises a little and settles, after <paramref name="delay"/> seconds: when a ball lands in
+        /// it, or in the win's ripple across the board.
+        /// </summary>
+        public void Bump(float delay = 0f)
         {
             BoardTweens.KillIfActive(_bumpTween);
             float duration = _animation.TubeBumpDuration;
             _bumpTween = DOVirtual.Float(0f, duration, duration, _bumpStep)
-                .SetEase(Ease.Linear).OnComplete(_clearBump).OnBoardClock();
+                .SetEase(Ease.Linear).SetDelay(delay).OnComplete(_clearBump).OnBoardClock();
         }
 
         /// <summary>

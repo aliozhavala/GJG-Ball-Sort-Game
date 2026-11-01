@@ -36,9 +36,12 @@ namespace BallSort.Game.Views
 
         /// <summary>Plays the effect at <paramref name="position"/> (world space) in <paramref name="colour"/>.</summary>
         /// <param name="chain">Tubes completed before this one in the level; 0 for no escalation.</param>
-        public void Play(Vector3 position, Color colour, int chain)
+        public void Play(Vector3 position, Color colour, int chain) => Play(position, Quaternion.identity, colour, chain);
+
+        /// <summary>Plays the effect at <paramref name="position"/>, turned by <paramref name="rotation"/> (e.g. confetti aimed inwards from a corner).</summary>
+        public void Play(Vector3 position, Quaternion rotation, Color colour, int chain)
         {
-            transform.position = position;
+            transform.SetPositionAndRotation(position, rotation);
 
             foreach (ParticleSystem system in _tinted)
             {

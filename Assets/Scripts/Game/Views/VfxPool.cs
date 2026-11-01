@@ -26,6 +26,10 @@ namespace BallSort.Game.Views
         /// <summary>Plays a burst at <paramref name="position"/> (world space).</summary>
         public void Play(Vector3 position, Color colour, int chain) => _pool.Get().Play(position, colour, chain);
 
+        /// <summary>Plays a burst at <paramref name="position"/> (world space), turned by <paramref name="rotation"/>.</summary>
+        public void Play(Vector3 position, Quaternion rotation, Color colour) =>
+            _pool.Get().Play(position, rotation, colour, 0);
+
         private VfxBurst Create()
         {
             VfxBurst burst = Object.Instantiate(_prefab, _parent);

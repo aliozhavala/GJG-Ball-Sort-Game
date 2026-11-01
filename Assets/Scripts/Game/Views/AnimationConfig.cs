@@ -200,9 +200,38 @@ namespace BallSort.Game.Views
         [Tooltip("The stuck bar's fade-in (real time).")]
         [SerializeField, Min(0f)] private float _stuckFadeDuration = 0.25f;
 
-        [Header("Win (placeholder)")]
-        [Tooltip("How long the celebration plays, once the board has settled, before the Win panel opens.")]
-        [SerializeField, Min(0f)] private float _celebrationDuration = 1f;
+        [Header("5.2 Win: board celebration")]
+        [Tooltip("The board celebrates this long after it has settled (the last cork seated).")]
+        [SerializeField, Min(0f)] private float _winCelebrationDelay = 0.3f;
+        [Tooltip("Every tube bumps, left to right, this far apart.")]
+        [SerializeField, Min(0f)] private float _winTubeStagger = 0.06f;
+        [Tooltip("Every ball hops, later the further right it is: this much later at the right edge than at the left.")]
+        [SerializeField, Min(0f)] private float _winHopSpread = 0.4f;
+        [Tooltip("The Win panel opens this long after the board celebration starts.")]
+        [SerializeField, Min(0f)] private float _winOverlayDelay = 0.7f;
+
+        [Header("5.2 Win: panel (real time, at Speed)")]
+        [Tooltip("The dimmed background fades in.")]
+        [SerializeField, Min(0.01f)] private float _winDimDuration = 0.35f;
+        [Tooltip("The win picture pops in: scale 0.1 → 1.15 → 1, rotation −10° → 3° → 0°.")]
+        [SerializeField, Min(0.01f)] private float _winPicturePopDuration = 0.7f;
+        [Tooltip("The title, reward and Continue come this long after the panel opens (the SFX guide's 3.34 s waits " +
+            "for fireworks we do not have).")]
+        [SerializeField, Min(0f)] private float _winCardDelay = 1f;
+        [Tooltip("The title's first letter pops this long after the card starts.")]
+        [SerializeField, Min(0f)] private float _winTitleStart = 0.2f;
+        [Tooltip("Each letter's pop (OutBack).")]
+        [SerializeField, Min(0.01f)] private float _winLetterDuration = 0.3f;
+        [Tooltip("Between two letters' pops.")]
+        [SerializeField, Min(0f)] private float _winLetterStagger = 0.065f;
+        [Tooltip("The title's stamp sound comes at this + stagger × letters after the card starts (SFX guide 6.1).")]
+        [SerializeField, Min(0f)] private float _winStampBase = 0.18f;
+        [Tooltip("The reward line pops this long after the card starts.")]
+        [SerializeField, Min(0f)] private float _winRewardDelay = 0.95f;
+        [Tooltip("Continue pops this long after the card starts; it can be pressed once its pop ends.")]
+        [SerializeField, Min(0f)] private float _winContinueDelay = 1.3f;
+        [Tooltip("The reward's and Continue's pop: scale 0.35 → 1, OutBack.")]
+        [SerializeField, Min(0.01f)] private float _winPopDuration = 0.45f;
 
         [Header("UI (real time, not board time)")]
         [Tooltip("A purchase's punch on what it filled (booster badge, lives heart, coins pill): scale 1 → 1 + this → 1, springing.")]
@@ -317,7 +346,20 @@ namespace BallSort.Game.Views
         public float ShuffleWiggleDamping => _shuffleWiggleDamping;
         public float StuckDelay => _stuckDelay;
         public float StuckFadeDuration => _stuckFadeDuration;
-        public float CelebrationDuration => _celebrationDuration;
+        public float WinCelebrationDelay => _winCelebrationDelay;
+        public float WinTubeStagger => _winTubeStagger;
+        public float WinHopSpread => _winHopSpread;
+        public float WinOverlayDelay => _winOverlayDelay;
+        public float WinDimDuration => _winDimDuration;
+        public float WinPicturePopDuration => _winPicturePopDuration;
+        public float WinCardDelay => _winCardDelay;
+        public float WinTitleStart => _winTitleStart;
+        public float WinLetterDuration => _winLetterDuration;
+        public float WinLetterStagger => _winLetterStagger;
+        public float WinStampBase => _winStampBase;
+        public float WinRewardDelay => _winRewardDelay;
+        public float WinContinueDelay => _winContinueDelay;
+        public float WinPopDuration => _winPopDuration;
         public float PurchasePunchScale => _purchasePunchScale;
         public float PurchasePunchDuration => _purchasePunchDuration;
         public int PurchasePunchVibrato => _purchasePunchVibrato;

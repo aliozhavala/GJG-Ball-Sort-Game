@@ -148,6 +148,7 @@ namespace BallSort.Game.Flow
             _hud.Stuck.GiveUpClicked += OnGiveUpClicked;
             _hud.Stuck.PlayOnClicked += OnPlayOnClicked;
             _hud.Win.ContinueClicked += OnContinueClicked;
+            _hud.Win.StepStarted += _feedback.PlayWinStep;
             _hud.RestartRequested += OnRestartRequested;
             _hud.HomeRequested += OnHomeRequested;
             _hud.AreYouSure.Confirmed += OnExitConfirmed;
@@ -577,6 +578,7 @@ namespace BallSort.Game.Flow
                 _hud.Stuck.GiveUpClicked -= OnGiveUpClicked;
                 _hud.Stuck.PlayOnClicked -= OnPlayOnClicked;
                 _hud.Win.ContinueClicked -= OnContinueClicked;
+                _hud.Win.StepStarted -= _feedback.PlayWinStep;
                 _hud.RestartRequested -= OnRestartRequested;
                 _hud.HomeRequested -= OnHomeRequested;
                 _hud.AreYouSure.Confirmed -= OnExitConfirmed;

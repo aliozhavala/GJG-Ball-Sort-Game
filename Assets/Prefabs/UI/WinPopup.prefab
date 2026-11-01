@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 7607607091854956544}
   - component: {fileID: 8097586527833407146}
   - component: {fileID: 2713994700397336225}
+  - component: {fileID: 2347598522242622283}
   m_Layer: 5
   m_Name: WinPopup
   m_TagString: Untagged
@@ -225,11 +226,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.WinPopup
   _popup: {fileID: 8097586527833407146}
+  _entrance: {fileID: 2347598522242622283}
   _title: {fileID: 1171297265614268933}
   _reward: {fileID: 2451610176539976020}
   _continueButton: {fileID: 4377552272134431347}
   _titleFormat: Level {0} complete
   _rewardFormat: +{0} <sprite name="Icon_Coin">
+--- !u!114 &2347598522242622283
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 886692311838720368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76ee6a31946bce84fa014a81c84503f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.WinPanelAnimation
+  _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
+  _dim: {fileID: 7607607091854956544}
+  _picture: {fileID: 999862127208607804}
+  _title: {fileID: 1171297265614268933}
+  _reward: {fileID: 3753106006357175678}
+  _continue: {fileID: 4377552272134431347}
 --- !u!1 &1129216988545017662
 GameObject:
   m_ObjectHideFlags: 0

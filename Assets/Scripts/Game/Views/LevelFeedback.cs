@@ -3,6 +3,7 @@ using BallSort.Core.Model;
 using BallSort.Core.Session;
 using BallSort.Game.Audio;
 using BallSort.Game.Services;
+using BallSort.Game.UI;
 using DG.Tweening;
 using UnityEngine;
 
@@ -17,15 +18,13 @@ namespace BallSort.Game.Views
     /// The board view's presentation events are followed here (a ball lifted or dropped back, landed,
     /// a completion started, a cork seated), so the feedback plays when the player sees it, not when the
     /// model changed (docs/animation-spec.md, Sounds). The boosters' sounds follow the session: they
-    /// play when the booster is applied. The level flow routes input's invalid taps to <see cref="PlayInvalidMove"/> and awaits
-    /// <see cref="PlayCelebrationAsync"/>.
+    /// play when the booster is applied. The level flow routes input's invalid taps to <see cref="PlayInvalidMove"/>,
+    /// awaits <see cref="PlayCelebrationAsync"/> and routes the Win panel's steps to <see cref="PlayWinStep"/>.
     /// </remarks>
     public sealed class LevelFeedback : MonoBehaviour
     {
         [SerializeField] private AnimationConfig _animation;
         [SerializeField] private BoardClock _clock;
-        [Tooltip("Placeholder celebration (\"Well done!\"); shown for the celebration duration.")]
-        [SerializeField] private GameObject _celebration;
 
         [Header("Effects (counts, sizes and sprites on the prefabs)")]
         [Tooltip("Sparkles bursting up from a completed tube's mouth.")]
@@ -46,6 +45,12 @@ namespace BallSort.Game.Views
         [SerializeField] private VfxBurst _towelPuff;
         [Tooltip("Gold sparks at the mouth of a tube whose veil lifts (colour on the prefab).")]
         [SerializeField] private VfxBurst _towelSparks;
+        [Tooltip("Confetti shot inwards from each bottom corner of the screen when the level is won.")]
+        [SerializeField] private VfxBurst _winConfetti;
+        [Tooltip("Where the win confetti starts, in viewport units from each bottom corner.")]
+        [SerializeField] private Vector2 _winConfettiInset = new Vector2(0.04f, 0.04f);
+        [Tooltip("How far the win confetti leans inwards from straight up, in degrees.")]
+        [SerializeField, Range(0f, 80f)] private float _winConfettiAngle = 30f;
 
         private LevelSession _session;
         private BoardView _board;
@@ -59,6 +64,7 @@ namespace BallSort.Game.Views
         private VfxPool _revealPuffPool;
         private VfxPool _towelPuffPool;
         private VfxPool _towelSparksPool;
+        private VfxPool _winConfettiPool;
         private Tween _punch;
         private TweenCallback<float> _punchStep;
 
@@ -86,7 +92,6 @@ namespace BallSort.Game.Views
             _board.LockBeatPlayed += OnLockBeat;
             _board.VeilLifting += OnVeilLifting;
             _board.BallRevealing += OnBallRevealing;
-            _celebration.SetActive(false);
 
             Transform effects = board.transform;
             _sparklesPool = new VfxPool(_sparkles, effects, 2);
@@ -97,6 +102,7 @@ namespace BallSort.Game.Views
             _revealPuffPool = new VfxPool(_revealPuff, effects, 1);
             _towelPuffPool = new VfxPool(_towelPuff, effects, 1);
             _towelSparksPool = new VfxPool(_towelSparks, effects, 1);
+            _winConfettiPool = new VfxPool(_winConfetti, effects, 2);
         }
 
         /// <summary>
@@ -170,9 +176,11 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
-        /// Plays the win celebration and completes when it is over. Placeholder: once the board has
-        /// settled (the last ball landed, the last cork seated), shows a label for
-        /// <see cref="AnimationConfig.CelebrationDuration"/> seconds. The win is already saved.
+        /// The board's part of the win (docs/animation-spec.md, 5.2); completes when the Win panel may
+        /// open. Once the board has settled (the last ball landed, the last cork seated) and
+        /// <see cref="AnimationConfig.WinCelebrationDelay"/> later, confetti shoots from both bottom
+        /// corners, every tube bumps left to right and every ball hops in a wave; the panel follows
+        /// <see cref="AnimationConfig.WinOverlayDelay"/> later. Silent (SFX guide 8). The win is already saved.
         /// </summary>
         public async Awaitable PlayCelebrationAsync(CancellationToken cancellationToken)
         {
@@ -181,17 +189,44 @@ namespace BallSort.Game.Views
                 await Awaitable.NextFrameAsync(cancellationToken);
             }
 
-            _celebration.SetActive(true);
-            try
+            float speed = _animation.Speed;
+            await Awaitable.WaitForSecondsAsync(_animation.WinCelebrationDelay / speed, cancellationToken);
+            _board.PlayWinCelebration();
+            if (_animation.Confetti)
             {
-                await Awaitable.WaitForSecondsAsync(_animation.CelebrationDuration, cancellationToken);
+                Quaternion lean = Quaternion.Euler(0f, 0f, _winConfettiAngle);
+                _winConfettiPool.Play(_board.Layout.ViewportToWorld(_winConfettiInset), Quaternion.Inverse(lean), Color.white);
+                _winConfettiPool.Play(
+                    _board.Layout.ViewportToWorld(new Vector2(1f - _winConfettiInset.x, _winConfettiInset.y)), lean, Color.white);
             }
-            finally
+
+            await Awaitable.WaitForSecondsAsync(_animation.WinOverlayDelay / speed, cancellationToken);
+        }
+
+        /// <summary>
+        /// The Win panel reached a step (SFX guide 6.1): the fanfare as it opens, the jingle with the
+        /// title, the stamp when the title has landed, the coins with the reward. A step a tap skipped
+        /// past is never heard.
+        /// </summary>
+        public void PlayWinStep(WinStep step)
+        {
+            switch (step)
             {
-                if (_celebration != null)
-                {
-                    _celebration.SetActive(false);
-                }
+                case WinStep.Overlay:
+                    _audio.Play(Sfx.WinFanfare);
+                    _haptics.Win();
+                    break;
+                case WinStep.Card:
+                    _audio.Play(Sfx.RewardJingle);
+                    _haptics.Success();
+                    break;
+                case WinStep.TitleStamp:
+                    _audio.Play(Sfx.WinTitleStamp);
+                    break;
+                case WinStep.Reward:
+                    _audio.Play(Sfx.CoinGain);
+                    _haptics.Light();
+                    break;
             }
         }
 
@@ -351,11 +386,11 @@ namespace BallSort.Game.Views
 
         private void Awake()
         {
-            if (_animation == null || _clock == null || _celebration == null ||
+            if (_animation == null || _clock == null ||
                 _sparkles == null || _ring == null || _confetti == null || _droplets == null || _iceBreak == null ||
-                _revealPuff == null || _towelPuff == null || _towelSparks == null)
+                _revealPuff == null || _towelPuff == null || _towelSparks == null || _winConfetti == null)
             {
-                Debug.LogError($"{name}: animation config, board clock, celebration and the eight effects must be assigned.", this);
+                Debug.LogError($"{name}: animation config, board clock and the nine effects must be assigned.", this);
             }
 
             _punchStep = PunchStep;

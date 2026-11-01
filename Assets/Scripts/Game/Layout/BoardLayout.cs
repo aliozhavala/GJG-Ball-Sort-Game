@@ -48,6 +48,14 @@ namespace BallSort.Game.Layout
         public float ScreenWidthInBoardUnits =>
             _camera.orthographicSize * 2f * _camera.aspect / Mathf.Max(_fitScale, 0.0001f);
 
+        /// <summary>A point of the screen (viewport: 0,0 bottom left, 1,1 top right) in world space, at the board's depth.</summary>
+        public Vector3 ViewportToWorld(Vector2 viewport)
+        {
+            Vector3 point = _camera.ViewportToWorldPoint(new Vector3(viewport.x, viewport.y, 0f));
+            point.z = transform.position.z;
+            return point;
+        }
+
         /// <summary>
         /// Multiplies the fitted scale (the tube-complete punch); 1 is the fitted board. Scales about
         /// the board's centre, which is the root's position.
