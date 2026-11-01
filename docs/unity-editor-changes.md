@@ -1165,3 +1165,35 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 ### Verification
 - Console clean. Play mode on Home: Shop tab screenshots (panel and packs); real taps on the three cards granted
   1,000, 10,000 and 50,000 coins (the 61,000 taken back from the Editor save afterwards).
+
+## 2026-11-01 — Win fireworks on the fanfare's beats (docs/animation-spec.md 5.2)
+
+- New script `Scripts/Game/UI/FireworksView.cs` (uGUI mesh, the prototype's fireworks); `SfxClip` gets `_beats`,
+  `AnimationConfig` gets `_fireworks` (default on), `LevelFeedback` gets `_fireworks` and starts it with the fanfare.
+- `Prefabs/UI/WinPopup.prefab`: new child `Fireworks` (first child: above the root's dim, under `Panel`), stretched
+  to the popup (anchors 0–1, offsets 0), `FireworksView` with raycast target off and code defaults.
+- `Scenes/Level.unity`: `LevelFeedback._fireworks` → `LevelCanvas/.../WinPopup/Fireworks`.
+- `SfxConfig.asset`: `_winFanfare._beats` = 1.75, 1.95, 2.09, 2.61, 2.75, 2.89 (the prototype's marks for this clip,
+  same file as `ms_win_fanfare`); every other slot `_beats` empty.
+
+### Verification
+- Console: no errors after compiling. Play mode, `WinPopup.Show("12", 20)` called directly: screenshots in
+  `Screenshots/fireworks/` (local only, not committed; taken with the Editor in the background, about 8 fps): bursts high on the screen over the
+  dim and behind the picture, title and reward, the first big one at ~1.7 s, the last sparks gone by ~4.5 s.
+  The fanfare's sync was not checked by ear.
+
+## 2026-11-01 — Episode Unlocked: fanfare, jingle and fireworks (docs/screens.md, Episodes)
+
+- Code: `EpisodeUnlockedOverlay` gets `_fireworks` and `Show(…, fireworkBeats)`; `HomeFlow` plays the fanfare, a Win
+  haptic and the fireworks as the overlay opens, then the reward jingle and a Success haptic after
+  `_episodeJingleDelay` 0.6 s (skipped if the overlay was closed); `SfxClip.HeardBeats()` (the beats minus the start
+  offset) is shared with `LevelFeedback`.
+- `Prefabs/UI/EpisodeUnlockedOverlay.prefab`: new child `Fireworks`, last child (drawn over `Panel`, as in the
+  prototype), stretched to the overlay, `FireworksView` raycast target off; `EpisodeUnlockedOverlay._fireworks` → it.
+
+### Verification
+- Console: no errors. Play mode, `SceneLoader.LoadHome(HomeArrival.WithUnlockedEpisode(1))`: screenshots
+  `Screenshots/fireworks/episode_*.png` (local only, not committed; Episode 2 card with bursts over it); `sfx_win_fanfare` was playing on the
+  AppRoot sources through the bursts. The jingle (0.55 s) fell between samples and was not caught.
+- Side effect on the Editor save: the test left level 4 mid-attempt; lives were set back to 5, but the attempt mark
+  stays (the next Play costs one life and a retry, as stopping mid-level always does).

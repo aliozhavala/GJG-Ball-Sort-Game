@@ -31,7 +31,7 @@ MonoBehaviour:
   _bottomOffset: 0.59
   _topPadding: 0.15
   _ballDiameter: 0.9
-  _ballScale: 0.9
+  _ballScale: 0.8
   _ballSpacing: 0.855
   _horizontalSpacing: 0.45
   _veilSprite: {fileID: 21300000, guid: d28c1bb3d10027d45bfd3c81e57016c1, type: 3}
@@ -43,6 +43,9 @@ MonoBehaviour:
   _lockInsideSprite: {fileID: 21300000, guid: d2ade351037fd414cb915b2edb3ad056, type: 3}
   _lockCoverSprite: {fileID: 21300000, guid: 9f02d5042a9a6f843888dc202c1fa33b, type: 3}
   _lockBoxPadding: {x: 0.08, y: 0.1}
+  _lockSlotCentre: {x: 0.5, y: 0.518}
+  _lockSlotKeyWidth: 0.68
+  _lockCoverInnerEdge: 0.816
   _claySprite: {fileID: 21300000, guid: 1685ddd8ef66c334faa10e004b5b6ab7, type: 3}
   _clayTint: {r: 1, g: 1, b: 1, a: 1}
   _clayScale: 1.1
