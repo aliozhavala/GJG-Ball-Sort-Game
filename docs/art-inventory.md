@@ -1,7 +1,7 @@
 # Art inventory (step 6)
 
 What the artist delivered (82 PNGs in the first delivery, 2026-10-30; 20 in the second, 2026-10-31, section 7; 24 in
-the third, the same day, section 8; 76 in the fourth, 2026-11-01, section 11), where
+the third, the same day, section 8; 76 in the fourth, 2026-11-01, section 11; 44 in the fifth, 2026-11-02, section 12), where
 each file went, what is wrong with it, and what art is still missing. Measured on the delivered files: size, alpha, content bounds, and whether the parts can be
 stretched or tiled. The **Missing art** section is the list for the artist. The untouched originals are in git (commit
 "Art: first delivery from the artist…"); the files in `Assets/Art/Sprites/` are trimmed (section 5).
@@ -176,8 +176,9 @@ shared canvas size.
 - ~~Booster icons~~: arrived as whole buttons (section 11), also used as the Buy popup's pictures. Still missing:
   the **count badge** (a tinted `Knob` today). The buy badge at 0 is `Icon_Plus` (section 8). The generated
   `Placeholder/UI/Booster_*.png` are no longer referenced.
-- **Booster bar background** (bottom strip of the Level scene).
-- **Level title plate** behind "Level N" (optional).
+- ~~Booster bar background, level title plate~~: arrived (section 12), with the tier labels.
+- **Keys for colours without one**: keys came in 6 colours (blue, green, pink, purple, red, yellow), enough for the
+  5 lock colours in use; the brief mentioned 10.
 - **Stuck banner** ("No more useful moves") background.
 
 **Popups (Home and Level)**
@@ -207,7 +208,7 @@ One menu item makes delivered art ready; it can be run any time, files already t
 - **Replace deliveries** (`SpriteRules.Replacements`): a delivered file that replaces art in place is copied over the
   existing file (its `.meta`, GUID and references stay) and the delivered copy goes to the trash. A replacement whose
   target does not exist stays in Incoming (reported). Folders the moves emptied, and Incoming itself, are removed.
-- **Trim each** (`UI/Buttons`, `UI/Displays`, `UI/Shop`, `UI/Avatar`, `UI/Icons`, `UI/Popups`, `UI/Leaderboard`): every
+- **Trim each** (`UI/Buttons`, `UI/Displays`, `UI/Shop`, `UI/Avatar`, `UI/Icons`, `UI/Popups`, `UI/Leaderboard`, `UI/Hud`): every
   file cut to its drawn pixels. The avatar
   pictures (`UI/Avatars`) are opaque squares and are not trimmed; they import at most 512 px, without alpha.
 - **Trim shared** (`UI/Home`, `UI/AvatarFrames`, `UI/Settings`, `Episodes`, `Mechanics/Keys`): a folder is one swap set, cut to one rectangle holding
@@ -215,12 +216,16 @@ One menu item makes delivered art ready; it can be run any time, files already t
   and the keys line up. `UI/Boosters` and `UI/Win` are trimmed each.
 - **Trim shared rows** (`Mechanics/LockBox`): parts drawn in place on one canvas and laid side by side in the game: each
   file is cut to its own columns but to the rows of all of them, so the lock box's parts share one height.
-- **Tube** (`Tubes/*`, `Tubes/Corks/*`, `Mechanics/Clay_Ice`, `Mechanics/Veil_Towel`, while they still share the
+- **Canvas anchored** (`SpriteRules.CanvasAnchored`: `Tubes/Corks`, `Tubes/Stands`): sets drawn in place on the tube
+  canvas (320×640). The files still that size are cut to one rectangle and pivoted on a fixed point of the canvas: the
+  corks on the rim's top (166, 77 from the top: the second delivery's rim), the stands on the tube's base (162, 623
+  from the top: the redrawn tube's). Files of another size (already cut, the plain cork) are left alone.
+- **Tube** (`Tubes/*`, `Mechanics/Clay_Ice`, `Mechanics/Veil_Towel`, while they still share the
   delivery canvas): the parts are cut into bands that do not overlap (rim 100, middle 420, bottom 88 px, all 180 px
-  wide), and every piece gets a pivot on the walls' centre line (rim halves, veil and corks at the rim's top, middle at
+  wide), and every piece gets a pivot on the walls' centre line (rim halves and veil at the rim's top, middle at
   its bottom, bottom part, outline and clay at the base), which is how `TubeView` and `CoverView` place them. The rim's
-  two halves are cut to one rectangle, and so are the corks. When only the rim and corks arrive on the tube canvas (the
-  second delivery), only they are cut, anchored to the rim drawn in them.
+  two halves are cut to one rectangle. When only the rim arrives on the tube canvas (the second delivery), only it is
+  cut.
 - Sizes are padded to multiples of 4 (block compression), then the import settings are applied per folder
   (`SpriteRules`): Sprite, Single, 100 PPU, no mipmaps, clamp, bilinear; max size 256 (balls), 1024 (tube, mechanics,
   UI, frames), 2048 (backgrounds, no alpha); Android and iOS ASTC 4×4 (balls, tube, mechanics, buttons, displays) or
@@ -515,3 +520,54 @@ files stay in `Placeholder/`.
    button; a purple preset would match the art better (left as is, as asked for "x3").
 5. **Keys and veil stickers** are positioned by eye in the Editor (screenshots); the artist's mock-up of a monster
    holding a key would let us match it exactly.
+
+## 12. Fifth delivery (2026-11-02)
+
+44 PNGs dropped flat in `Assets/Art/Incoming/`. Stage 1 (Level scene and board) placed 32 of them through **Prepare
+Sprites** (`SpriteRules.Deliveries` and `Replacements`); the 12 for stage 2 (`mainmenu_*`, `winmenu_*`,
+`ingame5_menu.png`) wait in Incoming, which has no rule for them yet.
+
+| Incoming | Project file | Slot |
+|---|---|---|
+| `ingame6_menu(boosterbox).png` | `UI/Hud/Hud_BoosterBox.png` (new) | `LevelCanvas/SafeArea/BoosterBar` Image, behind the three boosters |
+| `ingame7_menu(level).png` | `UI/Hud/Hud_LevelBox.png` (new) | `TopBar/TitleBox` behind "Level N", 9-sliced (borders 64) |
+| `ingame7_menu(level)PURPLE.png` | `UI/Hud/Hud_TierBox_Hard.png` (new) | `LevelHud._hardBox`: "Hard" label under the title |
+| `ingame7_menu(level)RED.png` | `UI/Hud/Hud_TierBox_SuperHard.png` (new) | `LevelHud._superHardBox`: "Super Hard" label |
+| `tube_tabla_<colour>.png` (10) | `Tubes/Stands/Stand_<Colour>.png` (new; `turq` → `Turquoise`) | `ColorPalette` entry `_stand`, ids 0–9: under large tubes |
+| `ingame_win.png` | `UI/Win/Win_Picture.png` (replaced in place) | Win panel picture (the fixed version) |
+| `ingame_frame_summer_wcharacter.png` | `Episodes/MascotFrame_Ep2_Summer.png` (replaced in place) | Episode 2 mascot frame |
+| `tube_cork_stopper_<colour>.png` (10) | `Tubes/Corks/Cork_<Colour>.png` (replaced in place) | Corks, ids 0–9; `Cork_Plain` (ids 10–11) is the old art |
+| `tube_lock_key_<colour>.png` (6) | `Mechanics/Keys/Key_<Colour>.png` (replaced in place) | Keys (`LockPalette`) |
+
+The four other mascot frames were put back on their delivered 1000×1000 canvas (the untouched originals, commit
+"Art: first delivery…") before the run, so the five are cut to one rectangle again: 856×848 (was 856×844; the new
+summer frame reaches 6 px higher).
+
+**Measurements**
+
+| Group | Canvas | Content | Cut / pivot |
+|---|---|---|---|
+| Booster box | 1000×1000 | 809×348, inner panel x 136–865, y 357–632 | 812×348; drawn Simple at 460×196 (its own aspect) |
+| Level box, tier boxes | 1000×1000 | 816×309 at the same place in all three | 816×312, 9-sliced 64 a side; drawn 120 (title) and 70 (tier) high |
+| Corks (10) | 320×640, the tube canvas | 140×108 at x 97–237, y 48–156 (from the top), identical in every colour | 140×108, pivot on the second delivery's rim top: the cork reaches 79 px into the neck, as the old ones did, but only 29 px above the rim (the old 72) |
+| Stands (10) | 320×640, the tube canvas | 209×57 at x 59–268, y 578–635 | 212×60, pivot on the redrawn tube's base (row 623): the tube's round bottom sits in the ellipse, its front 12 px below the base |
+| Keys (6) | 1000×1000 | 164×138 at x 425–589, y 405–543 | 168×140 (old 152×144), pivot centre |
+| Win picture | 1000×1000 | 912×982 | 912×984 |
+
+**Fit in the game**
+- **Corks:** drawn where the artist placed them they covered the top monster's head, so every cork sits 25 px of art
+  higher (`TubeVisualConfig._capRaise`): it plugs the mouth, its bottom just inside the rim.
+- **Keys:** `ColorPalette._keyMarkSize` 0.38 of the ball's diameter (was 0.5), `_keyMarkOffset` (0.33, 0.30) (was
+  (0, −0.3), in the hands): over the top right of the eye, never covering all of it, inside the ball's width so it
+  stays in the tube. The unlock flight starts from the key as drawn (`BallView.TryTakeKey` reads its bounds), so it
+  follows the new place by itself.
+- **Large tubes:** no ice (still clay by the rules); a stand in the colour of the starting ball, at the art's scale,
+  behind the tube (TubeBack −2).
+
+**Problems found**
+1. **Keys in 6 colours, not 10**: enough for every lock in levels 1–100 (5 lock colours), but a new lock colour needs
+   its key (and its mid section).
+2. **The cork art is shorter** (108 px against 150): the raise above is tuned for it; a redraw would need a new
+   value.
+3. **Episode 5's scientist is still upside down** (problem 10 of section 3); the files of this delivery do not touch it.
+

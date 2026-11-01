@@ -34,12 +34,14 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 ## Clay
 - A clay tube is **never a move source**; it is a normal target (empty, or top color matches).
 - Starts empty or with balls of **one color only**. No hidden balls and no keys in clay.
-- Drawn as ice at the tube's base, over the balls inside it and under balls in flight, 1.1× the rim's width (`TubeVisualConfig._clayScale`). It disappears when the tube completes (`TubeView.SetClayShown`; a snap until its animation exists).
+- A **capacity-4** clay tube is drawn as ice at the tube's base, over the balls inside it and under balls in flight, 1.1× the rim's width (`TubeVisualConfig._clayScale`). It disappears when the tube completes (`TubeView.SetClayShown`; it cracks and bursts, docs/animation-spec.md 3.4).
+- A **large** clay tube shows no ice (visuals only; its rules are the same): it stands on a coloured stand instead (Large tubes).
 - Any capacity can be clay. Usual design (not a rule): a large clay tube with 1 starting ball of the color that will fill it.
 
 ## Large tubes
 - Normal tubes have capacity 4. Large tubes span grid rows: capacity **5–10 spans 2 rows**, **11–16 spans 3 rows**.
 - A large tube is **bottom-aligned** with the bottom row of its span; capacity 10 (2 rows) and 16 (3 rows) also align with the top row exactly.
+- Drawn standing on an elliptic **stand** in the colour of the ball it starts with (`ColorPalette` entry `_stand`, `Tubes/Stands/Stand_<Colour>`, `TubeView.SetStand`), behind the tube and pivoted on its base. Its bottom ball is that colour for good (a clay tube is never a source); a large tube starting empty or with a hidden bottom ball (none in levels 1–100) gets no stand.
 - Apart from capacity and layout, a large tube is an ordinary tube: it **need not be clay** and may hold hidden balls, keys or a veil like any other. It cannot be locked (Lock and key).
 
 ## Board layout (grid)

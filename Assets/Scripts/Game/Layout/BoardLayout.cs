@@ -11,9 +11,9 @@ namespace BallSort.Game.Layout
     /// <remarks>
     /// Lives on the board root. Tubes are placed in unscaled board space, centred on the root; the
     /// root is then uniformly scaled and moved so the whole board fits both the width and the height
-    /// of the space left by the HUD (the board area rect, or the safe area minus the margin
-    /// fractions). Re-fits whenever the screen changes, so rotating a
-    /// device or switching Game view aspect ratios in the Editor needs no reload.
+    /// of the space left by the HUD (between the UI it keeps clear of, or the safe area minus the
+    /// margin fractions), with the space it does not need shared out above and below it. Re-fits whenever the screen changes, so
+    /// rotating a device or switching Game view aspect ratios in the Editor needs no reload.
     /// </remarks>
     public sealed class BoardLayout : MonoBehaviour
     {
@@ -30,13 +30,25 @@ namespace BallSort.Game.Layout
         [SerializeField, Min(0.1f)] private float _maxScale = 1.1f;
 
         [Header("HUD")]
-        [Tooltip("Optional UI rect marking the space between the top HUD and the booster bar. When set, the " +
-                 "board fits vertically inside it instead of using the margin fractions.")]
-        [SerializeField] private RectTransform _boardArea;
+        [Tooltip("UI the board stays clear of, shown or not (title box, mascot frame, settings button, booster box, " +
+                 "the stuck bar's parts): those whose centre is above the screen's middle bound it from above, " +
+                 "the others from below. When set, they replace the margin fractions.")]
+        [SerializeField] private RectTransform[] _keepClear = new RectTransform[0];
+        [Tooltip("UI the board stays clear of only while it is shown (the tier label).")]
+        [SerializeField] private RectTransform[] _keepClearWhenShown = new RectTransform[0];
+        [Tooltip("World units kept free between the tubes and that UI.")]
+        [SerializeField, Min(0f)] private float _hudClearance = 0.15f;
+        [Tooltip("How much of the top row's lift gap (the empty space above it where a lifted ball goes) may " +
+                 "reach up past the top HUD's line: 0 keeps it all below, 1 lets the tubes themselves touch it.")]
+        [SerializeField, Range(0f, 1f)] private float _topLiftOverlap = 1f;
+        [Tooltip("Where height the board does not need goes (a board fitted to the width): 0 all of it below the " +
+                 "board, so it stands at the top; 0.5 half above, half below; 1 all above.")]
+        [SerializeField, Range(0f, 1f)] private float _spareAbove = 0.4f;
 
         private readonly Vector3[] _corners = new Vector3[4];
 
         private Vector2 _boardSize;
+        private float _liftGap;
         private bool _hasBoard;
         private float _fitScale = 1f;
         private float _punch = 1f;
@@ -86,6 +98,7 @@ namespace BallSort.Game.Layout
         {
             float pitchX = config.TubeWidth + config.HorizontalSpacing;
             float pitchY = LevelLayout.RowPitchSlots * config.SlotHeight;
+            _liftGap = LevelLayout.RowGapSlots * config.SlotHeight;
 
             int alignedCells = 0;
             for (int r = 0; r < grid.RowCount; r++)
@@ -119,8 +132,8 @@ namespace BallSort.Game.Layout
         }
 
         /// <summary>
-        /// Scales and centres the board root on the current screen: inside the board area rect when
-        /// one is set, otherwise inside the safe area minus the margin fractions.
+        /// Scales and places the board root on the current screen: between the UI it keeps clear of
+        /// when set, otherwise inside the safe area minus the margin fractions.
         /// </summary>
         public void Fit()
         {
@@ -128,7 +141,7 @@ namespace BallSort.Game.Layout
             _lastScreenSize = new Vector2Int(Screen.width, Screen.height);
             _lastOrthographicSize = _camera.orthographicSize;
 
-            if (_boardArea == null)
+            if (_keepClear.Length == 0)
             {
                 FitTo(_lastScreenSize, _lastSafeArea);
                 return;
@@ -136,11 +149,45 @@ namespace BallSort.Game.Layout
 
             // The HUD's share of the screen changes with the aspect ratio (the canvas scaler matches
             // width and height halfway), so fixed fractions cannot keep the board clear of it on
-            // every device; the UI's own rect can.
+            // every device; the UI's own rects can.
             Canvas.ForceUpdateCanvases();
-            Vector2 areaMin = UiToWorld(_boardArea, corner: 0);
-            Vector2 areaMax = UiToWorld(_boardArea, corner: 2);
-            FitWithin(_lastScreenSize, _lastSafeArea, areaMin.y, areaMax.y);
+            float middle = _camera.transform.position.y;
+            float top = ScreenToWorld(_lastSafeArea.max, _lastScreenSize).y;
+            float bottom = ScreenToWorld(_lastSafeArea.min, _lastScreenSize).y;
+            foreach (RectTransform rect in _keepClear)
+            {
+                Clear(rect, middle, ref top, ref bottom);
+            }
+
+            foreach (RectTransform rect in _keepClearWhenShown)
+            {
+                if (rect != null && rect.gameObject.activeInHierarchy)
+                {
+                    Clear(rect, middle, ref top, ref bottom);
+                }
+            }
+
+            FitWithin(_lastScreenSize, _lastSafeArea, bottom + _hudClearance, top - _hudClearance, _topLiftOverlap);
+        }
+
+        // Lowers the top below a rect in the upper half of the screen, or raises the bottom above one in the lower half.
+        private void Clear(RectTransform rect, float middle, ref float top, ref float bottom)
+        {
+            if (rect == null)
+            {
+                return;
+            }
+
+            float rectBottom = UiToWorld(rect, corner: 0).y;
+            float rectTop = UiToWorld(rect, corner: 2).y;
+            if ((rectBottom + rectTop) * 0.5f > middle)
+            {
+                top = Mathf.Min(top, rectBottom);
+            }
+            else
+            {
+                bottom = Mathf.Max(bottom, rectTop);
+            }
         }
 
         /// <summary>
@@ -157,12 +204,13 @@ namespace BallSort.Game.Layout
             Vector2 min = ScreenToWorld(safeArea.min, screenSize);
             Vector2 max = ScreenToWorld(safeArea.max, screenSize);
             float safeHeight = max.y - min.y;
-            FitWithin(screenSize, safeArea, min.y + safeHeight * _bottomMargin, max.y - safeHeight * _topMargin);
+            FitWithin(screenSize, safeArea, min.y + safeHeight * _bottomMargin, max.y - safeHeight * _topMargin, 0f);
         }
 
         /// <param name="bottom">World y of the lowest point the board may use.</param>
-        /// <param name="top">World y of the highest point the board may use.</param>
-        private void FitWithin(Vector2 screenSize, Rect safeArea, float bottom, float top)
+        /// <param name="top">World y of the highest point the tubes may reach.</param>
+        /// <param name="liftOverlap">Share of the top row's lift gap allowed above <paramref name="top"/>.</param>
+        private void FitWithin(Vector2 screenSize, Rect safeArea, float bottom, float top, float liftOverlap)
         {
             if (!_hasBoard)
             {
@@ -176,11 +224,17 @@ namespace BallSort.Game.Layout
             float right = max.x - _sidePadding;
 
             // Floor: a screen too short for the HUD must not flip the board with a negative scale.
+            // The part of the lift gap allowed above the line does not count towards the height to fit.
+            float overlap = _liftGap * liftOverlap;
             float scale = Mathf.Max(0.01f,
-                Mathf.Min((right - left) / _boardSize.x, (top - bottom) / _boardSize.y, _maxScale));
+                Mathf.Min((right - left) / _boardSize.x, (top - bottom) / (_boardSize.y - overlap), _maxScale));
             _fitScale = scale;
             ApplyScale();
-            transform.position = new Vector3((left + right) * 0.5f, (bottom + top) * 0.5f, transform.position.z);
+
+            // Height the board does not need is shared out above and below it.
+            float spare = Mathf.Max(0f, (top - bottom) - (_boardSize.y - overlap) * scale);
+            float y = top - spare * _spareAbove + overlap * scale - _boardSize.y * scale * 0.5f;
+            transform.position = new Vector3((left + right) * 0.5f, y, transform.position.z);
         }
 
         /// <summary>Orthographic screen-to-world mapping for an arbitrary screen size.</summary>

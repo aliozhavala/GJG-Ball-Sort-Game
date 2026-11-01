@@ -1197,3 +1197,36 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
   AppRoot sources through the bursts. The jingle (0.55 s) fell between samples and was not caught.
 - Side effect on the Editor save: the test left level 4 mid-attempt; lives were set back to 5, but the attempt mark
   stays (the next Play costs one life and a retry, as stopping mid-level always does).
+
+## 2026-11-02 — Fifth art delivery, stage 1: Level HUD boxes, board placement, corks, keys, stands
+
+- **Prepare Sprites** (code: `SpriteRules` Deliveries/Replacements, new `CanvasAnchored` rule with `CanvasAnchor` and
+  `SpriteTrim.TrimAnchored`; the cork cut moved out of `TubeArtTrim`): moved the HUD boxes to `Art/Sprites/UI/Hud/` and
+  the stands to `Art/Sprites/Tubes/Stands/`; replaced in place `UI/Win/Win_Picture`, `Episodes/MascotFrame_Ep2_Summer`,
+  the 10 coloured corks and the 6 keys (docs/art-inventory.md, section 12). The other four mascot frames were restored to
+  their delivered canvas first (from git) so the set is cut together. Stage 2's 12 files stay in `Assets/Art/Incoming/`.
+- `Prefabs/Tube.prefab`: new child `Stand` (SpriteRenderer, TubeBack −2, off), `TubeView._stand` → it.
+- `ColorPalette.asset`: `_entries[0–9]._stand` → `Stand_<Colour>`; `_keyMarkSize` 0.5 → 0.38, `_keyMarkOffset`
+  (0, −0.3) → (0.33, 0.30).
+- `TubeVisualConfig.asset`: new `_capRaise` 25.
+- `Scenes/Level.unity`:
+  - `LevelCanvas/SafeArea/TopBar/TitleBox` (new; Image `Hud_LevelBox`, sliced, PPU multiplier 2.5, no raycast;
+    centre, 420×120) now holds `LevelTitle` (stretched, 44/6 inset, margins 0, auto-size max 72 → 64).
+  - `TopBar/TierBox` (new, off; Image `Hud_TierBox_Hard`, sliced, PPU multiplier 3.5, no raycast; anchored to the
+    bar's bottom centre, pivot top, 24 up, 220×70) with `Label` (TMP, Baloo 2 Bold, Title material, auto-size 24–42).
+  - `LevelHud`: `_titleBox`, `_tierBox`, `_tierLabel`, `_hardBox`, `_superHardBox` assigned.
+  - `SafeArea/BoosterBar`: anchored bottom centre, 460×196, 16 up; new Image `Hud_BoosterBox` (Simple, preserve
+    aspect); layout spacing 50 → 34; the three buttons 150×152 → 112×114 (layout elements too), badges 52 → 39 and buy
+    badges 60 → 45 at (−4.5, −4.5), badge count auto-size max 20.
+  - `BoardLayout`: `_keepClear` = TitleBox, MascotFrame, SettingsButton, BoosterBar, StuckPanel/Banner,
+    StuckPanel/Buttons; `_keepClearWhenShown` = TierBox; `_hudClearance` 0.3; `_topLiftOverlap` 1 and `_spareAbove` 0.4
+    (defaults). `_boardArea` removed (field gone) and `SafeArea/BoardArea` deleted.
+
+### Verification
+- EditMode tests: 1776 passed, 0 failed. Prepare Sprites rerun: nothing left to move or cut.
+- Console: no errors. Screenshots in `Screenshots/stage1/` (local only, not committed; editor test visits, 1080×1920 unless named): level 95
+  (largest: 3 rows, two capacity-10 tubes, lock boxes) at 9:16, 9:19.5 and 3:4 with no tube on any HUD piece; a ball
+  lifted from its top row (below the title box); hard level 94 and super hard level 99 with their labels; level 20
+  (large tube on its stand, no ice; corks forced on to check their seat); level 55 (capacity-4 clay keeps its ice);
+  lock level 80 (key over the eye's top right); the Win panel with the fixed picture. `before_L95_9x16.png` is the
+  layout before.

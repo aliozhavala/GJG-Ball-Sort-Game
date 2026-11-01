@@ -326,6 +326,13 @@ namespace BallSort.Game.Views
                     tubeView.ShowCompleted(tube.Top.ColorId, _palette, animate: false);
                 }
 
+                // A large tube stands on the stand of the colour it starts with (its bottom ball, which a
+                // clay tube never gives up); a hidden one would give its colour away, so it gets none.
+                if (tube.Capacity > LevelLayout.NormalCapacity && tube.Count > 0 && !tube[0].IsHidden)
+                {
+                    tubeView.SetStand(_palette.GetStand(tube[0].ColorId));
+                }
+
                 if (tube.IsCovered)
                 {
                     GetOrSpawnCover(tube.Cover).AddTube(tubeView);

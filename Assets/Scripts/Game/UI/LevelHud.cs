@@ -1,4 +1,5 @@
 using System;
+using BallSort.Core.Levels;
 using BallSort.Core.Player;
 using BallSort.Game.Audio;
 using BallSort.Game.Services;
@@ -9,8 +10,9 @@ using UnityEngine.UI;
 namespace BallSort.Game.UI
 {
     /// <summary>
-    /// The Level screen's UI: settings button, level title and the episode's mascot frame on top, the
-    /// booster bar (or, while stuck, the stuck panel) at the bottom, the popups (settings, Win, Are You
+    /// The Level screen's UI: settings button, level title in its box (with the tier's label under it on
+    /// hard and super hard levels) and the episode's mascot frame on top, the booster bar in its box (or,
+    /// while stuck, the stuck panel) at the bottom, the popups (settings, Win, Are You
     /// Sure, More Lives, Buy, tutorial), and the toast.
     /// </summary>
     /// <remarks>
@@ -19,6 +21,23 @@ namespace BallSort.Game.UI
     public sealed class LevelHud : MonoBehaviour
     {
         [SerializeField] private TMP_Text _levelTitle;
+        [Tooltip("The box behind the level title (Hud_LevelBox), sized to the title's text; the text fills it less the padding.")]
+        [SerializeField] private RectTransform _titleBox;
+        [Tooltip("Room between the title's text and the box's left and right edges.")]
+        [SerializeField, Min(0f)] private float _titleBoxPadding = 44f;
+        [Tooltip("Room kept free on each side of the title box for the mascot frame and the settings button; " +
+            "a longer title shrinks inside the box.")]
+        [SerializeField, Min(0f)] private float _titleBoxSideClearance = 300f;
+
+        [Header("Tier label (hard and super hard levels)")]
+        [Tooltip("The label's box under the title, sized to its text like the title's; hidden on regular levels.")]
+        [SerializeField] private Image _tierBox;
+        [SerializeField] private TMP_Text _tierLabel;
+        [SerializeField, Min(0f)] private float _tierBoxPadding = 36f;
+        [SerializeField] private Sprite _hardBox;
+        [SerializeField] private string _hardText = "Hard";
+        [SerializeField] private Sprite _superHardBox;
+        [SerializeField] private string _superHardText = "Super Hard";
         [SerializeField] private Button _settingsButton;
 
         [Tooltip("Top left: the episode's mascot frame. Display only; hidden when the episode has none.")]
@@ -69,13 +88,18 @@ namespace BallSort.Game.UI
             _moreLivesPopup.Popup.IsOpen || _tutorialPopup.Popup.IsOpen || _buyPopup.Popup.IsOpen;
 
         /// <param name="levelLabel">The level's number, or a level file's name (editor testing).</param>
+        /// <param name="tier">Hard and super hard levels show their label under the title.</param>
         /// <param name="mascotFrame">The episode's mascot frame; null hides it.</param>
         /// <param name="audio">Plays the buttons' press sound.</param>
         /// <param name="haptics">Plays the buttons' press haptic.</param>
         public void Initialize(
-            string levelLabel, PlayerData player, Sprite mascotFrame, AudioService audio, HapticsService haptics)
+            string levelLabel, LevelTier tier, PlayerData player, Sprite mascotFrame, AudioService audio,
+            HapticsService haptics)
         {
             _levelTitle.text = string.Format(_levelFormat, levelLabel);
+            float maxWidth = ((RectTransform)_titleBox.parent).rect.width - 2f * _titleBoxSideClearance;
+            FitBoxToText(_titleBox, _levelTitle, _titleBoxPadding, maxWidth);
+            ShowTier(tier, maxWidth);
             _mascotFrame.sprite = mascotFrame;
             _mascotFrame.gameObject.SetActive(mascotFrame != null);
             _settingsPopup.Initialize(player, showLevelActions: true);
@@ -122,6 +146,36 @@ namespace BallSort.Game.UI
             _boosterBar.SetCatchesTaps(!passThrough);
         }
 
+        private void ShowTier(LevelTier tier, float maxWidth)
+        {
+            bool shown = tier != LevelTier.Regular;
+            _tierBox.gameObject.SetActive(shown);
+            if (!shown)
+            {
+                return;
+            }
+
+            _tierBox.sprite = tier == LevelTier.SuperHard ? _superHardBox : _hardBox;
+            _tierLabel.text = tier == LevelTier.SuperHard ? _superHardText : _hardText;
+            FitBoxToText(_tierBox.rectTransform, _tierLabel, _tierBoxPadding, maxWidth);
+        }
+
+        /// <summary>
+        /// Makes <paramref name="box"/> as wide as <paramref name="text"/> at its largest size plus the padding
+        /// on both sides, at most <paramref name="maxWidth"/> (the text then auto-sizes down inside it).
+        /// </summary>
+        private static void FitBoxToText(RectTransform box, TMP_Text text, float padding, float maxWidth)
+        {
+            bool autoSize = text.enableAutoSizing;
+            float fontSize = text.fontSize;
+            text.enableAutoSizing = false;
+            text.fontSize = autoSize ? text.fontSizeMax : fontSize;
+            float textWidth = text.GetPreferredValues(text.text, float.PositiveInfinity, float.PositiveInfinity).x;
+            text.fontSize = fontSize;
+            text.enableAutoSizing = autoSize;
+            box.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, Mathf.Min(textWidth + 2f * padding, maxWidth));
+        }
+
         private void OnRestartRequested() => RestartRequested?.Invoke();
 
         private void OnHomeRequested() => HomeRequested?.Invoke();
@@ -131,7 +185,7 @@ namespace BallSort.Game.UI
             if (_levelTitle == null || _settingsButton == null || _mascotFrame == null || _boosterBar == null ||
                 _stuckPanel == null || _settingsPopup == null || _winPopup == null || _areYouSurePopup == null ||
                 _moreLivesPopup == null || _tutorialPopup == null || _buyPopup == null || _toast == null ||
-                _buttonFeedback == null)
+                _buttonFeedback == null || _titleBox == null || _tierBox == null || _tierLabel == null)
             {
                 Debug.LogError($"{name}: every reference must be assigned.", this);
             }

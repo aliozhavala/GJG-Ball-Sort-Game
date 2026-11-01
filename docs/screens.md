@@ -86,11 +86,17 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 
 ## Level screen
 - **Top-left:** the episode's mascot frame (display only, for now; it hangs below the top bar, clear of the board).
-  **Top-center:** `Level N` (shrinks rather than reach the frame or the button). **Top-right:** settings button, as on
-  Home. No avatar, coins, or lives here.
-- **Middle:** the board (tubes laid out on the level's grid).
-- **Bottom:** booster bar — Undo, Shuffle, Add tube, each drawn by its button art (`UI/Boosters/Booster_*`, 150×152,
-  no text label) — each with its remaining count on the badge at its top right corner, or at 0 a green plus in the
+  **Top-center:** `Level N` in its box (`Hud_LevelBox`, 9-sliced, 120 high), as wide as the text at its largest size plus
+  44 on each side and never wider than the bar less 300 a side (a longer title shrinks inside it; `LevelHud.FitBoxToText`).
+  On hard and super hard levels a label sits just under it: `Hud_TierBox_Hard` (purple) with "Hard", or
+  `Hud_TierBox_SuperHard` (red) with "Super Hard", 70 high, sized to its text the same way (`LevelHud._tierBox`).
+  **Top-right:** settings button, as on Home. No avatar, coins, or lives here.
+- **Middle:** the board (tubes laid out on the level's grid). No tube overlaps the title box, the tier label, the mascot
+  frame, the settings button, the booster box or the stuck bar at any aspect ratio: `BoardLayout` fits it between those
+  rects (+ 0.3 world units), the top row's lift gap allowed past the top line, and shares the height it does not need
+  40 % above, 60 % below. Checked with level 95 (3 rows, two capacity-10 tubes, lock boxes) at 9:16, 9:19.5 and 3:4.
+- **Bottom:** booster bar in its box (`Hud_BoosterBox`, 460×196, bottom centre, 16 up) — Undo, Shuffle, Add tube, each
+  drawn by its button art (`UI/Boosters/Booster_*`, 112×114, 0.75× the earlier size, 34 apart, no text label) — each with its remaining count on the badge at its top right corner, or at 0 a green plus in the
   count badge's place (no separate button): tapping that booster opens the Buy popup.
 - **Input:** tap a tube to select it (its top ball lifts above the mouth; the rest of the run follows when it moves), tap it again to deselect, tap another tube to
   move. An illegal move, or a tap on a tube that can't be selected, plays invalid-move feedback and clears the

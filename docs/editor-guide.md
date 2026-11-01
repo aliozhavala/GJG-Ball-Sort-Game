@@ -91,8 +91,10 @@ Deletes the save. The next Play starts a new player: level 1, 1000 coins, 5 live
 
 ### Art ▸ Prepare Sprites — not for playthroughs
 For a new art delivery:
-1. Move files from `Assets/Art/Incoming/` to their places, or copy them over the files they replace.
-2. **Trim the image files in place.**
+1. Move files from `Assets/Art/Incoming/` to their places, or copy them over the files they replace. Files it has no rule
+   for stay in Incoming.
+2. **Trim the image files in place.** Sets drawn in place on the tube canvas (corks, large-tube stands) are cut together
+   and pivoted on the tube point they belong to (`SpriteRules.CanvasAnchored`).
 3. Apply the import settings (100 PPU, no mipmaps, ASTC on mobile).
 
 You can safely run it more than once, but it changes art files, so leave it to the developer (docs/art-inventory.md).

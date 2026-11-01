@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BallSort.Core.Levels;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -44,6 +45,8 @@ namespace BallSort.Game.Views
         [SerializeField] private SpriteRenderer _cap;
         [Tooltip("Clay (ice) at the base of a clay tube, over the balls inside it.")]
         [SerializeField] private SpriteRenderer _clay;
+        [Tooltip("The coloured stand under a large tube (ColorPalette), behind the tube.")]
+        [SerializeField] private SpriteRenderer _stand;
         [Tooltip("Glow around a completed tube, in its colour, behind the tube.")]
         [FormerlySerializedAs("_flash")]
         [SerializeField] private SpriteRenderer _glow;
@@ -125,7 +128,10 @@ namespace BallSort.Game.Views
         /// Sizes the tube for <paramref name="capacity"/> balls. The tap target also covers the lift
         /// area above the rim, so a tap on a lifted ball still hits its tube.
         /// </summary>
-        /// <param name="isClay">Shows the clay (ice) until the tube completes (<see cref="SetClayShown"/>).</param>
+        /// <param name="isClay">
+        /// A capacity-4 clay tube shows the clay (ice) until it completes (<see cref="SetClayShown"/>); a large
+        /// one shows no ice (it stands on its stand instead, <see cref="SetStand"/>), its rules unchanged.
+        /// </param>
         public void Setup(int tubeIndex, int capacity, bool isClay, TubeVisualConfig config, AnimationConfig animation)
         {
             StopMotion();
@@ -133,7 +139,7 @@ namespace BallSort.Game.Views
             _config = config;
             _animation = animation;
             _liftedCount = 0;
-            _isClay = isClay;
+            _isClay = isClay && capacity <= LevelLayout.NormalCapacity;
 
             float height = config.TubeHeight(capacity);
             BodyHeight = height;
@@ -161,7 +167,12 @@ namespace BallSort.Game.Views
             float tubeDrawnWidth = SpriteWidth(config.RimBackSprite) * scale;
             float clayScale = config.ClayScale * tubeDrawnWidth / Mathf.Max(SpriteWidth(config.ClaySprite), 0.001f);
             ApplyPart(_clay, config.ClaySprite, config.ClayTint, 0f, new Vector3(clayScale, clayScale, 1f));
-            SetClayShown(isClay);
+            SetClayShown(true);
+
+            // Like the bottom part, the stand is drawn at the art's size and pivots on the base.
+            _stand.transform.localPosition = Vector3.zero;
+            _stand.transform.localScale = new Vector3(scale, scale, 1f);
+            SetStand(null);
 
             // The glow is the tube's size plus its padding all round, sliced so its soft edge keeps its width.
             float padding = config.GlowPadding;
@@ -449,7 +460,7 @@ namespace BallSort.Game.Views
             _capColour = new Color(capTint.r, capTint.g, capTint.b, _config.CapTint.a);
             _cap.color = _capColour;
             _cap.enabled = _cap.sprite != null;
-            Vector3 seated = new Vector3(0f, BodyHeight, 0f);
+            Vector3 seated = new Vector3(0f, BodyHeight + _config.CapRaise, 0f);
             BoardTweens.KillIfActive(_corkTween);
             _cap.transform.localPosition = seated;
 
@@ -506,6 +517,7 @@ namespace BallSort.Game.Views
             Shade(_rimFront, _config.TubeTint, shade);
             Shade(_front, _config.FrontTint, shade);
             Shade(_clay, _config.ClayTint, shade);
+            Shade(_stand, Color.white, shade);
             Shade(_cap, _capColour, shade);
 
             foreach (BallView ball in _balls)
@@ -539,6 +551,13 @@ namespace BallSort.Game.Views
         /// now; its melt comes with the animations.
         /// </summary>
         public void SetClayShown(bool shown) => _clay.enabled = shown && _isClay && _clay.sprite != null;
+
+        /// <summary>Draws <paramref name="stand"/> under the tube; null draws none.</summary>
+        public void SetStand(Sprite stand)
+        {
+            _stand.sprite = stand;
+            _stand.enabled = stand != null;
+        }
 
         /// <summary>The cracked ice bursts: gone at once (the shards are VFX, played by the caller).</summary>
         public void BreakIce()
@@ -776,7 +795,7 @@ namespace BallSort.Game.Views
         private void Awake()
         {
             if (_rimBack == null || _rimFront == null || _middle == null || _bottom == null || _front == null ||
-                _cap == null || _clay == null || _glow == null || _ballRoot == null || _tapTarget == null)
+                _cap == null || _clay == null || _stand == null || _glow == null || _ballRoot == null || _tapTarget == null)
             {
                 Debug.LogError(
                     $"{name}: rim back and front, middle, bottom, front, cap, clay, glow, ball root and tap target " +

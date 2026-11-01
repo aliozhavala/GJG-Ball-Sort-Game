@@ -6,21 +6,20 @@ namespace BallSort.Editor.Art
 {
     /// <summary>
     /// Cuts the tube art delivered on one shared canvas into pieces that fit together without that
-    /// canvas: the rim (back and front), middle and bottom parts, the full outline, the clay, the veil
-    /// and the corks.
+    /// canvas: the rim (back and front), middle and bottom parts, the full outline, the clay and the
+    /// veil. The corks and stands are cut by <see cref="SpriteTrim.TrimAnchored"/>.
     /// </summary>
     /// <remarks>
     /// The delivered parts overlap (the same wall pixels sit in two files), which would draw the
     /// semi-transparent walls twice at the joins. So the middle keeps only the rows between the rim
     /// and the bottom part. Every piece is then anchored by its pivot to a point of the tube, on the
-    /// walls' centre line: the rim, the veil and the corks to the rim's top, the middle to its own
+    /// walls' centre line: the rim and the veil to the rim's top, the middle to its own
     /// bottom, the bottom part, outline and clay to the base. <c>TubeView</c> places them from there.
     /// <para>
-    /// The rim's two halves and the corks are cut to one rectangle each (back and front must line up,
-    /// and so must the corks of every colour). They may arrive on their own, on the canvas of a tube
-    /// cut earlier (the second delivery did): then only they are cut. Each group runs only while its
-    /// files still share one canvas size (a fresh delivery); afterwards the pivots it wrote stay in
-    /// the import settings.
+    /// The rim's two halves are cut to one rectangle (back and front must line up). They may arrive on
+    /// their own, on the canvas of a tube cut earlier (the second delivery did): then only they are cut.
+    /// It runs only while the files still share one canvas size (a fresh delivery); afterwards the
+    /// pivots it wrote stay in the import settings.
     /// </para>
     /// </remarks>
     internal static class TubeArtTrim
@@ -33,7 +32,6 @@ namespace BallSort.Editor.Art
         public static void Trim(Dictionary<string, Vector2> pivots, Dictionary<string, Vector4> borders, StringBuilder report)
         {
             var rimPaths = new List<string> { SpriteRules.TubeRimBack, SpriteRules.TubeRimFront };
-            List<string> corkPaths = SpriteTrim.PngsIn(SpriteRules.Corks);
             var images = new Dictionary<string, PixelImage>();
             foreach (string path in rimPaths)
             {
@@ -51,11 +49,6 @@ namespace BallSort.Editor.Art
             {
                 report.AppendLine("Tube: already trimmed (the rim's halves no longer share one canvas); skipped.");
                 return;
-            }
-
-            foreach (string path in corkPaths)
-            {
-                images[path] = PixelImage.Load(path);
             }
 
             bool withBody = true;
@@ -86,25 +79,8 @@ namespace BallSort.Editor.Art
             Save(images, SpriteRules.TubeRimBack, rimRect, centreX, rimY, pivots);
             Save(images, SpriteRules.TubeRimFront, rimRect, centreX, rimY, pivots);
 
-            int corks = 0;
-            if (corkPaths.Count > 0 && ShareCanvas(Select(images, corkPaths), canvas))
-            {
-                RectInt cork = images[corkPaths[0]].ContentBounds();
-                foreach (string path in corkPaths)
-                {
-                    cork = Union(cork, images[path].ContentBounds());
-                }
-
-                RectInt corkRect = SpriteTrim.PadToMultipleOf4(cork);
-                foreach (string path in corkPaths)
-                {
-                    Save(images, path, corkRect, centreX, rimY, pivots);
-                    corks++;
-                }
-            }
-
-            report.AppendLine($"Tube: rim cut to {rimRect.width}×{rimRect.height} px (back and front), " +
-                $"{corks} corks anchored to the rim's top{(withBody ? ", body cut too" : "")}; centre x {centreX}.");
+            report.AppendLine($"Tube: rim cut to {rimRect.width}×{rimRect.height} px (back and front)" +
+                $"{(withBody ? ", body cut too" : "")}; centre x {centreX}.");
         }
 
         /// <summary>The full set on one canvas: the middle stops where the rim starts.</summary>
@@ -164,14 +140,6 @@ namespace BallSort.Editor.Art
             }
 
             return true;
-        }
-
-        private static IEnumerable<PixelImage> Select(Dictionary<string, PixelImage> images, List<string> paths)
-        {
-            foreach (string path in paths)
-            {
-                yield return images[path];
-            }
         }
 
         private static RectInt Union(RectInt a, RectInt b)
