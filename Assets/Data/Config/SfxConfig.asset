@@ -27,7 +27,7 @@ MonoBehaviour:
   _chainSemitoneCap: 12
   _ballSelect:
     _clip: {fileID: 8300000, guid: 63ff53b16200c344c844c68df47ff569, type: 3}
-    _volume: 1
+    _volume: 0.709
     _randomPitch: 1
     _startOffset: 0.05
   _ballDeselect:
@@ -37,7 +37,7 @@ MonoBehaviour:
     _startOffset: 0
   _ballLand:
     _clip: {fileID: 8300000, guid: 61d86327add826b43888f3208aa57ed3, type: 3}
-    _volume: 1
+    _volume: 0.709
     _randomPitch: 1
     _startOffset: 0.05
   _moveInvalid:
@@ -47,7 +47,7 @@ MonoBehaviour:
     _startOffset: 0
   _tubeCompleteChime:
     _clip: {fileID: 8300000, guid: 3c50bca84e1f1f646a3934982a1a82fd, type: 3}
-    _volume: 1
+    _volume: 0.503
     _randomPitch: 1
     _startOffset: 0.05
   _tubeCork:
@@ -57,7 +57,7 @@ MonoBehaviour:
     _startOffset: 0.05
   _hiddenReveal:
     _clip: {fileID: 8300000, guid: f4a5a31ee66cdfd4fac0ef7b2f91c24a, type: 3}
-    _volume: 1
+    _volume: 0.101
     _randomPitch: 1
     _startOffset: 0.05
   _towelPull:
@@ -127,7 +127,7 @@ MonoBehaviour:
     _startOffset: 0.05
   _uiPlay:
     _clip: {fileID: 8300000, guid: 5af7a3685745819439da6d962b46d659, type: 3}
-    _volume: 1
+    _volume: 0.709
     _randomPitch: 1
     _startOffset: 0.05
   _lifeLost:
