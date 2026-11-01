@@ -3,18 +3,20 @@ using UnityEngine;
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// One ball's hop from tube to tube (docs/animation-spec.md, 2.3): rise above the source's mouth, arc
-    /// to above the target's mouth, drop into the slot. Points and heights are in the target tube's
-    /// ball space.
+    /// One ball's hop from tube to tube (docs/animation-spec.md, 2.3), or within one tube (a shuffle,
+    /// 4): rise above the source's mouth, arc to above the target's mouth, drop into the slot. Points and
+    /// heights are in the target tube's ball space.
     /// </summary>
     public readonly struct BallFlight
     {
         public BallFlight(
-            int sourceTube, bool isUndo, float delay, Vector3 risePoint, Vector3 arcEnd, Vector3 slot,
-            float arcDuration, float arcHeight, float screenWidth, float sourceClearHeight, float targetClearHeight)
+            int sourceTube, FlightKind kind, float delay, Vector3 risePoint, Vector3 arcEnd, Vector3 slot,
+            float arcDuration, float arcHeight, float screenWidth, float sourceClearHeight, float targetClearHeight,
+            float speed = 1f)
         {
             SourceTube = sourceTube;
-            IsUndo = isUndo;
+            Kind = kind;
+            Speed = speed;
             Delay = delay;
             RisePoint = risePoint;
             ArcEnd = arcEnd;
@@ -29,8 +31,11 @@ namespace BallSort.Game.Views
         /// <summary>Board index of the tube the ball leaves.</summary>
         public int SourceTube { get; }
 
-        /// <summary>True when an undo carries the ball back (it lands without a sound).</summary>
-        public bool IsUndo { get; }
+        /// <summary>Move, undo or shuffle: only a move's landing is heard.</summary>
+        public FlightKind Kind { get; }
+
+        /// <summary>Plays the whole flight this many times faster (a booster's flights: 1.7).</summary>
+        public float Speed { get; }
 
         /// <summary>Wait before the ball starts: its place in the move's chain.</summary>
         public float Delay { get; }

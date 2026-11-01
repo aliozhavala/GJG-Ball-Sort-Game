@@ -351,21 +351,38 @@ namespace BallSort.Core.Model
         /// the top can complete it, and that completion opens veils and can win, as after a move.
         /// </remarks>
         /// <param name="tubeIndex">The shuffled tube.</param>
-        /// <param name="bottomToTop">Exactly the tube's ball count; the top one need not be revealed yet.</param>
-        internal void ShuffleTube(int tubeIndex, Ball[] bottomToTop)
+        /// <param name="fromSlots">
+        /// The new order, bottom → top, as the slot each ball comes from: a permutation of the tube's slots.
+        /// </param>
+        internal void ShuffleTube(int tubeIndex, int[] fromSlots)
         {
             Tube tube = _tubes[tubeIndex];
-            if (bottomToTop == null || bottomToTop.Length != tube.Count)
+            if (fromSlots == null || fromSlots.Length != tube.Count)
             {
-                throw new ArgumentException($"Tube {tubeIndex} holds {tube.Count} ball(s).", nameof(bottomToTop));
+                throw new ArgumentException($"Tube {tubeIndex} holds {tube.Count} ball(s).", nameof(fromSlots));
+            }
+
+            var before = new Ball[tube.Count];
+            var used = new bool[tube.Count];
+            for (int slot = 0; slot < tube.Count; slot++)
+            {
+                before[slot] = tube[slot];
+                int from = fromSlots[slot];
+                if (from < 0 || from >= tube.Count || used[from])
+                {
+                    throw new ArgumentException($"Not a permutation of tube {tubeIndex}'s slots.", nameof(fromSlots));
+                }
+
+                used[from] = true;
             }
 
             int top = tube.Count - 1;
-            bool revealed = bottomToTop[top].IsHidden;
-            var placed = new Ball[bottomToTop.Length];
+            bool revealed = before[fromSlots[top]].IsHidden;
+            var placed = new Ball[before.Length];
             for (int slot = 0; slot <= top; slot++)
             {
-                placed[slot] = slot == top ? bottomToTop[slot].AsRevealed() : bottomToTop[slot];
+                Ball ball = before[fromSlots[slot]];
+                placed[slot] = slot == top ? ball.AsRevealed() : ball;
                 tube.SetBall(slot, placed[slot]);
             }
 
@@ -373,7 +390,8 @@ namespace BallSort.Core.Model
             int colorId = tube.Top.ColorId;
             SettleCovers(completed ? colorId : -1);
 
-            TubeShuffled?.Invoke(new TubeShuffledEventArgs(tubeIndex, Array.AsReadOnly(placed)));
+            TubeShuffled?.Invoke(new TubeShuffledEventArgs(
+                tubeIndex, Array.AsReadOnly(placed), Array.AsReadOnly((int[])fromSlots.Clone())));
 
             if (revealed)
             {

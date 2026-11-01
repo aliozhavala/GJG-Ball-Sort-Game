@@ -116,7 +116,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   different order (rules in docs/mechanics.md) and one Shuffle is spent; anything else (another tube, empty space, any
   button, Shuffle again) only cancels: it spends nothing and the button tapped does nothing. A
   shuffle clears the undo history, so Undo then shows "Nothing to undo"; it is not undoable, and it may leave the board
-  stuck. The tube's balls snap into place (no animation yet).
+  stuck. The tube's balls hop into their new places (docs/animation-spec.md, 4).
 - **Restart** (settings, behind Are You Sure; it costs a life) reloads the level from data in its next variant: hidden balls hidden again, added tubes gone, undo history cleared. Boosters already spent stay spent.
 
 ### Stuck (not won, and nothing useful left to do)

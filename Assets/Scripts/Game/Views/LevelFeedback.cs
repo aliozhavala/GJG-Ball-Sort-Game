@@ -188,16 +188,17 @@ namespace BallSort.Game.Views
 
         private void OnBallLowered() => _audio.Play(Sfx.BallDeselect);
 
-        // Undo flights land silently (SFX guide, Boosters).
+        // Undo and shuffle flights land silently (SFX guide, Boosters). A hidden ball (moved by a shuffle)
+        // makes no droplets: their colour would give it away.
         private void OnBallLanded(BallView ball)
         {
-            if (!ball.IsUndoFlight)
+            if (!ball.LandsSilently)
             {
                 _audio.Play(Sfx.BallLand, _audio.Config.LandPitch(ball.Slot));
                 _haptics.Landing();
             }
 
-            if (_animation.Droplets)
+            if (_animation.Droplets && !ball.IsHidden)
             {
                 _dropletsPool.Play(ball.transform.position, _board.Palette.GetColor(ball.ColorId), 0);
             }

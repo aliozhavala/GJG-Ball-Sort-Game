@@ -407,7 +407,7 @@ namespace BallSort.Core.Session
             }
 
             // History and boosters first, so the board's events already see the final session state.
-            Ball[] order = ShuffleRules.Arrange(_board[tubeIndex], random);
+            int[] order = ShuffleRules.Arrange(_board[tubeIndex], random);
             _history.Clear();
             _boosters.TrySpend(BoosterType.Shuffle);
             _board.ShuffleTube(tubeIndex, order);

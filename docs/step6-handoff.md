@@ -82,7 +82,7 @@ values, rules and our deviations from product's document are in docs/animation-s
 | Celebration | `LevelFeedback.PlayCelebrationAsync` (awaited before the Win panel) | label for 1 s, once the board has settled |
 | Added tube, re-centring | `BoardView.OnTubeAdded` | snap |
 | Restart | `BoardView.Rebuild` (on `Restarted`) | rebuild |
-| Shuffle (one tube) | `BoardView.OnShuffled` (on `Shuffled`, which carries the tube and its new order) | the tube's balls snap |
+| Shuffle (one tube) | `BoardView.OnShuffled` (on `Shuffled`: the tube, its new order and `FromSlots`) → `TubeView.Reorder`, `BallView.MoveTo(BallFlight)` / `Wiggle` | **animated** (docs/animation-spec.md 4) |
 | Shuffle pick | `BoardView.ShowShufflePick` → `TubeView.SetHighlight` (glow on eligible tubes, the rest dimmed) | snap |
 | Stuck bar in / out | `LevelHud.ShowStuck` → `StuckPanel.SetVisible`, once the board settles (`LevelFeedback.WaitForStuckRevealAsync`) | **fades in** (docs/animation-spec.md 5.1); out: snap |
 | Popups open / close | `Popup.Open` / `Close` (`Opened` / `Closed` events) | `SetActive` |

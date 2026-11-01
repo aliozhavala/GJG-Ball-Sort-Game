@@ -136,6 +136,21 @@ namespace BallSort.Game.Views
         [Tooltip("A found key's mark leaves this long after the last ball lands, when the move also completed a tube.")]
         [SerializeField, Min(0f)] private float _keyWaitAfterComplete = 0.25f;
 
+        [Header("4 Shuffle (one tube)")]
+        [Tooltip("The shuffle's flights play this many times faster than a move's (a booster's flights).")]
+        [SerializeField, Min(0.1f)] private float _shuffleSpeed = 1.7f;
+        [Tooltip("Delay between the moving balls' starts, top ball first, at speed 1.")]
+        [SerializeField, Min(0f)] private float _shuffleStagger = 0.05f;
+        [Tooltip("How far above the mouth a moving ball rises before it drops back in, in d.")]
+        [SerializeField, Min(0f)] private float _shuffleRiseHeight = 0.4f;
+        [Tooltip("Extra hop at the top of the rise, in d.")]
+        [SerializeField, Min(0f)] private float _shuffleArcHeight = 0.3f;
+        [Tooltip("A ball that keeps its slot tilts to and fro, up to this many degrees.")]
+        [SerializeField, Min(0f)] private float _shuffleWiggleAngle = 8f;
+        [SerializeField, Min(0.01f)] private float _shuffleWiggleDuration = 0.4f;
+        [SerializeField, Min(0f)] private float _shuffleWiggleFrequency = 30f;
+        [SerializeField, Min(0f)] private float _shuffleWiggleDamping = 8f;
+
         [Header("5.1 Stuck")]
         [Tooltip("The stuck bar appears this long after the board has settled (the last ball landed, the last beat played).")]
         [SerializeField, Min(0f)] private float _stuckDelay = 0.4f;
@@ -224,6 +239,14 @@ namespace BallSort.Game.Views
         public float BlinkOpenDuration => _blinkOpenDuration;
         public float TowelDelay => _towelDelay;
         public float KeyWaitAfterComplete => _keyWaitAfterComplete;
+        public float ShuffleSpeed => _shuffleSpeed;
+        public float ShuffleStagger => _shuffleStagger;
+        public float ShuffleRiseHeight => _shuffleRiseHeight;
+        public float ShuffleArcHeight => _shuffleArcHeight;
+        public float ShuffleWiggleAngle => _shuffleWiggleAngle;
+        public float ShuffleWiggleDuration => _shuffleWiggleDuration;
+        public float ShuffleWiggleFrequency => _shuffleWiggleFrequency;
+        public float ShuffleWiggleDamping => _shuffleWiggleDamping;
         public float StuckDelay => _stuckDelay;
         public float StuckFadeDuration => _stuckFadeDuration;
         public float CelebrationDuration => _celebrationDuration;

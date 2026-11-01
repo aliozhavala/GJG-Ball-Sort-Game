@@ -15,10 +15,17 @@ namespace BallSort.Core.Model
         /// </summary>
         public IReadOnlyList<Ball> Balls { get; }
 
-        public TubeShuffledEventArgs(int tubeIndex, IReadOnlyList<Ball> balls)
+        /// <summary>
+        /// Where each ball came from: <c>FromSlots[slot]</c> is the slot (before the shuffle) of the ball
+        /// now in <c>slot</c>, so a view can move each ball it shows to its new place.
+        /// </summary>
+        public IReadOnlyList<int> FromSlots { get; }
+
+        public TubeShuffledEventArgs(int tubeIndex, IReadOnlyList<Ball> balls, IReadOnlyList<int> fromSlots)
         {
             TubeIndex = tubeIndex;
             Balls = balls;
+            FromSlots = fromSlots;
         }
 
         public override string ToString() => $"tube {TubeIndex} shuffled to [{string.Join(", ", Balls)}]";

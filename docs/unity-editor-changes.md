@@ -1031,3 +1031,10 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 - EditMode tests: 1774 passed, 0 failed. Console: no errors; one expected warning from the test level itself
   (`clay_large_tube` is marked as a tutorial level without a `TutorialConfig` entry). Level.unity's dirty flag after
   Play was reloaded from disk (the scene was saved before Play).
+
+## 2026-11-01 — Second animation batch, stage 5: single-tube shuffle
+
+- No scene, prefab or asset edits. `Data/Config/AnimationConfig.asset`: new fields keep their code defaults
+  (`_shuffleSpeed` 1.7, `_shuffleStagger` 0.05, `_shuffleRiseHeight` 0.4, `_shuffleArcHeight` 0.3, `_shuffleWiggleAngle`
+  8, `_shuffleWiggleDuration` 0.4, `_shuffleWiggleFrequency` 30, `_shuffleWiggleDamping` 8).
+- Verification: the animation checked by hand in Play mode; EditMode tests 1775 passed, 0 failed; console: no errors.

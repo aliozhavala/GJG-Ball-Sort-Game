@@ -68,6 +68,7 @@ namespace BallSort.Game.Views
         private int _operationTarget = -1;
         private bool _operationCompleted;
         private bool _operationOpenedVeil;
+        private bool _operationIsShuffle;
 #if UNITY_EDITOR
         private bool _tubeConfigChanged;
 #endif
@@ -103,7 +104,7 @@ namespace BallSort.Game.Views
         /// <summary>A lifted ball has started back into its slot (deselected, not moved).</summary>
         public event Action BallLowered;
 
-        /// <summary>A ball has landed in its slot (move or undo: see <see cref="BallView.IsUndoFlight"/>).</summary>
+        /// <summary>A ball has landed in its slot (move, undo or shuffle: see <see cref="BallView.FlightKind"/>).</summary>
         public event Action<BallView> BallLanded;
 
         /// <summary>
@@ -356,7 +357,7 @@ namespace BallSort.Game.Views
         /// slot, one chain delay after the ball above it. The views hold the balls in their new tubes
         /// at once; only the drawing travels.
         /// </summary>
-        private void Transfer(int fromIndex, int toIndex, int count, bool isUndo)
+        private void Transfer(int fromIndex, int toIndex, int count, FlightKind kind)
         {
             TubeView source = _tubes[fromIndex];
             TubeView target = _tubes[toIndex];
@@ -377,7 +378,7 @@ namespace BallSort.Game.Views
                 BallView ball = _ballBuffer[i];
                 Vector3 slot = target.ReceiveBall(ball);
                 ball.MoveTo(new BallFlight(
-                    fromIndex, isUndo, i * _animation.ChainDelay, rise, arcEnd, slot, arcDuration, arcHeight, screenWidth,
+                    fromIndex, kind, i * _animation.ChainDelay, rise, arcEnd, slot, arcDuration, arcHeight, screenWidth,
                     sourceClear, target.ClearHeight));
             }
 
@@ -391,43 +392,77 @@ namespace BallSort.Game.Views
             _operationTarget = targetIndex;
             _operationCompleted = false;
             _operationOpenedVeil = false;
+            _operationIsShuffle = false;
         }
 
         private void OnMoveApplied(MoveEventArgs e)
         {
             BeginOperation(e.ToIndex);
-            Transfer(e.FromIndex, e.ToIndex, e.Count, isUndo: false);
+            Transfer(e.FromIndex, e.ToIndex, e.Count, FlightKind.Move);
         }
 
         // The event describes the original move; undoing it carries the balls back.
         private void OnMoveUndone(MoveEventArgs e)
         {
             BeginOperation(e.FromIndex);
-            Transfer(e.ToIndex, e.FromIndex, e.Count, isUndo: true);
+            Transfer(e.ToIndex, e.FromIndex, e.Count, FlightKind.Undo);
         }
 
-        // Snaps the shuffled tube's balls into their new order (its animation comes later). The reveal,
-        // completion and cover events that follow play on this tube as after a landing.
+        /// <summary>
+        /// Plays a shuffle of one tube (docs/animation-spec.md, 4): each ball whose slot changed rises a
+        /// little out of the mouth, hops and drops into its new slot, with a move's feel at the shuffle's
+        /// speed, top ball first and staggered so it reads as a jumble; each ball that kept its slot
+        /// wiggles. The reveal, completion and key events that follow wait for the balls to land.
+        /// </summary>
         private void OnShuffled(TubeShuffledEventArgs e)
         {
             BeginOperation(e.TubeIndex);
+            _operationIsShuffle = true;
             TubeView tube = _tubes[e.TubeIndex];
-            tube.FinishPending();
-            tube.TakeAllBalls(_ballBuffer);
-            foreach (BallView ball in _ballBuffer)
-            {
-                _ballPool.Release(ball);
-            }
+            tube.Reorder(e.FromSlots);
 
-            _ballBuffer.Clear();
-            foreach (Ball ball in e.Balls)
+            float diameter = _tubeConfig.BallDiameter;
+            var peak = new Vector3(0f, tube.BodyHeight + _animation.ShuffleRiseHeight * diameter, 0f);
+            float arcHeight = _animation.ShuffleArcHeight * diameter;
+            float speed = _animation.ShuffleSpeed;
+            int moving = 0;
+
+            // Top ball first: walk the old slots from the top and find where each ball went.
+            IReadOnlyList<int> fromSlots = e.FromSlots;
+            for (int oldSlot = fromSlots.Count - 1; oldSlot >= 0; oldSlot--)
             {
-                BallView ballView = _ballPool.Get();
-                ballView.Show(ball, _palette, _lockPalette, _tubeConfig.BallDiameter);
-                tube.AddBall(ballView);
+                int newSlot = IndexOf(fromSlots, oldSlot);
+                BallView ball = tube.Balls[newSlot];
+                if (newSlot == oldSlot)
+                {
+                    ball.Wiggle(0f);
+                    continue;
+                }
+
+                // The flight plays at the shuffle's speed, delay included, so the stagger is scaled up to
+                // keep its board-time spacing.
+                float delay = moving * _animation.ShuffleStagger * speed;
+                ball.MoveTo(new BallFlight(
+                    e.TubeIndex, FlightKind.Shuffle, delay, peak, peak, tube.SlotPosition(newSlot),
+                    _animation.ArcBaseDuration, arcHeight, _layout.ScreenWidthInBoardUnits,
+                    tube.ClearHeight, tube.ClearHeight, speed));
+                moving++;
             }
 
             AssertInSync(e.TubeIndex);
+        }
+
+        private static int IndexOf(IReadOnlyList<int> list, int value)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] == value)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         private void OnBallDeparted(BallView ball) => _tubes[ball.FlightSource].NotifyDeparted();
@@ -438,13 +473,21 @@ namespace BallSort.Game.Views
             BallLanded?.Invoke(ball);
         }
 
-        // The new top shows once the balls above it have left (a snap until the reveal flip, §3.1).
+        // The new top shows once the balls above it have left (a snap until the reveal flip, §3.1); after a
+        // shuffle, once its balls have landed.
         private void OnBallRevealed(BallRevealedEventArgs e)
         {
             TubeView tube = _tubes[e.TubeIndex];
             BallView ball = tube.Balls[e.SlotIndex];
             int colorId = e.ColorId;
-            tube.WhenDeparted(() => ball.Reveal(colorId, _palette));
+            if (_operationIsShuffle && e.TubeIndex == _operationTarget)
+            {
+                tube.WhenArrived(() => ball.Reveal(colorId, _palette));
+            }
+            else
+            {
+                tube.WhenDeparted(() => ball.Reveal(colorId, _palette));
+            }
         }
 
         // The completion plays when the tube's last ball lands.

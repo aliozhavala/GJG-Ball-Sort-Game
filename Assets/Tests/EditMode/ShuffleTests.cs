@@ -409,6 +409,36 @@ namespace BallSort.Tests.EditMode
         }
 
         [Test]
+        public void Shuffled_SaysWhereEachBallCameFrom()
+        {
+            for (int seed = 0; seed < Seeds; seed++)
+            {
+                LevelSession session = Start(MostlyHidden());
+                List<Ball> before = BallsOf(session.Board[0]);
+                TubeShuffledEventArgs shuffled = default;
+                session.Shuffled += e => shuffled = e;
+
+                ShuffleTube(session, 0, seed);
+
+                int count = before.Count;
+                Assert.That(shuffled.FromSlots, Has.Count.EqualTo(count), $"seed {seed}");
+                Assert.That(shuffled.FromSlots, Is.EquivalentTo(new[] { 0, 1, 2, 3 }),
+                    $"seed {seed}: not a permutation of the tube's slots");
+                for (int slot = 0; slot < count; slot++)
+                {
+                    // The ball now on top is revealed; every other ball is the one that was in its source slot.
+                    Ball expected = before[shuffled.FromSlots[slot]];
+                    if (slot == count - 1)
+                    {
+                        expected = expected.AsRevealed();
+                    }
+
+                    Assert.That(shuffled.Balls[slot], Is.EqualTo(expected), $"seed {seed}, slot {slot}");
+                }
+            }
+        }
+
+        [Test]
         public void AShuffle_MayLeaveTheBoardStuck_AndStuckIsReevaluated()
         {
             bool sawStuck = false;

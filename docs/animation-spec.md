@@ -133,6 +133,20 @@ Plays with the normal completion (2.6) when a clay (ice) tube completes; an unfi
 - Colours without blink frames (ids 10–11) fall back to their open face, so they never visibly blink. Silent (SFX
   guide §8).
 
+## 4 Shuffle (one tube)
+Adapted from product's §4 (a board-wide shuffle staggered by tube) to the single picked tube **(ours)**.
+- Core says where each ball went (`TubeShuffledEventArgs.FromSlots`); the tube keeps its ball views and reorders them
+  (`TubeView.Reorder`), so hidden balls and keys stay on the right balls.
+- Each ball whose slot changed flies a move's flight (2.3) inside its tube: rise to `_shuffleRiseHeight` **0.4 d** above
+  the mouth, a hop of `_shuffleArcHeight` **0.3 d**, drop into its new slot, then the landing (2.4); the whole flight at
+  `_shuffleSpeed` **1.7×**. Top ball first, `_shuffleStagger` **0.05 s** apart.
+- Each ball that kept its slot wiggles: tilt ±`_shuffleWiggleAngle` **8°**, sin(`_shuffleWiggleFrequency` 30·t) ·
+  e^(−`_shuffleWiggleDamping` 8·t) over `_shuffleWiggleDuration` **0.4 s**.
+- Sound `boosterShuffle` when applied; the landings are silent and a hidden ball throws no droplets (their colour
+  would give it away). The reveal of the new top, a key found and a completion wait for the balls to land, in event
+  order.
+- Known compromise: a ball rising from deep in the tube passes over the balls that stay (one ball wide).
+
 ## 5.1 Stuck
 - The level enters Stuck at once (Core decided it with the move): the boosters lock, so nothing in the bar reacts.
 - The stuck bar replaces the booster bar only once the board has **settled** (no ball flying, no beat waiting: cork,

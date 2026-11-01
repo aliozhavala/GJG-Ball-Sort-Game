@@ -58,6 +58,7 @@ namespace BallSort.Game.Views
         private readonly List<Action> _afterDeparture = new List<Action>();
         private readonly List<Action> _afterArrival = new List<Action>();
         private readonly List<Tween> _beats = new List<Tween>();
+        private readonly List<BallView> _reorderBuffer = new List<BallView>();
         private TubeVisualConfig _config;
         private AnimationConfig _animation;
         private int _liftedCount;
@@ -276,6 +277,32 @@ namespace BallSort.Game.Views
             top.SetBobbing(false);
             top.MoveTo(SlotPosition(slot), _animation.LiftDuration, _animation.LiftEase);
             return true;
+        }
+
+        /// <summary>
+        /// Puts the balls in the order a shuffle gave them: the ball now in slot <c>s</c> is the one that
+        /// was in <c>fromSlots[s]</c>. Balls stay where they are on screen; the caller moves them. Each ball
+        /// whose slot changed counts as arriving until <see cref="NotifyLanded"/>. Anything the tube was
+        /// still playing finishes first.
+        /// </summary>
+        public void Reorder(IReadOnlyList<int> fromSlots)
+        {
+            Lower();
+            FinishPending();
+            _reorderBuffer.Clear();
+            _reorderBuffer.AddRange(_balls);
+            for (int slot = 0; slot < _balls.Count; slot++)
+            {
+                BallView ball = _reorderBuffer[fromSlots[slot]];
+                _balls[slot] = ball;
+                ball.AssignSlot(TubeIndex, slot);
+                if (fromSlots[slot] != slot)
+                {
+                    _arrivals++;
+                }
+            }
+
+            _reorderBuffer.Clear();
         }
 
         /// <summary>A ball flying out of this tube has left it (end of its rise).</summary>

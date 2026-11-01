@@ -425,3 +425,5 @@ hidden ball (it never blinks: its colour is unknown, and its art has no eyes to 
 | Ice cracks (3 cracks growing over 0.16 s, or 2–3 frames) | none yet *(code: an overlay or frames on `TubeView`'s clay)* | the ice shivers and whitens | Drawn on the ice's own canvas (`Mechanics/Clay_Ice`), so it lines up. |
 | Ice shard | `Prefabs/VFX/Vfx_IceBreak` texture sheet (Sprites mode) | `Placeholder/Vfx_IceShard` (generated white splinter, 32×48) | White or pale blue; tinted per particle on the prefab. 2–3 shapes welcome (the sheet takes several sprites). |
 | Smoke puff | `Vfx_IceBreak/Puff` texture sheet | `Placeholder/Ball_Circle` | Soft white cloud, transparent edges. |
+
+**Stage 5 (shuffle):** no new art.

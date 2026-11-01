@@ -81,24 +81,25 @@ namespace BallSort.Core.Rules
         }
 
         /// <summary>
-        /// A new order for the balls of an eligible tube, bottom → top: the same balls, each with its
-        /// hidden flag and key. Once the board reveals the ball on top, the tube always looks different
-        /// in at least one slot.
+        /// A new order for the balls of an eligible tube, bottom → top, as the slot each ball comes from:
+        /// <c>order[slot]</c> is the slot the ball placed in <c>slot</c> held before. The same balls, each
+        /// with its hidden flag and key; once the board reveals the ball on top, the tube always looks
+        /// different in at least one slot.
         /// </summary>
-        /// <remarks>The top ball is returned as it was, hidden or not: revealing it is the board's job, which announces it.</remarks>
+        /// <remarks>The top ball is not revealed here: revealing it is the board's job, which announces it.</remarks>
         /// <param name="tube">An eligible tube (see <see cref="IsEligible"/>); read, not changed.</param>
         /// <param name="random">Picks the order.</param>
         /// <exception cref="ArgumentException">If no two balls in the tube look different.</exception>
-        internal static Ball[] Arrange(Tube tube, Random random)
+        internal static int[] Arrange(Tube tube, Random random)
         {
             int count = tube.Count;
-            var order = new Ball[count];
+            var order = new int[count];
 
             for (int attempt = 0; attempt < RandomAttempts; attempt++)
             {
                 for (int slot = 0; slot < count; slot++)
                 {
-                    order[slot] = tube[slot];
+                    order[slot] = slot;
                 }
 
                 Shuffle(order, random);
@@ -111,12 +112,11 @@ namespace BallSort.Core.Rules
             // Swapping the top with a ball that looks different always shows: that slot now holds the
             // old top (revealed, so it keeps its look), which differs from what was there.
             int top = count - 1;
-            for (int slot = 0; slot < top; slot++)
+            for (int slot = 0; slot <= top; slot++)
             {
-                order[slot] = tube[slot];
+                order[slot] = slot;
             }
 
-            order[top] = tube[top];
             for (int slot = 0; slot < top; slot++)
             {
                 if (!LookAlike(tube[slot], tube[top]))
@@ -130,12 +130,12 @@ namespace BallSort.Core.Rules
         }
 
         /// <summary>Compares as the player will see it: with the new top revealed.</summary>
-        private static bool LooksDifferent(Ball[] order, Tube tube)
+        private static bool LooksDifferent(int[] order, Tube tube)
         {
             int top = order.Length - 1;
             for (int slot = 0; slot <= top; slot++)
             {
-                Ball placed = slot == top ? order[slot].AsRevealed() : order[slot];
+                Ball placed = slot == top ? tube[order[slot]].AsRevealed() : tube[order[slot]];
                 if (!LookAlike(placed, tube[slot]))
                 {
                     return true;
@@ -146,12 +146,12 @@ namespace BallSort.Core.Rules
         }
 
         /// <summary>Fisher–Yates, in place.</summary>
-        private static void Shuffle(Ball[] balls, Random random)
+        private static void Shuffle(int[] items, Random random)
         {
-            for (int i = balls.Length - 1; i > 0; i--)
+            for (int i = items.Length - 1; i > 0; i--)
             {
                 int j = random.Next(i + 1);
-                (balls[i], balls[j]) = (balls[j], balls[i]);
+                (items[i], items[j]) = (items[j], items[i]);
             }
         }
     }

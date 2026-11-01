@@ -99,6 +99,7 @@ namespace BallSort.Game.Views
         private Tween _bobTween;
         private Tween _faceTween;
         private Tween _blinkTween;
+        private Tween _wiggleTween;
 
         // Where the current blink is: 0 waiting, 1 closing, 2 closed, 3 opening.
         private int _blinkPhase;
@@ -122,6 +123,8 @@ namespace BallSort.Game.Views
         private TweenCallback<float> _bumpStep;
         private TweenCallback<float> _squashStep;
         private TweenCallback<float> _bobStep;
+        private TweenCallback<float> _wiggleStep;
+        private TweenCallback _endWiggle;
         private TweenCallback _onDeparted;
         private TweenCallback _onArcEnded;
         private TweenCallback _onLanded;
@@ -149,8 +152,11 @@ namespace BallSort.Game.Views
         /// <summary>The tube the current or last flight left.</summary>
         public int FlightSource { get; private set; } = -1;
 
-        /// <summary>True when the current or last flight was an undo.</summary>
-        public bool IsUndoFlight { get; private set; }
+        /// <summary>Why the current or last flight flew.</summary>
+        public FlightKind FlightKind { get; private set; }
+
+        /// <summary>True when the current or last flight lands without a sound (undo, shuffle).</summary>
+        public bool LandsSilently => FlightKind != FlightKind.Move;
 
         /// <summary>
         /// Gives a pooled ball its config and the board's flight callbacks, once, when it is created.
@@ -289,7 +295,7 @@ namespace BallSort.Game.Views
         {
             FinishMotion();
             FlightSource = flight.SourceTube;
-            IsUndoFlight = flight.IsUndo;
+            FlightKind = flight.Kind;
             _isFlight = true;
             _hasDeparted = false;
             _hasLanded = false;
@@ -315,6 +321,7 @@ namespace BallSort.Game.Views
                 .OnUpdate(_onFlightUpdate)
                 .OnComplete(_onLanded)
                 .OnBoardClock();
+            _motion.timeScale = Mathf.Max(flight.Speed, 0.01f);
         }
 
         /// <summary>Starts or stops the held ball's bob.</summary>
@@ -339,6 +346,18 @@ namespace BallSort.Game.Views
                 .SetEase(Ease.Linear).SetDelay(delay).OnComplete(ClearHop).OnBoardClock();
         }
 
+        /// <summary>
+        /// A small damped tilt to and fro, after <paramref name="delay"/> seconds: a ball that keeps its
+        /// slot in a shuffle (docs/animation-spec.md, 4).
+        /// </summary>
+        public void Wiggle(float delay)
+        {
+            BoardTweens.KillIfActive(_wiggleTween);
+            float duration = _animation.ShuffleWiggleDuration;
+            _wiggleTween = DOVirtual.Float(0f, duration, duration, _wiggleStep)
+                .SetEase(Ease.Linear).SetDelay(delay).OnComplete(_endWiggle).OnBoardClock();
+        }
+
         /// <summary>A small bump up and back, when a ball lands above this one, after <paramref name="delay"/> seconds.</summary>
         public void Bump(float delay)
         {
@@ -358,6 +377,7 @@ namespace BallSort.Game.Views
             BoardTweens.CompleteIfActive(_squashTween);
             BoardTweens.CompleteIfActive(_hopTween);
             BoardTweens.CompleteIfActive(_bumpTween);
+            BoardTweens.CompleteIfActive(_wiggleTween);
             if (_bobTween != null && _bobTween.IsActive())
             {
                 SetBobbing(false);
@@ -642,6 +662,15 @@ namespace BallSort.Game.Views
             Apply();
         }
 
+        private void WiggleStep(float t)
+        {
+            float angle = _animation.ShuffleWiggleAngle *
+                BoardTweens.Shake(t, _animation.ShuffleWiggleFrequency, _animation.ShuffleWiggleDamping);
+            _shape.localRotation = Quaternion.Euler(0f, 0f, angle);
+        }
+
+        private void EndWiggle() => _shape.localRotation = Quaternion.identity;
+
         private void ClearHop()
         {
             _hop = 0f;
@@ -692,6 +721,7 @@ namespace BallSort.Game.Views
             BoardTweens.KillIfActive(_bumpTween);
             BoardTweens.KillIfActive(_bobTween);
             BoardTweens.KillIfActive(_faceTween);
+            BoardTweens.KillIfActive(_wiggleTween);
         }
 
         private static float SpriteWidth(Sprite sprite) => sprite != null ? sprite.bounds.size.x : 1f;
@@ -726,6 +756,8 @@ namespace BallSort.Game.Views
             _bumpStep = BumpStep;
             _squashStep = SquashStep;
             _bobStep = BobStep;
+            _wiggleStep = WiggleStep;
+            _endWiggle = EndWiggle;
             _onDeparted = OnDeparted;
             _onArcEnded = OnArcEnded;
             _onLanded = OnLanded;
