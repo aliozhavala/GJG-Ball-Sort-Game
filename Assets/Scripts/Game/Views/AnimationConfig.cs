@@ -107,6 +107,19 @@ namespace BallSort.Game.Views
         [Tooltip("Sparkles grow with the number of tubes already completed in the level.")]
         [SerializeField] private bool _chainEscalate = true;
 
+        [Header("6.1 Blink")]
+        [Tooltip("Now and then one ball on the board blinks (a revealed ball resting with its open face).")]
+        [SerializeField] private bool _blink = true;
+        [Tooltip("Board seconds between two blinks on the whole board (one ball each time), picked at random between " +
+            "the shortest and the longest for each blink. Lower = more blinking.")]
+        [SerializeField, Min(0.1f)] private float _boardBlinkIntervalMin = 2f;
+        [SerializeField, Min(0.1f)] private float _boardBlinkIntervalMax = 5f;
+        [Tooltip("Half-open frame while the eyes close.")]
+        [SerializeField, Min(0f)] private float _blinkCloseDuration = 0.08f;
+        [SerializeField, Min(0f)] private float _blinkClosedDuration = 0.16f;
+        [Tooltip("Half-open frame while the eyes open again.")]
+        [SerializeField, Min(0f)] private float _blinkOpenDuration = 0.08f;
+
         [Header("Later beats (snaps until their animations exist)")]
         [Tooltip("A veil opens this long after the last ball of the completing move lands.")]
         [SerializeField, Min(0f)] private float _towelDelay = 0.45f;
@@ -189,6 +202,12 @@ namespace BallSort.Game.Views
         public bool Sparkles => _sparkles;
         public bool Confetti => _confetti;
         public bool ChainEscalate => _chainEscalate;
+        public bool Blink => _blink;
+        public float BoardBlinkIntervalMin => Mathf.Min(_boardBlinkIntervalMin, _boardBlinkIntervalMax);
+        public float BoardBlinkIntervalMax => Mathf.Max(_boardBlinkIntervalMin, _boardBlinkIntervalMax);
+        public float BlinkCloseDuration => _blinkCloseDuration;
+        public float BlinkClosedDuration => _blinkClosedDuration;
+        public float BlinkOpenDuration => _blinkOpenDuration;
         public float TowelDelay => _towelDelay;
         public float KeyWaitAfterComplete => _keyWaitAfterComplete;
         public float StuckDelay => _stuckDelay;

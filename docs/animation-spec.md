@@ -103,6 +103,22 @@ Timed so the order reads right; §3 will replace the snaps with animations in th
   same move opened; its door opens right after.
 - Win: the celebration starts once the board has settled.
 
+## 6.1 Blink
+- **One ball at a time (ours, after playtesting; product's document has every creature blink every 2–7 s, which
+  read as far too much on a full board):** after a random wait between `_boardBlinkIntervalMin` **2 s** and
+  `_boardBlinkIntervalMax` **5 s** (picked again each time), `BlinkScheduler` (owned by `BoardView`) picks one random
+  ball that can blink, whatever the ball count. The ball shows `HalfOpen` for `_blinkCloseDuration` **0.08 s**,
+  `Closed` for `_blinkClosedDuration` **0.16 s**, `HalfOpen` for `_blinkOpenDuration` **0.08 s**, then its resting face
+  (`BallView.TryBlink`). All on the board clock, so a hit-stop slows it too. `_blink` turns it off (read at each blink,
+  so it works in Play mode).
+- Only a ball that is on screen, revealed, resting with its open face and holding no other face is picked: hidden
+  balls, the laughing balls of a completed tube and a ball showing shock never blink. A shock replaces a half-shown
+  blink.
+- Blinking is not motion: snapping or flying a ball keeps a blink going. Pooling a ball or hiding it under a cover
+  ends its blink with the eyes open.
+- Colours without blink frames (ids 10–11) fall back to their open face, so they never visibly blink. Silent (SFX
+  guide §8).
+
 ## 5.1 Stuck
 - The level enters Stuck at once (Core decided it with the move): the boosters lock, so nothing in the bar reacts.
 - The stuck bar replaces the booster bar only once the board has **settled** (no ball flying, no beat waiting: cork,

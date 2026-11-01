@@ -414,3 +414,7 @@ Filled in stage by stage; every slot has a placeholder.
 booster count badges, the lives heart and the coins pill. Haptics need no assets (the vibration is code, not built yet).
 
 **Stage 2 (stuck bar timing):** no new art. The stuck banner's background is still missing (section 4, Level HUD).
+
+**Stage 3 (blinking):** no new art: the half-open and closed faces of colours 0–9 are the blink frames. Missing, and
+optional: blink frames for colours 10–11 (ids without art; they keep their placeholder and do not blink) and for the
+hidden ball (it never blinks: its colour is unknown, and its art has no eyes to close).

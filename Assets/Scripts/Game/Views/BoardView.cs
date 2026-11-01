@@ -27,6 +27,9 @@ namespace BallSort.Game.Views
     /// tubes. They are refitted after every layout change.
     /// </para>
     /// <para>
+    /// Now and then one of its balls blinks (<see cref="BlinkScheduler"/>).
+    /// </para>
+    /// <para>
     /// Moves and undos fly their balls (docs/animation-spec.md). The session's later events in the same
     /// operation play in their order, timed off the flights: the source's new top is revealed once the
     /// last moving ball has left it, a completion plays when the tube's last ball lands, and veils,
@@ -56,6 +59,7 @@ namespace BallSort.Game.Views
         private ObjectPool<BallView> _ballPool;
         private ObjectPool<CoverView> _coverPool;
         private LevelSession _session;
+        private BlinkScheduler _blinks;
         private int _liftedTube = -1;
         private Action<BallView> _onBallDeparted;
         private Action<BallView> _onBallLanded;
@@ -127,6 +131,7 @@ namespace BallSort.Game.Views
             _session.Shuffled += OnShuffled;
             _session.Restarted += Rebuild;
             Rebuild();
+            _blinks.Start();
         }
 
         /// <summary>
@@ -613,6 +618,7 @@ namespace BallSort.Game.Views
 
             _onBallDeparted = OnBallDeparted;
             _onBallLanded = OnBallLanded;
+            _blinks = new BlinkScheduler(_tubes, _animation);
 
             _tubePool = new ObjectPool<TubeView>(
                 () => Instantiate(_tubePrefab, _poolRoot),
@@ -675,7 +681,11 @@ namespace BallSort.Game.Views
         }
 #endif
 
-        private void OnDestroy() => Unsubscribe();
+        private void OnDestroy()
+        {
+            _blinks?.Stop();
+            Unsubscribe();
+        }
 
         private void OnValidate()
         {

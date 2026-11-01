@@ -23,8 +23,10 @@ namespace BallSort.Game.Views
     /// <para>
     /// Its face goes through <see cref="SetExpression(BallExpression, ColorPalette)"/> alone: a
     /// resting face (open, or laughing in a completed tube) and a face held for a while (shock).
-    /// Balls of one tube draw in slot order, upper balls in front, so appendages reaching into the
-    /// slot above tuck behind that ball.
+    /// A revealed ball resting with its open face blinks when the board asks (<see cref="TryBlink"/>:
+    /// half-open, closed, half-open, docs/animation-spec.md, 6.1); a blink never shows over another
+    /// face, and touching the ball does not cut it short. Balls of one tube draw in slot order, upper balls in front, so
+    /// appendages reaching into the slot above tuck behind that ball.
     /// </para>
     /// <para>
     /// Where it draws follows from where it is (<see cref="SetMouth"/>): inside its tube, between the
@@ -96,6 +98,10 @@ namespace BallSort.Game.Views
         private Tween _squashTween;
         private Tween _bobTween;
         private Tween _faceTween;
+        private Tween _blinkTween;
+
+        // Where the current blink is: 0 waiting, 1 closing, 2 closed, 3 opening.
+        private int _blinkPhase;
 
         // The flight in progress.
         private Vector3 _arcFrom;
@@ -121,6 +127,7 @@ namespace BallSort.Game.Views
         private TweenCallback _onLanded;
         private TweenCallback _onFlightUpdate;
         private TweenCallback _restoreFace;
+        private TweenCallback _blinkStep;
 
         /// <summary>Board index of the tube holding this ball.</summary>
         public int TubeIndex { get; private set; } = -1;
@@ -180,6 +187,7 @@ namespace BallSort.Game.Views
             _expression = BallExpression.Open;
             ShowColour(ball.ColorId, ball.IsHidden, palette);
             transform.localScale = Vector3.one * diameter;
+            StopBlinking();
         }
 
         /// <summary>Turns a hidden ball face up. A key it carries stays, now visible, until <see cref="RemoveKey"/>.</summary>
@@ -425,6 +433,88 @@ namespace BallSort.Game.Views
         private void RestoreFace() => ApplyExpression(_restingExpression, _palette);
 
         /// <summary>
+        /// True when a blink would show: the ball is on screen, revealed, resting with its open face,
+        /// holding no other face (shock) and not already blinking.
+        /// </summary>
+        public bool CanBlink =>
+            isActiveAndEnabled && _palette != null && _blinkPhase == 0 && CanShowBlinkFrame;
+
+        private bool CanShowBlinkFrame =>
+            !_isHidden && _restingExpression == BallExpression.Open && (_faceTween == null || !_faceTween.IsActive());
+
+        /// <summary>
+        /// Blinks once (half-open, closed, half-open, then the resting face: docs/animation-spec.md, 6.1),
+        /// if <see cref="CanBlink"/>. The board picks which ball blinks and when.
+        /// </summary>
+        /// <returns>True when the blink started.</returns>
+        public bool TryBlink()
+        {
+            if (!CanBlink)
+            {
+                return false;
+            }
+
+            BlinkStep();
+            return true;
+        }
+
+        /// <summary>Ends a blink where it is: the eyes open again if they were closing.</summary>
+        private void StopBlinking()
+        {
+            BoardTweens.KillIfActive(_blinkTween);
+            bool midBlink = _blinkPhase != 0;
+            _blinkPhase = 0;
+            if (midBlink && _palette != null && (_faceTween == null || !_faceTween.IsActive()))
+            {
+                RestoreFace();
+            }
+        }
+
+        private void ScheduleBlinkStep(float delay) =>
+            _blinkTween = DOVirtual.DelayedCall(delay, _blinkStep, false).OnBoardClock();
+
+        /// <summary>
+        /// One frame of the blink. A frame shows only while the ball may show it (a shock that starts
+        /// mid-blink wins); the blink ends on the resting face.
+        /// </summary>
+        private void BlinkStep()
+        {
+            _blinkPhase = (_blinkPhase + 1) % 4;
+            bool canShow = CanShowBlinkFrame;
+
+            switch (_blinkPhase)
+            {
+                case 1:
+                    ShowBlinkFrame(canShow, BallExpression.HalfOpen);
+                    ScheduleBlinkStep(_animation.BlinkCloseDuration);
+                    break;
+                case 2:
+                    ShowBlinkFrame(canShow, BallExpression.Closed);
+                    ScheduleBlinkStep(_animation.BlinkClosedDuration);
+                    break;
+                case 3:
+                    ShowBlinkFrame(canShow, BallExpression.HalfOpen);
+                    ScheduleBlinkStep(_animation.BlinkOpenDuration);
+                    break;
+                default:
+                    if (canShow)
+                    {
+                        RestoreFace();
+                    }
+
+                    break;
+            }
+        }
+
+        private void ShowBlinkFrame(bool canShow, BallExpression frame)
+        {
+            if (canShow)
+            {
+                ApplyExpression(frame, _palette);
+            }
+        }
+
+        /// <summary>
         /// The single entry point for the key mark: drawn while the ball is revealed and still carries
         /// its key, so a key on a hidden ball stays invisible. Snaps for now.
         /// </summary>
@@ -641,9 +731,18 @@ namespace BallSort.Game.Views
             _onLanded = OnLanded;
             _onFlightUpdate = OnFlightUpdate;
             _restoreFace = RestoreFace;
+            _blinkStep = BlinkStep;
             _trail.emitting = false;
         }
 
-        private void OnDestroy() => KillTweens();
+        // Blinking is not motion (a snap into a slot keeps it), but a ball pooled or hidden under a cover
+        // stops mid-blink with its eyes open.
+        private void OnDisable() => StopBlinking();
+
+        private void OnDestroy()
+        {
+            KillTweens();
+            BoardTweens.KillIfActive(_blinkTween);
+        }
     }
 }

@@ -77,7 +77,7 @@ values, rules and our deviations from product's document are in docs/animation-s
 | Key mark leaves | `BallView.RemoveKey` → `UpdateKeyMark` (on `KeyFound`, after the landing) | snap, timed |
 | Veil / door opens | `CoverView.SetOpen` (on `TubeUnveiled` / `LockOpened`, after the landing); it also shows the covered balls | snap, timed |
 | Cork drops, glow, balls laugh and dance | `TubeView.ShowCompleted` (when the tube's last ball lands, also after an undo that completes) + `LevelFeedback.PlayTubeCompleted` (VFX) and cork seat (hit-stop, punch) | **animated** (2.6) |
-| Blinking | `BallView.SetExpression` (`HalfOpen`, `Closed`, back to `Open`); sprites already in `ColorPalette` | not used yet |
+| Blinking | `BlinkScheduler` (on `BoardView`: one random ball every 2–5 s) → `BallView.TryBlink` (`HalfOpen` → `Closed` → `HalfOpen` → resting face); sprites in `ColorPalette` | **animated** (docs/animation-spec.md 6.1) |
 | Invalid move | `LevelFeedback.PlayInvalidMove` (from `TubeInput.InvalidMove`) → `BoardView.ShowInvalid` | **animated** (2.5: shake, shock face) |
 | Celebration | `LevelFeedback.PlayCelebrationAsync` (awaited before the Win panel) | label for 1 s, once the board has settled |
 | Added tube, re-centring | `BoardView.OnTubeAdded` | snap |

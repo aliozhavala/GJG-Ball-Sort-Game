@@ -988,3 +988,20 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 - EditMode tests: 1774 passed, 0 failed. Console: no errors; one warning from the verification probe itself (reading
   `AudioSource.time` on an empty source), none from the game. Level.unity's dirty flag after Play held only
   layout-driven anchors; the scene was reloaded from disk, not saved.
+
+## 2026-11-01 — Second animation batch, stage 3: blinking
+
+### Assets
+- `Data/Config/AnimationConfig.asset`: new fields keep their code defaults (`_blink` on, `_boardBlinkIntervalMin` 2,
+  `_boardBlinkIntervalMax` 5, `_blinkCloseDuration` 0.08, `_blinkClosedDuration` 0.16, `_blinkOpenDuration` 0.08); not
+  edited. No scene or prefab changes.
+
+### Verification
+- Play mode (editor test visit to `stuck_after_move`, stepped at 0.02 s): each blink went Open → HalfOpen (0.10 s) →
+  Closed (0.18 s) → HalfOpen (0.10 s) → Open (the configured times rounded up to the step). A first version gave every
+  ball its own 2–7 s clock, far too busy on a full board; it now blinks one ball every 2–5 s board-wide (a
+  `BlinkScheduler` driven from a command: 5 blinks in 10 s), confirmed by hand in Play mode. An invalid tap on tube 1:
+  its balls held the shock face (the closed sprite until shock art exists) for 0.7 s with no blink frame, then went
+  back to their open faces and blinked on.
+- EditMode tests: 1774 passed, 0 failed. Console: no errors or warnings. Level.unity's dirty flag after Play was
+  layout-only; reloaded from disk, not saved.
