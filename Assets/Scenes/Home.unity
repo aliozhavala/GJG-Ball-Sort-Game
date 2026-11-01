@@ -416,6 +416,7 @@ GameObject:
   - component: {fileID: 31870887}
   - component: {fileID: 31870889}
   - component: {fileID: 31870888}
+  - component: {fileID: 31870890}
   m_Layer: 5
   m_Name: Heart
   m_TagString: Untagged
@@ -481,6 +482,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 31870886}
   m_CullTransparentMesh: 1
+--- !u!114 &31870890
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 31870886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63096a4a649a14d4b8276bdeb9eac00d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.UiPunch
+  _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
+  _target: {fileID: 31870887}
 --- !u!1 &45353509
 GameObject:
   m_ObjectHideFlags: 0
@@ -875,6 +890,7 @@ GameObject:
   - component: {fileID: 81705657}
   - component: {fileID: 81705659}
   - component: {fileID: 81705658}
+  - component: {fileID: 81705660}
   m_Layer: 5
   m_Name: Coins
   m_TagString: Untagged
@@ -941,6 +957,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 81705656}
   m_CullTransparentMesh: 1
+--- !u!114 &81705660
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 81705656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63096a4a649a14d4b8276bdeb9eac00d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.UiPunch
+  _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
+  _target: {fileID: 81705657}
 --- !u!1 &113122831
 GameObject:
   m_ObjectHideFlags: 0
@@ -4091,6 +4121,7 @@ GameObject:
   - component: {fileID: 559559149}
   - component: {fileID: 559559148}
   - component: {fileID: 559559147}
+  - component: {fileID: 559559152}
   m_Layer: 5
   m_Name: HomeCanvas
   m_TagString: Untagged
@@ -4130,6 +4161,9 @@ MonoBehaviour:
   _episodeUnlockedOverlay: {fileID: 740803914}
   _inputBlocker: {fileID: 1650130434}
   _toast: {fileID: 1937939261}
+  _buttonFeedback: {fileID: 559559152}
+  _livesPunch: {fileID: 31870890}
+  _coinsPunch: {fileID: 81705660}
   _avatars: {fileID: 11400000, guid: e787ae8a2dfd79a469bd61a07951128b, type: 2}
   _heartPicture: {fileID: 21300000, guid: 492c273f3a3fa4848b9a616506b56978, type: 3}
   _levelFormat: Level {0}
@@ -4229,6 +4263,23 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &559559152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 559559146}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b2e4b691647f69439f6d5829238a32f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.UiButtonFeedback
+  _ownFeedback:
+  - {fileID: 1641956549}
+  - {fileID: 819827772}
+  _noHaptic:
+  - {fileID: 1332678808}
 --- !u!1 &570452970
 GameObject:
   m_ObjectHideFlags: 0
@@ -5409,6 +5460,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3063848898440465505, guid: 254885508799407459dabd5276df017c, type: 3}
   m_PrefabInstance: {fileID: 819827769}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &819827772 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4377552272134431347, guid: 254885508799407459dabd5276df017c, type: 3}
+  m_PrefabInstance: {fileID: 819827769}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &821764447
 GameObject:
   m_ObjectHideFlags: 0
@@ -8209,6 +8271,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2541504654495793, guid: 3b84bf2cf5009e9419695c608cbee3e4, type: 3}
   m_PrefabInstance: {fileID: 1332678805}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1332678808 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6958342444521483127, guid: 3b84bf2cf5009e9419695c608cbee3e4, type: 3}
+  m_PrefabInstance: {fileID: 1332678805}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &1362275606
 GameObject:
   m_ObjectHideFlags: 0

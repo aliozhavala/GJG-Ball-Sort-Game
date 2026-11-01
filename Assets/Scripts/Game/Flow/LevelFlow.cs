@@ -56,10 +56,12 @@ namespace BallSort.Game.Flow
         private TutorialConfig _tutorials;
         private SceneLoader _sceneLoader;
         private AudioService _audio;
+        private HapticsService _haptics;
         private LevelVisit _visit;
 
-        // The exit Are You Sure is asking about.
+        // The exit Are You Sure is asking about, and whether confirming it spends a life.
         private Exit _pendingExit;
+        private bool _pendingExitCostsALife;
 
         // What Home shows after Continue: the episode the win moved into, if any.
         private HomeArrival _arrivalAfterWin = HomeArrival.None;
@@ -87,10 +89,11 @@ namespace BallSort.Game.Flow
         /// <param name="visit">Which level this is, and whether its win is recorded.</param>
         /// <param name="episodes">Gives the level's mascot frame and tells when a win unlocks an episode.</param>
         /// <param name="tutorials">The tutorial popups, keyed by level id.</param>
-        /// <param name="audio">Plays the board's sound effects.</param>
+        /// <param name="audio">Plays the level's sound effects.</param>
+        /// <param name="haptics">Plays the haptics paired with them.</param>
         public void Begin(
             LoadedLevel level, LevelVisit visit, PlayerData player, EconomyConfig economy, EpisodeConfig episodes,
-            TutorialConfig tutorials, SceneLoader sceneLoader, AudioService audio)
+            TutorialConfig tutorials, SceneLoader sceneLoader, AudioService audio, HapticsService haptics)
         {
             if (_session != null)
             {
@@ -108,6 +111,7 @@ namespace BallSort.Game.Flow
             _tutorials = tutorials != null ? tutorials : throw new ArgumentNullException(nameof(tutorials));
             _sceneLoader = sceneLoader ?? throw new ArgumentNullException(nameof(sceneLoader));
             _audio = audio != null ? audio : throw new ArgumentNullException(nameof(audio));
+            _haptics = haptics != null ? haptics : throw new ArgumentNullException(nameof(haptics));
             _visit = visit;
 
             int variant = _visit.IsEditorTest ? _visit.Variant : player.BeginAttempt(_variantRandom);
@@ -115,9 +119,9 @@ namespace BallSort.Game.Flow
             _session = session;
 
             _boardView.Initialize(session);
-            _feedback.Initialize(session, _boardView, audio);
+            _feedback.Initialize(session, _boardView, audio, haptics);
             _input.Initialize(session, () => _hud.IsPopupOpen);
-            _hud.Initialize(visit.Label, player, episodes.GetEpisodeForLevel(visit.LevelNumber).MascotFrame);
+            _hud.Initialize(visit.Label, player, episodes.GetEpisodeForLevel(visit.LevelNumber).MascotFrame, audio, haptics);
 
             _input.SelectionChanged += _boardView.ShowSelection;
             _input.InvalidMove += _feedback.PlayInvalidMove;
@@ -251,7 +255,7 @@ namespace BallSort.Game.Flow
             ShuffleBlockReason reason = _session.ShuffleBlockReason;
             if (reason != ShuffleBlockReason.None)
             {
-                ShowRefusal(_hud.Boosters.Describe(reason));
+                RefuseShuffle(reason);
                 return;
             }
 
@@ -274,7 +278,18 @@ namespace BallSort.Game.Flow
 
             if (!_session.TryShuffleTube(tubeIndex, _shuffleRandom, out ShuffleBlockReason reason))
             {
-                ShowRefusal(_hud.Boosters.Describe(reason));
+                RefuseShuffle(reason);
+            }
+        }
+
+        /// <summary>A refused shuffle: the invalid sound and the toast saying why (SFX guide §5).</summary>
+        private void RefuseShuffle(ShuffleBlockReason reason)
+        {
+            string message = _hud.Boosters.Describe(reason);
+            if (!string.IsNullOrEmpty(message))
+            {
+                _audio.Play(Sfx.MoveInvalid);
+                _hud.Toast.Show(message);
             }
         }
 
@@ -307,10 +322,15 @@ namespace BallSort.Game.Flow
         }
 
         /// <returns>True when bought, which closes the popup; without enough coins it stays open.</returns>
+        /// <remarks>Buy's press plays no button sound: the result's sound replaces it (SFX guide §7).</remarks>
         private bool TryBuyBooster(BoosterType type)
         {
             if (_player.TryBuyBooster(type, _economy.GetBoosterPrice(type), _economy.BoostersPerPurchase, out _))
             {
+                // The badge already shows the new count: the purchase refreshed the bar.
+                _audio.Play(Sfx.RewardJingle);
+                _haptics.Success();
+                _hud.Boosters.PlayPurchased(type);
                 return true;
             }
 
@@ -356,7 +376,8 @@ namespace BallSort.Game.Flow
             // A test visit spends nothing, so it leaves out the life line, as 0 lives does.
             _pendingExit = exit;
             _player.RefreshLives();
-            _hud.AreYouSure.Ask(costsALife: !_visit.IsEditorTest && _player.LifeCount > 0, restarts: exit == Exit.Restart);
+            _pendingExitCostsALife = !_visit.IsEditorTest && _player.LifeCount > 0;
+            _hud.AreYouSure.Ask(_pendingExitCostsALife, restarts: exit == Exit.Restart);
         }
 
         private void OnExitConfirmed()
@@ -364,6 +385,18 @@ namespace BallSort.Game.Flow
             if (State != LevelState.Playing && State != LevelState.Stuck)
             {
                 return;
+            }
+
+            // Confirm plays no button sound: spending a life has its own (SFX guide §6.4).
+            if (_pendingExitCostsALife)
+            {
+                _audio.Play(Sfx.LifeLost);
+                _haptics.Warning();
+            }
+            else
+            {
+                _audio.Play(Sfx.UiButton);
+                _haptics.Light();
             }
 
             if (_pendingExit == Exit.Restart)

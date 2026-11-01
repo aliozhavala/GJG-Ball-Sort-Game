@@ -6,8 +6,8 @@ using UnityEngine;
 namespace BallSort.Game.Bootstrap
 {
     /// <summary>
-    /// The persistent composition root: owns the player's data, saving, scene loading, sound and the
-    /// system font fallback for the whole session, across scene changes.
+    /// The persistent composition root: owns the player's data, saving, scene loading, sound, haptics
+    /// and the system font fallback for the whole session, across scene changes.
     /// </summary>
     /// <remarks>
     /// The one agreed singleton-style exception (see CLAUDE.md). It is created from a prefab in
@@ -24,6 +24,7 @@ namespace BallSort.Game.Bootstrap
         [SerializeField] private LevelDatabase _levelDatabase;
         [SerializeField] private EpisodeConfig _episodes;
         [SerializeField] private AudioService _audio;
+        [SerializeField] private HapticsService _haptics;
         [SerializeField] private SystemFontFallback _fontFallback;
 
         private SaveService _saveService;
@@ -44,6 +45,9 @@ namespace BallSort.Game.Bootstrap
 
         /// <summary>Sound effects, muted by the player's Sound setting.</summary>
         public AudioService Audio => _audio;
+
+        /// <summary>Haptics, off with the player's Haptics setting (placeholders: nothing vibrates yet).</summary>
+        public HapticsService Haptics => _haptics;
 
         // With domain reload disabled, statics survive between Play sessions; clear them explicitly.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -76,9 +80,11 @@ namespace BallSort.Game.Bootstrap
                 return;
             }
 
-            if (_economy == null || _levelDatabase == null || _episodes == null || _audio == null || _fontFallback == null)
+            if (_economy == null || _levelDatabase == null || _episodes == null || _audio == null || _haptics == null ||
+                _fontFallback == null)
             {
-                Debug.LogError($"{name}: economy config, level database, episode config, audio service and font fallback must be assigned.", this);
+                Debug.LogError(
+                    $"{name}: economy config, level database, episode config, audio and haptics services and font fallback must be assigned.", this);
                 enabled = false;
                 return;
             }
@@ -97,6 +103,7 @@ namespace BallSort.Game.Bootstrap
             PlayerData.ResolveInterruptedAttempt();
             SceneLoader = new SceneLoader();
             _audio.Initialize(PlayerData);
+            _haptics.Initialize(PlayerData);
         }
 
         private void OnApplicationPause(bool paused)

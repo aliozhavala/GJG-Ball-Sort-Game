@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2811931250909961880}
   - component: {fileID: 6001716900764628682}
   - component: {fileID: 7493366796206011309}
+  - component: {fileID: 7490595251896191831}
   m_Layer: 0
   m_Name: AppRoot
   m_TagString: Untagged
@@ -50,6 +51,7 @@ MonoBehaviour:
   _levelDatabase: {fileID: 11400000, guid: 60ff1a896de21754e9fe94f62808a7af, type: 2}
   _episodes: {fileID: 11400000, guid: 621039004b4432d4c92ce5e6e436eaed, type: 2}
   _audio: {fileID: 6001716900764628682}
+  _haptics: {fileID: 7490595251896191831}
   _fontFallback: {fileID: 7493366796206011309}
 --- !u!114 &6001716900764628682
 MonoBehaviour:
@@ -87,3 +89,17 @@ MonoBehaviour:
   - Microsoft YaHei
   - Malgun Gothic
   _styleName: Regular
+--- !u!114 &7490595251896191831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4631727978014717358}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 602515489cc356b419c68bd4d78c01d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Services.HapticsService
+  _minLandingInterval: 0.05
+  _logInEditor: 0

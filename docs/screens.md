@@ -25,7 +25,7 @@ Read this when working on UI, scene flow, lives, tutorials, boosters, or player 
 | Player name | `Player` | Set in the avatar menu; 1–16 characters, trimmed. |
 | Avatar | 1 | Picked in the avatar menu; ids 1–5 (`AvatarRules`), pictures in `AvatarConfig`. |
 | Tutorials seen | none | Ids of the levels whose tutorial popup has been dismissed. |
-| Settings: Sound / Music / Haptics | on / on / on | Saved. Sound mutes every sound effect (`AudioService`); Music and Haptics have no effect yet (no music, no haptics). |
+| Settings: Sound / Music / Haptics | on / on / on | Saved. Sound mutes every sound effect (`AudioService`); Haptics silences `HapticsService`, whose calls are in place but vibrate nothing yet; Music has no effect (no music). |
 
 All numbers live in an `EconomyConfig` ScriptableObject, not in code, including the win reward of each tier, the lives maximum and the refill interval, every price, the boosters per purchase and the Shop's coin bundles. Progress and rewards are saved **at the moment of the win**, before any celebration or panel.
 
@@ -103,7 +103,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - Otherwise, unavailable boosters look dimmed but still react to taps with a short toast explaining why:
   - Undo: "Nothing to undo" / "Can't undo past a completed tube".
   - Add tube: "No room for more tubes".
-  - Shuffle: "No tube to shuffle" (no tube is eligible, docs/mechanics.md).
+  - Shuffle: "No tube to shuffle" (no tube is eligible, docs/mechanics.md), with the invalid-move sound.
 - Reason precedence (first match wins), so the toast names the real obstacle rather than the booster count:
   - Undo: Stuck → no moves → sealed → no boosters.
   - Add tube: level won → Stuck → no room → no boosters.
@@ -144,6 +144,8 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   - **Hearts** (Home, from the plus on the lives pill, shown only below the maximum): "Refill hearts" with `Icon_Heart`
     as the picture (no coin balance: Home's top bar shows it), 900 refills the lives to the maximum and stops the
     timer. If they filled up while the popup was open, it closes with "Lives are already full" and nothing is spent.
+- **Bought:** the reward jingle, and what was filled punches (the booster's count badge, the lives heart); a Shop coin
+  bundle plays the coin sound and punches the coins pill (docs/animation-spec.md, Boosters, buttons and purchases).
 - **Not enough coins:** the invalid-move sound, the toast "Not enough coins", and the popup stays open.
 - **Coins:** the plus on Home's coins pill opens the Shop tab, whose bundles add coins (Home screen, Shop page).
 

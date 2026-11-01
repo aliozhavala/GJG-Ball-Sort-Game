@@ -91,9 +91,12 @@ values, rules and our deviations from product's document are in docs/animation-s
 | Life comes back | `LivesDisplay.Refresh` (count changes) | text |
 | Scene transitions | `SceneLoader.Load` (`LoadSceneAsync`) | none |
 
-Sounds: `AudioService` (on `AppRoot`, passed `LevelBootstrap` → `LevelFlow` → `LevelFeedback`), `Play(Sfx, pitch)`;
-one slot per sound in `SfxConfig`. Hooked so far: select, deselect, land, invalid, completion chime, cork (from
-`LevelFeedback`, on `BoardView`'s presentation events). The other 16 slots are filled but not played yet.
+Sounds: `AudioService` (on `AppRoot`, passed by the bootstraps to `LevelFlow` → `LevelFeedback`, `LevelHud` and
+`HomeFlow` → `HomeScreen`), `Play(Sfx, pitch)`; one slot per sound in `SfxConfig`. Hooked so far: select, deselect,
+land, invalid, completion chime, cork (from `LevelFeedback`, on `BoardView`'s presentation events), the three booster
+sounds, button, Play, reward jingle, coin gain and life lost (docs/animation-spec.md, Boosters, buttons and purchases).
+Not played yet: reveal, towel, the three lock box sounds, ice, fanfare, title stamp. Haptics: `HapticsService` on
+`AppRoot`, called next to the sounds, vibrates nothing yet (docs/animation-spec.md, Haptics).
 
 Event order within one operation (documented on `LevelSession`); animations must play in this order:
 - Move or undo: `MoveApplied` / `MoveUndone` → `BallRevealed` → `TubeCompleted` → each `TubeUnveiled` → each `KeyFound`

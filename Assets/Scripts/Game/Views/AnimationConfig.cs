@@ -117,6 +117,13 @@ namespace BallSort.Game.Views
         [Tooltip("How long the celebration plays, once the board has settled, before the Win panel opens.")]
         [SerializeField, Min(0f)] private float _celebrationDuration = 1f;
 
+        [Header("UI (real time, not board time)")]
+        [Tooltip("A purchase's punch on what it filled (booster badge, lives heart, coins pill): scale 1 → 1 + this → 1, springing.")]
+        [SerializeField, Min(0f)] private float _purchasePunchScale = 0.25f;
+        [SerializeField, Min(0.01f)] private float _purchasePunchDuration = 0.35f;
+        [Tooltip("Spring oscillations of the purchase punch.")]
+        [SerializeField, Range(1, 12)] private int _purchasePunchVibrato = 6;
+
         public float Speed => _speed;
         public float LiftHeight => _liftHeight;
         public float LiftDuration => _liftDuration;
@@ -179,5 +186,8 @@ namespace BallSort.Game.Views
         public float TowelDelay => _towelDelay;
         public float KeyWaitAfterComplete => _keyWaitAfterComplete;
         public float CelebrationDuration => _celebrationDuration;
+        public float PurchasePunchScale => _purchasePunchScale;
+        public float PurchasePunchDuration => _purchasePunchDuration;
+        public int PurchasePunchVibrato => _purchasePunchVibrato;
     }
 }

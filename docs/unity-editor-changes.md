@@ -938,3 +938,31 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
   1080×2400, Home and Level (editor test visit to level 7): nothing leaves its button, panel, field or the screen
   (Bold is narrower than ExtraBold and the effects reach less far, so the 9:21 and 3:4 results only improve).
   EditMode tests 1774/1774, console clean.
+
+## 2026-11-01 — Second animation batch, stage 1: button, booster and purchase sounds, haptic calls
+
+### Prefabs
+- `Assets/Resources/AppRoot.prefab`: added `HapticsService` (`_minLandingInterval` 0.05, `_logInEditor` off);
+  `AppRoot._haptics` → it.
+
+### Level.unity
+- `LevelCanvas`: added `UiButtonFeedback`; `_ownFeedback` = `AreYouSurePopup/Panel/ConfirmButton`,
+  `BuyPopup/Panel/BuyButton`; `_noHaptic` empty. `LevelHud._buttonFeedback` → it.
+- `SafeArea/BoosterBar/{Undo,Shuffle,AddTube}Button/Badge`: added `UiPunch` (`_animation` → `Data/Config/AnimationConfig`,
+  `_target` → the badge); each `BoosterButton._purchasePunch` → its badge's `UiPunch`.
+
+### Home.unity
+- `HomeCanvas`: added `UiButtonFeedback`; `_ownFeedback` = `SafeArea/HomePage/LevelButton`, `BuyPopup/Panel/BuyButton`;
+  `_noHaptic` = `AvatarMenuPopup/Panel/Header/PenButton`. `HomeScreen._buttonFeedback` → it.
+- `SafeArea/TopBar/Lives/Heart` and `SafeArea/TopBar/Coins`: added `UiPunch` (`_animation` → `AnimationConfig`, `_target`
+  → itself); `HomeScreen._livesPunch` / `_coinsPunch` → them.
+
+### Assets
+- `Data/Config/AnimationConfig.asset`: new fields keep their code defaults (`_purchasePunchScale` 0.25,
+  `_purchasePunchDuration` 0.35, `_purchasePunchVibrato` 6); not edited.
+
+### Verification
+- Play mode (Level, real taps): Settings, the Music toggle twice (setting unchanged) and the settings ✕ each play
+  `sfx_ui_button`; Settings and the toggles log a Light haptic (with `_logInEditor` set on the runtime instance only),
+  the ✕ none. The level-in-progress mark this run set in the Editor save (level 24) was cleared afterwards.
+- EditMode tests: 1774 passed, 0 failed. Console: no errors or warnings.

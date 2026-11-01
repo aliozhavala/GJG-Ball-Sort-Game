@@ -72,6 +72,18 @@ namespace BallSort.Game.UI
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown booster type."),
             };
 
+        /// <summary>A purchase just added boosters of <paramref name="type"/>: its count badge punches.</summary>
+        public void PlayPurchased(BoosterType type) => GetButton(type).PlayPurchased();
+
+        private BoosterButton GetButton(BoosterType type) =>
+            type switch
+            {
+                BoosterType.Undo => _undo,
+                BoosterType.Shuffle => _shuffle,
+                BoosterType.AddTube => _addTube,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown booster type."),
+            };
+
         // A booster at 0 can always be bought, so it is never dimmed.
         private static void Show(BoosterButton button, int count, bool refused) => button.Show(count, count > 0 && refused);
 

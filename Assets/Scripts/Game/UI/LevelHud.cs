@@ -1,5 +1,7 @@
 using System;
 using BallSort.Core.Player;
+using BallSort.Game.Audio;
+using BallSort.Game.Services;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -31,6 +33,10 @@ namespace BallSort.Game.UI
         [SerializeField] private TutorialPopup _tutorialPopup;
         [SerializeField] private BuyPopup _buyPopup;
         [SerializeField] private Toast _toast;
+
+        [Tooltip("On the canvas root: every button's and toggle's press sound and haptic.")]
+        [SerializeField] private UiButtonFeedback _buttonFeedback;
+
         [SerializeField] private string _levelFormat = "Level {0}";
 
         /// <summary>The player chose Restart in the settings popup, which stays open.</summary>
@@ -64,7 +70,10 @@ namespace BallSort.Game.UI
 
         /// <param name="levelLabel">The level's number, or a level file's name (editor testing).</param>
         /// <param name="mascotFrame">The episode's mascot frame; null hides it.</param>
-        public void Initialize(string levelLabel, PlayerData player, Sprite mascotFrame)
+        /// <param name="audio">Plays the buttons' press sound.</param>
+        /// <param name="haptics">Plays the buttons' press haptic.</param>
+        public void Initialize(
+            string levelLabel, PlayerData player, Sprite mascotFrame, AudioService audio, HapticsService haptics)
         {
             _levelTitle.text = string.Format(_levelFormat, levelLabel);
             _mascotFrame.sprite = mascotFrame;
@@ -75,6 +84,7 @@ namespace BallSort.Game.UI
             _settingsButton.onClick.AddListener(_settingsPopup.Popup.Open);
             _moreLivesPopup.Initialize(player);
             ShowStuck(false);
+            _buttonFeedback.Initialize(audio, haptics);
         }
 
         /// <summary>Closes the settings popup, once the player has confirmed Restart or Home.</summary>
@@ -117,7 +127,8 @@ namespace BallSort.Game.UI
         {
             if (_levelTitle == null || _settingsButton == null || _mascotFrame == null || _boosterBar == null ||
                 _stuckPanel == null || _settingsPopup == null || _winPopup == null || _areYouSurePopup == null ||
-                _moreLivesPopup == null || _tutorialPopup == null || _buyPopup == null || _toast == null)
+                _moreLivesPopup == null || _tutorialPopup == null || _buyPopup == null || _toast == null ||
+                _buttonFeedback == null)
             {
                 Debug.LogError($"{name}: every reference must be assigned.", this);
             }

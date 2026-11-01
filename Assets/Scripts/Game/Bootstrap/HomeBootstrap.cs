@@ -24,7 +24,7 @@ namespace BallSort.Game.Bootstrap
 
             _flow.Begin(
                 app.PlayerData, app.SceneLoader, app.Episodes, ReadCurrentTier(app), app.SceneLoader.TakePendingArrival(),
-                app.Economy, app.Audio);
+                app.Economy, app.Audio, app.Haptics);
         }
 
         private static LevelTier ReadCurrentTier(AppRoot app)

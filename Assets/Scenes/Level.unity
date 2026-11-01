@@ -317,6 +317,7 @@ MonoBehaviour:
   _buyBadge: {fileID: 1648198826}
   _group: {fileID: 242677154}
   _dimmedAlpha: 0.4
+  _purchasePunch: {fileID: 2063455326}
 --- !u!225 &242677154
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -544,6 +545,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3063848898440465505, guid: 254885508799407459dabd5276df017c, type: 3}
   m_PrefabInstance: {fileID: 260735857}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &260735860 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4377552272134431347, guid: 254885508799407459dabd5276df017c, type: 3}
+  m_PrefabInstance: {fileID: 260735857}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &462772064
 GameObject:
   m_ObjectHideFlags: 0
@@ -1636,6 +1648,7 @@ MonoBehaviour:
   _buyBadge: {fileID: 694423472}
   _group: {fileID: 873583533}
   _dimmedAlpha: 0.4
+  _purchasePunch: {fileID: 1025503653}
 --- !u!225 &873583533
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -2369,6 +2382,7 @@ GameObject:
   - component: {fileID: 1025503650}
   - component: {fileID: 1025503652}
   - component: {fileID: 1025503651}
+  - component: {fileID: 1025503653}
   m_Layer: 5
   m_Name: Badge
   m_TagString: Untagged
@@ -2434,6 +2448,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1025503649}
   m_CullTransparentMesh: 1
+--- !u!114 &1025503653
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1025503649}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63096a4a649a14d4b8276bdeb9eac00d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.UiPunch
+  _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
+  _target: {fileID: 1025503650}
 --- !u!1001 &1049909062
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2879,6 +2907,7 @@ MonoBehaviour:
   _buyBadge: {fileID: 462772064}
   _group: {fileID: 1165276454}
   _dimmedAlpha: 0.4
+  _purchasePunch: {fileID: 1325779317}
 --- !u!225 &1165276454
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -3108,6 +3137,7 @@ GameObject:
   - component: {fileID: 1325779314}
   - component: {fileID: 1325779316}
   - component: {fileID: 1325779315}
+  - component: {fileID: 1325779317}
   m_Layer: 5
   m_Name: Badge
   m_TagString: Untagged
@@ -3173,6 +3203,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1325779313}
   m_CullTransparentMesh: 1
+--- !u!114 &1325779317
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1325779313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63096a4a649a14d4b8276bdeb9eac00d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.UiPunch
+  _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
+  _target: {fileID: 1325779314}
 --- !u!1 &1390140786
 GameObject:
   m_ObjectHideFlags: 0
@@ -3756,6 +3800,7 @@ GameObject:
   - component: {fileID: 1635893136}
   - component: {fileID: 1635893135}
   - component: {fileID: 1635893134}
+  - component: {fileID: 1635893139}
   m_Layer: 5
   m_Name: LevelCanvas
   m_TagString: Untagged
@@ -3787,6 +3832,7 @@ MonoBehaviour:
   _tutorialPopup: {fileID: 1150835035}
   _buyPopup: {fileID: 260735858}
   _toast: {fileID: 618832793}
+  _buttonFeedback: {fileID: 1635893139}
   _levelFormat: Level {0}
 --- !u!114 &1635893135
 MonoBehaviour:
@@ -3879,6 +3925,22 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1635893139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1635893133}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b2e4b691647f69439f6d5829238a32f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.UiButtonFeedback
+  _ownFeedback:
+  - {fileID: 1723140156}
+  - {fileID: 260735860}
+  _noHaptic: []
 --- !u!1 &1644133033
 GameObject:
   m_ObjectHideFlags: 0
@@ -4203,6 +4265,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3063848898440465505, guid: e51a4ddf77767054484609e8fadb2480, type: 3}
   m_PrefabInstance: {fileID: 1723140153}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1723140156 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4377552272134431347, guid: e51a4ddf77767054484609e8fadb2480, type: 3}
+  m_PrefabInstance: {fileID: 1723140153}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &1793032290
 GameObject:
   m_ObjectHideFlags: 0
@@ -4822,6 +4895,7 @@ GameObject:
   - component: {fileID: 2063455323}
   - component: {fileID: 2063455325}
   - component: {fileID: 2063455324}
+  - component: {fileID: 2063455326}
   m_Layer: 5
   m_Name: Badge
   m_TagString: Untagged
@@ -4887,6 +4961,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2063455322}
   m_CullTransparentMesh: 1
+--- !u!114 &2063455326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2063455322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63096a4a649a14d4b8276bdeb9eac00d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.UiPunch
+  _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
+  _target: {fileID: 2063455323}
 --- !u!1 &2081910067
 GameObject:
   m_ObjectHideFlags: 0

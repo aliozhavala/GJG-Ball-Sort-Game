@@ -55,6 +55,15 @@ namespace BallSort.Game.UI
 
         [SerializeField] private Toast _toast;
 
+        [Tooltip("On the canvas root: every button's and toggle's press sound and haptic.")]
+        [SerializeField] private UiButtonFeedback _buttonFeedback;
+
+        [Header("Purchase feedback")]
+        [Tooltip("Punches the lives display's heart when the lives are refilled.")]
+        [SerializeField] private UiPunch _livesPunch;
+        [Tooltip("Punches the coins display when a coin bundle is taken.")]
+        [SerializeField] private UiPunch _coinsPunch;
+
         [Header("Art")]
         [SerializeField] private AvatarConfig _avatars;
         [Tooltip("The heart in the Refill hearts popup.")]
@@ -73,19 +82,23 @@ namespace BallSort.Game.UI
         private SceneLoader _sceneLoader;
         private EconomyConfig _economy;
         private AudioService _audio;
+        private HapticsService _haptics;
 
         public EpisodeUnlockedOverlay EpisodeUnlocked => _episodeUnlockedOverlay;
 
         /// <param name="levelTier">Tier of the level the Level button plays; sets the button's look.</param>
         /// <param name="economy">Prices of the lives refill and the coin bundles.</param>
-        /// <param name="audio">Plays the refusal sound of a purchase.</param>
+        /// <param name="audio">Plays the buttons' and purchases' sounds.</param>
+        /// <param name="haptics">Plays the haptics paired with them.</param>
         public void Initialize(
-            PlayerData player, SceneLoader sceneLoader, LevelTier levelTier, EconomyConfig economy, AudioService audio)
+            PlayerData player, SceneLoader sceneLoader, LevelTier levelTier, EconomyConfig economy, AudioService audio,
+            HapticsService haptics)
         {
             _player = player;
             _sceneLoader = sceneLoader;
             _economy = economy;
             _audio = audio;
+            _haptics = haptics;
 
             _settingsPopup.Initialize(player, showLevelActions: false);
             _avatarMenu.Initialize(player, _avatars);
@@ -113,6 +126,9 @@ namespace BallSort.Game.UI
             _lives.BuyClicked += OnBuyLivesClicked;
             _shopPage.Initialize(_economy.CoinBundles);
             _shopPage.BundleClicked += OnBundleClicked;
+
+            // Last: the pages above are built by now.
+            _buttonFeedback.Initialize(audio, haptics);
         }
 
         /// <summary>Shows a short message over the Home screen, e.g. a notice from the previous scene.</summary>
@@ -121,14 +137,18 @@ namespace BallSort.Game.UI
         /// <summary>Blocks or allows every tap on Home, popups included.</summary>
         public void SetInputBlocked(bool blocked) => _inputBlocker.SetActive(blocked);
 
+        // The Level button plays its own sound: Play when it starts the level (SFX guide §7).
         private void OnLevelClicked()
         {
+            _haptics.Light();
             if (_player.CanStartLevel())
             {
+                _audio.Play(Sfx.UiPlay);
                 _sceneLoader.LoadLevel();
             }
             else
             {
+                _audio.Play(Sfx.UiButton);
                 _moreLivesPopup.Open();
             }
         }
@@ -140,18 +160,23 @@ namespace BallSort.Game.UI
         private void OnBuyLivesClicked() => _buyPopup.Show(_refillHeartsTitle, _heartPicture, _economy.LivesRefillPrice, TryBuyLives);
 
         /// <returns>True when the popup should close: bought, or nothing left to buy.</returns>
+        /// <remarks>Buy's press plays no button sound: the result's sound replaces it (SFX guide §7).</remarks>
         private bool TryBuyLives()
         {
             if (_player.TryRefillLives(_economy.LivesRefillPrice, out PurchaseRefusal refusal))
             {
                 _lives.RefreshNow();
+                _audio.Play(Sfx.RewardJingle);
+                _haptics.Success();
+                _livesPunch.Play();
                 return true;
             }
 
             if (refusal == PurchaseRefusal.LivesFull)
             {
-                // Lives came back while the popup was open and filled up.
+                // Lives came back while the popup was open and filled up: nothing bought.
                 _lives.RefreshNow();
+                _audio.Play(Sfx.UiButton);
                 _toast.Show(_livesFullText);
                 return true;
             }
@@ -161,10 +186,13 @@ namespace BallSort.Game.UI
             return false;
         }
 
-        // No real payment yet: the bundle's coins are granted at once.
+        // No real payment yet: the bundle's coins are granted at once, so their sound plays with the
+        // press's click rather than after a store dialog.
         private void OnBundleClicked(CoinBundle bundle)
         {
             _player.AddCoins(bundle.Coins);
+            _audio.Play(Sfx.CoinGain);
+            _coinsPunch.Play();
             _toast.Show(string.Format(_bundleBoughtFormat, bundle.Coins.ToString("N0", CultureInfo.InvariantCulture)));
         }
 
@@ -175,7 +203,8 @@ namespace BallSort.Game.UI
             if (_avatarButton == null || _avatar == null || _avatars == null || _lives == null || _coins == null || _settingsButton == null ||
                 _coinsBuyButton == null || _levelButton == null || _levelLabel == null || _levelTierLook == null || _tabs == null ||
                 _shopPage == null || _leaderboardPage == null || _settingsPopup == null || _avatarMenu == null || _moreLivesPopup == null || _buyPopup == null ||
-                _episodeUnlockedOverlay == null || _inputBlocker == null || _toast == null)
+                _episodeUnlockedOverlay == null || _inputBlocker == null || _toast == null || _buttonFeedback == null ||
+                _livesPunch == null || _coinsPunch == null)
             {
                 Debug.LogError($"{name}: every reference must be assigned.", this);
             }

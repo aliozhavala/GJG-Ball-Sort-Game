@@ -402,3 +402,13 @@ TMP Settings asset is left as it was. Checked in the Editor with "Łukasz 日本
 Microsoft YaHei, ğ and ç from Baloo. Colour emoji can't be drawn as SDF and show TMP's missing-glyph box. On a device
 the fallback glyphs are a different typeface from Baloo (thinner); that is the price of not shipping a font for every
 script.
+
+## 10. Pending for the second animation batch (2026-11-01)
+
+What the second batch (docs/animation-spec.md: UI sounds, stuck timing, blinking, ice break, shuffle) still needs.
+Filled in stage by stage; every slot has a placeholder.
+
+**Sounds:** none missing: every sound this batch plays is in `Assets/Audio/SFX/` with its slot in `SfxConfig`.
+
+**Stage 1 (button, booster and purchase sounds, haptic calls):** no new art. The purchase punch scales the existing
+booster count badges, the lives heart and the coins pill. Haptics need no assets (the vibration is code, not built yet).

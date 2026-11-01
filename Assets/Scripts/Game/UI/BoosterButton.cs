@@ -25,6 +25,9 @@ namespace BallSort.Game.UI
         [SerializeField] private CanvasGroup _group;
         [SerializeField, Range(0f, 1f)] private float _dimmedAlpha = 0.4f;
 
+        [Tooltip("Punches the count badge when a purchase fills it.")]
+        [SerializeField] private UiPunch _purchasePunch;
+
         private int _shownCount = -1;
 
         /// <summary>Raised on every tap, available or not.</summary>
@@ -46,13 +49,18 @@ namespace BallSort.Game.UI
             _group.alpha = dimmed ? _dimmedAlpha : 1f;
         }
 
+        /// <summary>A purchase just added boosters: the count badge punches.</summary>
+        public void PlayPurchased() => _purchasePunch.Play();
+
         private void OnClicked() => Clicked?.Invoke();
 
         private void Awake()
         {
-            if (_button == null || _countLabel == null || _countBadge == null || _buyBadge == null || _group == null)
+            if (_button == null || _countLabel == null || _countBadge == null || _buyBadge == null || _group == null ||
+                _purchasePunch == null)
             {
-                Debug.LogError($"{name}: button, count label, count and buy badges and canvas group must be assigned.", this);
+                Debug.LogError(
+                    $"{name}: button, count label, count and buy badges, canvas group and purchase punch must be assigned.", this);
                 return;
             }
 

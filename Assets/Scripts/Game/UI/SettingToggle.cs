@@ -1,3 +1,4 @@
+using System;
 using BallSort.Core.Player;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,6 +21,12 @@ namespace BallSort.Game.UI
         private PlayerData _player;
         private bool _subscribed;
 
+        /// <summary>
+        /// The player tapped the toggle, and the setting is already saved: turning Sound on can be heard
+        /// confirming itself, turning it off cannot.
+        /// </summary>
+        public event Action Toggled;
+
         public void Bind(PlayerData player)
         {
             Unbind();
@@ -40,6 +47,7 @@ namespace BallSort.Game.UI
             }
 
             _player.SetSetting(_setting, isOn);
+            Toggled?.Invoke();
         }
 
         private void ShowWithoutNotify(bool isOn)

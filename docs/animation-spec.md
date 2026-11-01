@@ -1,7 +1,8 @@
 # Animations (board moves: 2.2–2.6)
 
 What is built from product's `docs/design/animations.md` §2.2–2.6 and the matching sounds of `docs/design/SFX_GUIDE.md`
-§3. The other sections (intro, mechanics, boosters, win, idle) are not built yet. Every number is an `AnimationConfig`
+§3, plus the UI and booster sounds (SFX guide §5, §6.3, §6.4, §7), purchase feedback and the haptic calls (below). The
+other animation sections (intro, mechanics, boosters, win, idle) are not built yet. Every number is an `AnimationConfig`
 field (Inspector-tunable); sound rules are on `SfxConfig`. Choices that differ from the product document are marked
 **(ours)**.
 
@@ -125,3 +126,40 @@ pitch (`_randomPitchRange` ±3 %) applies to the mp3 clips and `deselect` (SFX g
   **0.05 s**, so the land, chime and cork hit on their frame; the towel's and fanfare's later starts are part of the
   clip and stay.
 - **Silent on purpose:** flights, undo landings (SFX guide §5).
+
+### Boosters, buttons and purchases
+| Sound | When | Played by |
+|---|---|---|
+| `boosterUndo` / `boosterShuffle` / `boosterAddTube` | the undo / shuffle / added tube is applied (Play on adds a tube, so it plays Add tube's) | `LevelFeedback`, on the session's `MoveUndone` / `Shuffled` / `TubeAdded` |
+| `uiButton` | every button press and settings toggle, popups' ✕ and tap-anywhere closes included; a refused booster still clicks | `UiButtonFeedback` on each canvas root |
+| `uiPlay` | Home's Level button when it starts the level (`uiButton` at 0 lives: it opens More Lives) | `HomeScreen` |
+| `rewardJingle` | a booster bought, the lives refilled | `LevelFlow.TryBuyBooster`, `HomeScreen.TryBuyLives` |
+| `coinGain` | a Shop coin bundle taken (with the press's `uiButton`, at once: no store dialog to wait for) **(ours)** | `HomeScreen` |
+| `lifeLost` | Are You Sure confirmed when it spends a life (`uiButton` when it does not: 0 lives, editor test visit) | `LevelFlow.OnExitConfirmed` |
+| `moveInvalid` | "Not enough coins" (Buy), "No tube to shuffle" and a refused pick | `LevelFlow`, `HomeScreen` |
+
+- **Own sound instead of the click:** Home's Level button, Buy, Are You Sure's Confirm (`UiButtonFeedback._ownFeedback`).
+  The other booster refusals (nothing to undo, no room) are toast-only, with the button's click.
+- **Toggles** click after the setting is saved (`SettingToggle.Toggled`), so turning Sound on is heard and turning it off
+  is silent (the mute cuts it) **(ours)**.
+- **Disabled buttons** (Play on without the coins, locked boosters, locked avatar frames) never click, so they are silent.
+- **Purchase feedback:** what the purchase filled punches (`UiPunch`, real time): the booster's count badge, the lives
+  display's heart, the coins pill. Scale 1 → 1 + `_purchasePunchScale` **0.25** → 1, springing (`_purchasePunchVibrato`
+  **6**) over `_purchasePunchDuration` **0.35 s** **(ours: the SFX guide has sounds only)**.
+
+## Haptics (placeholders)
+`HapticsService` on `AppRoot` has one method per kind of SFX guide §2 (`Selection`, `Light`, `Medium`, `Warning`,
+`Success`, `Heavy`, `Win`, plus `Landing`: Medium at most once per `_minLandingInterval` 0.05 s) and is silent while the
+Haptics setting is off. **The calls are in place wherever the guide pairs a haptic with a sound that the game plays;
+only the vibration itself is missing** (`HapticsService.Fire` is the one place for the platform call). `_logInEditor`
+logs each call, to check them.
+
+| Haptic | Where |
+|---|---|
+| Selection | ball lifts |
+| Medium (`Landing`) | each ball lands (not on undo) |
+| Warning | invalid tap or move; a life lost |
+| Success | cork seats; booster bought; lives refilled |
+| Light | every button and toggle press (not popups' ✕ or the name pen); each booster applied |
+
+Haptics for sounds not played yet (reveal, towel, lock box, win, rewards) come with those sounds.

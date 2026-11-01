@@ -1,21 +1,23 @@
 using System.Threading;
+using BallSort.Core.Model;
 using BallSort.Core.Session;
 using BallSort.Game.Audio;
+using BallSort.Game.Services;
 using DG.Tweening;
 using UnityEngine;
 
 namespace BallSort.Game.Views
 {
     /// <summary>
-    /// The plug-in point for gameplay feedback: selection, invalid taps, landings, completed tubes and
-    /// the win celebration. Effects and sounds play here (haptics will too) without touching the input
-    /// or the level flow.
+    /// The plug-in point for gameplay feedback: selection, invalid taps, landings, completed tubes,
+    /// boosters and the win celebration. Effects, sounds and haptics play here without touching the
+    /// input or the level flow.
     /// </summary>
     /// <remarks>
     /// The board view's presentation events are followed here (a ball lifted or dropped back, landed,
     /// a completion started, a cork seated), so the feedback plays when the player sees it, not when the
-    /// model changed (docs/animation-spec.md, Sounds). The
-    /// level flow routes input's invalid taps to <see cref="PlayInvalidMove"/> and awaits
+    /// model changed (docs/animation-spec.md, Sounds). The boosters' sounds follow the session: they
+    /// play when the booster is applied. The level flow routes input's invalid taps to <see cref="PlayInvalidMove"/> and awaits
     /// <see cref="PlayCelebrationAsync"/>.
     /// </remarks>
     public sealed class LevelFeedback : MonoBehaviour
@@ -38,6 +40,7 @@ namespace BallSort.Game.Views
         private LevelSession _session;
         private BoardView _board;
         private AudioService _audio;
+        private HapticsService _haptics;
         private VfxPool _sparklesPool;
         private VfxPool _ringPool;
         private VfxPool _confettiPool;
@@ -48,13 +51,18 @@ namespace BallSort.Game.Views
         /// <param name="session">The session whose restarts and shuffles reset the board's feel.</param>
         /// <param name="board">The board view the feedback plays on.</param>
         /// <param name="audio">Plays the sound effects.</param>
-        public void Initialize(LevelSession session, BoardView board, AudioService audio)
+        /// <param name="haptics">Plays the haptics paired with them.</param>
+        public void Initialize(LevelSession session, BoardView board, AudioService audio, HapticsService haptics)
         {
             Unsubscribe();
             _session = session;
             _board = board;
             _audio = audio;
+            _haptics = haptics;
             _session.Restarted += ResetFeel;
+            _session.MoveUndone += OnUndone;
+            _session.Shuffled += OnShuffled;
+            _session.TubeAdded += OnTubeAdded;
             _board.BallLifted += OnBallLifted;
             _board.BallLowered += OnBallLowered;
             _board.BallLanded += OnBallLanded;
@@ -71,17 +79,19 @@ namespace BallSort.Game.Views
 
         /// <summary>
         /// A tap could not be acted on, including taps on covered and clay tubes: the tube shakes, its
-        /// balls look shocked and the error sound plays (a lifted ball's drop-back plays its own). Step 6: haptic.
+        /// balls look shocked and the error sound plays (a lifted ball's drop-back plays its own).
         /// </summary>
         public void PlayInvalidMove(int tubeIndex)
         {
             _board.ShowInvalid(tubeIndex);
             _audio.Play(Sfx.MoveInvalid);
+            _haptics.Warning();
         }
 
         /// <summary>
         /// A completed tube's last ball has landed: the chime (higher with the chain), sparkles (more with
-        /// the chain), ring and confetti. The cork, glow and dance play on the tube itself. Step 6: haptic.
+        /// the chain), ring and confetti. The cork, glow and dance play on the tube itself; the haptic comes
+        /// with the cork.
         /// </summary>
         public void PlayTubeCompleted(TubeView tube, int colorId, int chain)
         {
@@ -127,7 +137,11 @@ namespace BallSort.Game.Views
             }
         }
 
-        private void OnBallLifted() => _audio.Play(Sfx.BallSelect);
+        private void OnBallLifted()
+        {
+            _audio.Play(Sfx.BallSelect);
+            _haptics.Selection();
+        }
 
         private void OnBallLowered() => _audio.Play(Sfx.BallDeselect);
 
@@ -137,6 +151,7 @@ namespace BallSort.Game.Views
             if (!ball.IsUndoFlight)
             {
                 _audio.Play(Sfx.BallLand, _audio.Config.LandPitch(ball.Slot));
+                _haptics.Landing();
             }
 
             if (_animation.Droplets)
@@ -145,10 +160,11 @@ namespace BallSort.Game.Views
             }
         }
 
-        /// <summary>The cork seats: its sound, and the board freezes for a beat and kicks (hit-stop and punch). Step 6: haptic.</summary>
+        /// <summary>The cork seats: its sound and haptic, and the board freezes for a beat and kicks (hit-stop and punch).</summary>
         private void OnCorkSeated(TubeView tube)
         {
             _audio.Play(Sfx.TubeCork);
+            _haptics.Success();
             _clock.HitStop();
             BoardTweens.KillIfActive(_punch);
             float duration = _animation.PunchDuration;
@@ -160,6 +176,20 @@ namespace BallSort.Game.Views
             _board.Layout.SetPunch(1f + _animation.PunchScale * BoardTweens.HalfSine(t, _animation.PunchDuration));
 
         private void EndPunch() => _board.Layout.SetPunch(1f);
+
+        // The boosters' own sounds, when the booster is applied (SFX guide §5); the button's press plays
+        // its click separately. Only the Undo booster undoes; Play on adds a tube as Add tube does.
+        private void OnUndone(MoveEventArgs _) => PlayBooster(Sfx.BoosterUndo);
+
+        private void OnShuffled(TubeShuffledEventArgs _) => PlayBooster(Sfx.BoosterShuffle);
+
+        private void OnTubeAdded(TubeAddedEventArgs _) => PlayBooster(Sfx.BoosterAddTube);
+
+        private void PlayBooster(Sfx sfx)
+        {
+            _audio.Play(sfx);
+            _haptics.Light();
+        }
 
         // A rebuilt board starts at rest.
         private void ResetFeel()
@@ -174,6 +204,9 @@ namespace BallSort.Game.Views
             if (_session != null)
             {
                 _session.Restarted -= ResetFeel;
+                _session.MoveUndone -= OnUndone;
+                _session.Shuffled -= OnShuffled;
+                _session.TubeAdded -= OnTubeAdded;
                 _session = null;
             }
 

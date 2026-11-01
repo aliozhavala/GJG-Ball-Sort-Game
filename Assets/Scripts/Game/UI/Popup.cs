@@ -20,6 +20,9 @@ namespace BallSort.Game.UI
 
         public bool IsOpen => gameObject.activeSelf;
 
+        /// <summary>The ✕ that closes the popup, or null.</summary>
+        public Button CloseButton => _closeButton;
+
         /// <summary>Raised after the popup opens.</summary>
         public event Action Opened;
 
