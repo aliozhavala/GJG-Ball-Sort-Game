@@ -123,7 +123,9 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
 - Checked after every move, undo, added tube, Play on, shuffle and restart.
 - Stuck = nothing meaningful left to do: no legal move, or only moves that go round in a loop (rule in docs/mechanics.md, Win and stuck).
 - Show **"No more useful moves"** above the board (`StuckPanel._bannerText`, the one place to change it; does not cover or block the tubes).
-- Booster bar hidden (no booster, count, green plus or Buy works while stuck); tubes can still be selected.
+- The boosters lock as soon as the level is stuck (no booster, count, green plus or Buy works while stuck); the stuck bar
+  replaces the booster bar once the last move's balls have settled, fading in with the invalid-move sound
+  (docs/animation-spec.md, 5.1). Tubes can still be selected.
 - Two buttons side by side in the booster bar's place: **Give up** (behind Are You Sure; it costs a life) and **Play on ● 900** (the coin before the price, `StuckPanel._playOnFormat`).
   - Play on: spend 900 coins, add one empty capacity-4 tube, leave the stuck state. It continues the same attempt and costs no life.
   - Play on is disabled (still showing its price) if coins < 900 or every row already has 8 cells. Give up is then the only choice.

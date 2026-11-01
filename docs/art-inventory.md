@@ -412,3 +412,5 @@ Filled in stage by stage; every slot has a placeholder.
 
 **Stage 1 (button, booster and purchase sounds, haptic calls):** no new art. The purchase punch scales the existing
 booster count badges, the lives heart and the coins pill. Haptics need no assets (the vibration is code, not built yet).
+
+**Stage 2 (stuck bar timing):** no new art. The stuck banner's background is still missing (section 4, Level HUD).

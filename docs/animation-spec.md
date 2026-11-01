@@ -103,6 +103,17 @@ Timed so the order reads right; §3 will replace the snaps with animations in th
   same move opened; its door opens right after.
 - Win: the celebration starts once the board has settled.
 
+## 5.1 Stuck
+- The level enters Stuck at once (Core decided it with the move): the boosters lock, so nothing in the bar reacts.
+- The stuck bar replaces the booster bar only once the board has **settled** (no ball flying, no beat waiting: cork,
+  veil, key) and stayed settled for `_stuckDelay` **0.4 s** (÷ `_speed`); a move made meanwhile starts the wait over
+  (`LevelFeedback.WaitForStuckRevealAsync`, awaited by `LevelFlow`). Until then the locked bar stays, dimmed.
+- It fades in over `_stuckFadeDuration` **0.25 s** (real time, `StuckPanel`'s `CanvasGroup`), with `moveInvalid` and a
+  Warning haptic. Leaving Stuck (Play on, restart) hides it at once and cancels a pending reveal.
+- **(ours)** The SFX guide times it from the last landing (0.3 + 0.4 s, 0.9 + 0.4 s after a completion);
+  animations.md §5.1's 0.4 s after the board settles is used instead: settling already includes the cork's beat and
+  the veil and key delays.
+
 ## Sounds (`SfxConfig`, played through `AudioService`)
 | Sound | When | Pitch |
 |---|---|---|
@@ -136,7 +147,7 @@ pitch (`_randomPitchRange` ±3 %) applies to the mp3 clips and `deselect` (SFX g
 | `rewardJingle` | a booster bought, the lives refilled | `LevelFlow.TryBuyBooster`, `HomeScreen.TryBuyLives` |
 | `coinGain` | a Shop coin bundle taken (with the press's `uiButton`, at once: no store dialog to wait for) **(ours)** | `HomeScreen` |
 | `lifeLost` | Are You Sure confirmed when it spends a life (`uiButton` when it does not: 0 lives, editor test visit) | `LevelFlow.OnExitConfirmed` |
-| `moveInvalid` | "Not enough coins" (Buy), "No tube to shuffle" and a refused pick | `LevelFlow`, `HomeScreen` |
+| `moveInvalid` | "Not enough coins" (Buy), "No tube to shuffle" and a refused pick; the stuck bar appearing (5.1) | `LevelFlow`, `HomeScreen`, `LevelFeedback.PlayStuck` |
 
 - **Own sound instead of the click:** Home's Level button, Buy, Are You Sure's Confirm (`UiButtonFeedback._ownFeedback`).
   The other booster refusals (nothing to undo, no room) are toast-only, with the button's click.
@@ -158,7 +169,7 @@ logs each call, to check them.
 |---|---|
 | Selection | ball lifts |
 | Medium (`Landing`) | each ball lands (not on undo) |
-| Warning | invalid tap or move; a life lost |
+| Warning | invalid tap or move; the stuck bar appearing; a life lost |
 | Success | cork seats; booster bought; lives refilled |
 | Light | every button and toggle press (not popups' ✕ or the name pen); each booster applied |
 

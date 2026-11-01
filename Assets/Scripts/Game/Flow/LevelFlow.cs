@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using BallSort.Core.Levels;
 using BallSort.Core.Player;
 using BallSort.Core.Session;
@@ -30,6 +31,10 @@ namespace BallSort.Game.Flow
     /// <para>
     /// Boosters work only while Playing (the bar is hidden while stuck and locked otherwise). A booster
     /// at 0 opens the Buy popup instead of being used (docs/screens.md, Buying).
+    /// </para>
+    /// <para>
+    /// Stuck is entered at once (the boosters lock), but the stuck bar replaces the booster bar only
+    /// once the board has settled, so the last move is seen first (docs/animation-spec.md, 5.1).
     /// </para>
     /// <para>
     /// An editor test visit plays its chosen variant on every attempt and saves nothing: no life, no
@@ -68,6 +73,9 @@ namespace BallSort.Game.Flow
 
         // Set once the player leaves for Home, so a second tap cannot spend a second life.
         private bool _isLeaving;
+
+        // Waits for the board to settle before the stuck bar shows; cancelled when leaving Stuck.
+        private CancellationTokenSource _stuckReveal;
 
         /// <summary>The ways to leave an attempt unwon, each confirmed with Are You Sure first.</summary>
         private enum Exit
@@ -152,6 +160,7 @@ namespace BallSort.Game.Flow
 
         private void Enter(LevelState state)
         {
+            bool wasStuck = State == LevelState.Stuck;
             State = state;
             bool canPlay = state == LevelState.Playing || state == LevelState.Stuck;
             bool picking = state == LevelState.ShufflePicking;
@@ -163,11 +172,52 @@ namespace BallSort.Game.Flow
                 _input.ClearSelection();
             }
 
-            _hud.SetLocked(!canPlay);
+            _hud.SetLocked(settingsLocked: !canPlay, boostersLocked: state != LevelState.Playing);
             _hud.SetTapsPassThrough(picking);
-            _hud.ShowStuck(state == LevelState.Stuck);
+            if (state == LevelState.Stuck)
+            {
+                if (!wasStuck)
+                {
+                    RevealStuckWhenSettled();
+                }
+            }
+            else
+            {
+                CancelStuckReveal();
+                _hud.ShowStuck(false);
+            }
+
             _boardView.ShowShufflePick(picking);
             RefreshHud();
+        }
+
+        // Fire-and-forget; cancelled when the level leaves Stuck or the scene unloads.
+        private async void RevealStuckWhenSettled()
+        {
+            CancelStuckReveal();
+            _stuckReveal = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            CancellationToken token = _stuckReveal.Token;
+            try
+            {
+                await _feedback.WaitForStuckRevealAsync(token);
+                _hud.ShowStuck(true);
+                _feedback.PlayStuck();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        private void CancelStuckReveal()
+        {
+            if (_stuckReveal == null)
+            {
+                return;
+            }
+
+            _stuckReveal.Cancel();
+            _stuckReveal.Dispose();
+            _stuckReveal = null;
         }
 
         private void RefreshHud()
@@ -456,7 +506,7 @@ namespace BallSort.Game.Flow
 
             _isLeaving = true;
             _input.IsAcceptingTaps = false;
-            _hud.SetLocked(true);
+            _hud.SetLocked(settingsLocked: true, boostersLocked: true);
             _sceneLoader.LoadHome(arrival);
         }
 
@@ -498,6 +548,7 @@ namespace BallSort.Game.Flow
 
         private void OnDestroy()
         {
+            CancelStuckReveal();
             if (_session == null)
             {
                 return;

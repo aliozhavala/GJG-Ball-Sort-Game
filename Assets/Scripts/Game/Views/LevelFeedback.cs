@@ -112,6 +112,42 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
+        /// Completes when the stuck bar may appear (docs/animation-spec.md, 5.1): the board has settled
+        /// (no ball flying, no beat waiting) and stayed settled for <see cref="AnimationConfig.StuckDelay"/>,
+        /// so the last move reads before the message. A move made meanwhile restarts the wait.
+        /// </summary>
+        public async Awaitable WaitForStuckRevealAsync(CancellationToken cancellationToken)
+        {
+            float delay = _animation.StuckDelay / _animation.Speed;
+            float settledSince = -1f;
+            while (true)
+            {
+                if (!_board.IsSettled)
+                {
+                    settledSince = -1f;
+                }
+                else if (settledSince < 0f)
+                {
+                    settledSince = Time.time;
+                }
+
+                if (settledSince >= 0f && Time.time - settledSince >= delay)
+                {
+                    return;
+                }
+
+                await Awaitable.NextFrameAsync(cancellationToken);
+            }
+        }
+
+        /// <summary>The stuck bar appears: the "no" sound and its haptic (SFX guide §3.4).</summary>
+        public void PlayStuck()
+        {
+            _audio.Play(Sfx.MoveInvalid);
+            _haptics.Warning();
+        }
+
+        /// <summary>
         /// Plays the win celebration and completes when it is over. Placeholder: once the board has
         /// settled (the last ball landed, the last cork seated), shows a label for
         /// <see cref="AnimationConfig.CelebrationDuration"/> seconds. The win is already saved.

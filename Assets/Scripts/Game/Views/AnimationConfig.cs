@@ -113,6 +113,12 @@ namespace BallSort.Game.Views
         [Tooltip("A found key's mark leaves this long after the last ball lands, when the move also completed a tube.")]
         [SerializeField, Min(0f)] private float _keyWaitAfterComplete = 0.25f;
 
+        [Header("5.1 Stuck")]
+        [Tooltip("The stuck bar appears this long after the board has settled (the last ball landed, the last beat played).")]
+        [SerializeField, Min(0f)] private float _stuckDelay = 0.4f;
+        [Tooltip("The stuck bar's fade-in (real time).")]
+        [SerializeField, Min(0f)] private float _stuckFadeDuration = 0.25f;
+
         [Header("Win (placeholder)")]
         [Tooltip("How long the celebration plays, once the board has settled, before the Win panel opens.")]
         [SerializeField, Min(0f)] private float _celebrationDuration = 1f;
@@ -185,6 +191,8 @@ namespace BallSort.Game.Views
         public bool ChainEscalate => _chainEscalate;
         public float TowelDelay => _towelDelay;
         public float KeyWaitAfterComplete => _keyWaitAfterComplete;
+        public float StuckDelay => _stuckDelay;
+        public float StuckFadeDuration => _stuckFadeDuration;
         public float CelebrationDuration => _celebrationDuration;
         public float PurchasePunchScale => _purchasePunchScale;
         public float PurchasePunchDuration => _purchasePunchDuration;

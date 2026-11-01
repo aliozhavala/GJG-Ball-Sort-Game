@@ -294,9 +294,9 @@ RectTransform:
   - {fileID: 1648198827}
   m_Father: {fileID: 1793032291}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 540, y: -75}
   m_SizeDelta: {x: 170, y: 130}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &242677153
@@ -1625,9 +1625,9 @@ RectTransform:
   - {fileID: 694423473}
   m_Father: {fileID: 1793032291}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 760, y: -75}
   m_SizeDelta: {x: 170, y: 130}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &873583532
@@ -2585,6 +2585,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1051701643}
   - component: {fileID: 1051701642}
+  - component: {fileID: 1051701644}
   m_Layer: 5
   m_Name: StuckPanel
   m_TagString: Untagged
@@ -2604,6 +2605,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f42265e848729384bb8b9f566f355ac4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.UI.StuckPanel
+  _group: {fileID: 1051701644}
+  _animation: {fileID: 11400000, guid: dfc475b18fdfa7847b59bbfce9b8d269, type: 2}
   _bannerLabel: {fileID: 200315403}
   _bannerText: No more useful moves
   _giveUpButton: {fileID: 977156318}
@@ -2631,6 +2634,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!225 &1051701644
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1051701641}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1142962734
 GameObject:
   m_ObjectHideFlags: 0
@@ -2884,9 +2899,9 @@ RectTransform:
   - {fileID: 462772065}
   m_Father: {fileID: 1793032291}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 320, y: -75}
   m_SizeDelta: {x: 170, y: 130}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1165276453

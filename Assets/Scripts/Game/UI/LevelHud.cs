@@ -91,7 +91,10 @@ namespace BallSort.Game.UI
         public void CloseSettings() => _settingsPopup.Popup.Close();
 
 
-        /// <summary>Swaps the booster bar for the stuck panel, or back.</summary>
+        /// <summary>
+        /// Swaps the booster bar for the stuck panel (fading in), or back at once. The level flow shows it
+        /// only once the board has settled; until then the bar stays, locked.
+        /// </summary>
         public void ShowStuck(bool stuck)
         {
             _stuckPanel.SetVisible(stuck);
@@ -99,13 +102,13 @@ namespace BallSort.Game.UI
         }
 
         /// <summary>
-        /// Locks the settings button and the boosters (the win sequence, a shuffle pick). Locked buttons
-        /// still catch taps, so nothing beneath them is touched; they just do nothing.
+        /// Locks the settings button (the win sequence, a shuffle pick) and the boosters (also while
+        /// stuck). Locked buttons still catch taps, so nothing beneath them is touched; they just do nothing.
         /// </summary>
-        public void SetLocked(bool locked)
+        public void SetLocked(bool settingsLocked, bool boostersLocked)
         {
-            _settingsButton.interactable = !locked;
-            _boosterBar.SetInteractable(!locked);
+            _settingsButton.interactable = !settingsLocked;
+            _boosterBar.SetInteractable(!boostersLocked);
         }
 
         /// <summary>

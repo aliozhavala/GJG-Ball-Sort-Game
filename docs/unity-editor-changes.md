@@ -966,3 +966,25 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
   `sfx_ui_button`; Settings and the toggles log a Light haptic (with `_logInEditor` set on the runtime instance only),
   the ✕ none. The level-in-progress mark this run set in the Editor save (level 24) was cleared afterwards.
 - EditMode tests: 1774 passed, 0 failed. Console: no errors or warnings.
+
+## 2026-11-01 — Second animation batch, stage 2: stuck bar timing
+
+### Level.unity
+- `LevelCanvas/SafeArea/StuckPanel`: added a `CanvasGroup` (alpha 1, blocks raycasts: the root has no graphic, so taps
+  between the banner and the buttons still reach the board); `StuckPanel._group` → it, `_animation` →
+  `Data/Config/AnimationConfig`.
+
+### Assets
+- New test level `Assets/Data/TestLevels/stuck_after_move.json` (id 902, the same board in all five variants): not stuck at
+  the start; moving tube 3's top ball onto tube 4 leaves it stuck (found by a search in the Editor and checked with
+  `LevelSession.IsStuck`). Play it with **Ball Sort ▸ Play Level…** to see the stuck bar. Unity created its `.meta`.
+- `Data/Config/AnimationConfig.asset`: new fields keep their code defaults (`_stuckDelay` 0.4, `_stuckFadeDuration`
+  0.25); not edited.
+
+### Verification
+- Play mode (editor test visit to `stuck_after_move`, stepped frame by frame): after the move the state was Stuck at
+  once and the booster bar locked; the board settled at 0.46 s, the stuck bar appeared 0.42 s later (one frame past
+  0.4) and finished fading in 0.26 s after that; `sfx_move_invalid` played with it.
+- EditMode tests: 1774 passed, 0 failed. Console: no errors; one warning from the verification probe itself (reading
+  `AudioSource.time` on an empty source), none from the game. Level.unity's dirty flag after Play held only
+  layout-driven anchors; the scene was reloaded from disk, not saved.

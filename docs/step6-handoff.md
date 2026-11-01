@@ -84,7 +84,7 @@ values, rules and our deviations from product's document are in docs/animation-s
 | Restart | `BoardView.Rebuild` (on `Restarted`) | rebuild |
 | Shuffle (one tube) | `BoardView.OnShuffled` (on `Shuffled`, which carries the tube and its new order) | the tube's balls snap |
 | Shuffle pick | `BoardView.ShowShufflePick` → `TubeView.SetHighlight` (glow on eligible tubes, the rest dimmed) | snap |
-| Stuck bar in / out | `LevelHud.ShowStuck` → `StuckPanel.SetVisible` | snap |
+| Stuck bar in / out | `LevelHud.ShowStuck` → `StuckPanel.SetVisible`, once the board settles (`LevelFeedback.WaitForStuckRevealAsync`) | **fades in** (docs/animation-spec.md 5.1); out: snap |
 | Popups open / close | `Popup.Open` / `Close` (`Opened` / `Closed` events) | `SetActive` |
 | Toast | `Toast.Show` | DOTween fade |
 | Episode Unlocked | `HomeFlow.ShowEpisodeUnlocked`: input blocked → 0.7 s → `BackgroundImage.Show` (new episode) + `EpisodeUnlockedOverlay.Show` | snap after the delay |
