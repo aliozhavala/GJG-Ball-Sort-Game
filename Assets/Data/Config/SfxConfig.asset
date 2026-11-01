@@ -30,108 +30,136 @@ MonoBehaviour:
     _volume: 0.709
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _ballDeselect:
     _clip: {fileID: 8300000, guid: 77cd218407a7aee4fb49975f5080646e, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0
+    _beats: []
   _ballLand:
     _clip: {fileID: 8300000, guid: 61d86327add826b43888f3208aa57ed3, type: 3}
     _volume: 0.709
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _moveInvalid:
     _clip: {fileID: 8300000, guid: 678473840854f3d4f9ff9e1826823376, type: 3}
     _volume: 1
     _randomPitch: 0
     _startOffset: 0
+    _beats: []
   _tubeCompleteChime:
     _clip: {fileID: 8300000, guid: 3c50bca84e1f1f646a3934982a1a82fd, type: 3}
     _volume: 0.503
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _tubeCork:
     _clip: {fileID: 8300000, guid: c910206f56432aa4381a44c038347252, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _hiddenReveal:
     _clip: {fileID: 8300000, guid: f4a5a31ee66cdfd4fac0ef7b2f91c24a, type: 3}
     _volume: 0.101
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _towelPull:
     _clip: {fileID: 8300000, guid: 7f8670ee8eea0ef4a85e317126811f6d, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _lockboxKeyFly:
     _clip: {fileID: 8300000, guid: 4dc8d02915c55494a9f2ceb2111aa227, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _lockboxKeyIn:
     _clip: {fileID: 8300000, guid: 17dde7c4a555bba44807434c428d71ee, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _lockboxBreak:
     _clip: {fileID: 8300000, guid: 20cb9352bcd274a4e85d624b2574d1e4, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _iceBreak:
     _clip: {fileID: 8300000, guid: cbab504acee0b024ab360f1c78c3217e, type: 3}
     _volume: 1
     _randomPitch: 0
     _startOffset: 0
+    _beats: []
   _boosterUndo:
     _clip: {fileID: 8300000, guid: a4eb435a378b1f645a724e95a81f086a, type: 3}
     _volume: 1
     _randomPitch: 0
     _startOffset: 0
+    _beats: []
   _boosterShuffle:
     _clip: {fileID: 8300000, guid: b418f7e3e2a5fb641be98696bcf8fce7, type: 3}
     _volume: 1
     _randomPitch: 0
     _startOffset: 0
+    _beats: []
   _boosterAddTube:
     _clip: {fileID: 8300000, guid: 29b79ac7dec43364ebfce9cb0657f7bb, type: 3}
     _volume: 1
     _randomPitch: 0
     _startOffset: 0
+    _beats: []
   _winFanfare:
     _clip: {fileID: 8300000, guid: 04af5425aabf5c545948ff6ea592523b, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats:
+    - 1.75
+    - 1.95
+    - 2.09
+    - 2.61
+    - 2.75
+    - 2.89
   _rewardJingle:
     _clip: {fileID: 8300000, guid: b9663126d31c58147a5ca57f4fc60fbb, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _winTitleStamp:
     _clip: {fileID: 8300000, guid: 88f8036622464aa4dbd8240bf41285b0, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _coinGain:
     _clip: {fileID: 8300000, guid: b93c6d7446cebef42818ec3e21c0ea47, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _uiButton:
     _clip: {fileID: 8300000, guid: 336a012da39bcb0499c1211196c7e080, type: 3}
     _volume: 1
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _uiPlay:
     _clip: {fileID: 8300000, guid: 5af7a3685745819439da6d962b46d659, type: 3}
     _volume: 0.709
     _randomPitch: 1
     _startOffset: 0.05
+    _beats: []
   _lifeLost:
     _clip: {fileID: 8300000, guid: 13b2316b1fdbcbd49a5a318d9ec5f439, type: 3}
     _volume: 1
     _randomPitch: 0
     _startOffset: 0
+    _beats: []

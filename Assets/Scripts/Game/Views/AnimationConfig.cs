@@ -215,8 +215,10 @@ namespace BallSort.Game.Views
         [SerializeField, Min(0.01f)] private float _winDimDuration = 0.35f;
         [Tooltip("The win picture pops in: scale 0.1 → 1.15 → 1, rotation −10° → 3° → 0°.")]
         [SerializeField, Min(0.01f)] private float _winPicturePopDuration = 0.7f;
-        [Tooltip("The title, reward and Continue come this long after the panel opens (the SFX guide's 3.34 s waits " +
-            "for fireworks we do not have).")]
+        [Tooltip("Fireworks behind the panel, their big bursts on the fanfare's beats (the Win Fanfare slot's Beats).")]
+        [SerializeField] private bool _fireworks = true;
+        [Tooltip("The title, reward and Continue come this long after the panel opens (the SFX guide's 3.34 s holds " +
+            "the logo alone through the fireworks; ours lets them play on under the card).")]
         [SerializeField, Min(0f)] private float _winCardDelay = 1f;
         [Tooltip("The title's first letter pops this long after the card starts.")]
         [SerializeField, Min(0f)] private float _winTitleStart = 0.2f;
@@ -298,6 +300,7 @@ namespace BallSort.Game.Views
         public float DanceStagger => _danceStagger;
         public bool Sparkles => _sparkles;
         public bool Confetti => _confetti;
+        public bool Fireworks => _fireworks;
         public bool ChainEscalate => _chainEscalate;
         public float IceCrackTime => _iceCrackTime;
         public float IceShiverAmount => _iceShiverAmount;

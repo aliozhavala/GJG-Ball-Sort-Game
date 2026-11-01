@@ -286,7 +286,7 @@ The slots, grouped as in the Inspector:
 - **Gameplay**: Ball Select, Ball Deselect, Ball Land, Move Invalid, Tube Complete Chime, Tube Cork.
 - **Mechanics**: Hidden Reveal, Towel Pull, Lockbox Key Fly, Lockbox Key In, Lockbox Break, Ice Break.
 - **Boosters**: Booster Undo, Booster Shuffle, Booster Add Tube.
-- **Win and rewards**: Win Fanfare, Reward Jingle, Win Title Stamp, Coin Gain.
+- **Win and rewards**: Win Fanfare, Reward Jingle, Win Title Stamp, Coin Gain. Win Fanfare's **Beats** are the seconds into the clip where it bangs; the win fireworks' big bursts land on them, so replace them with the clip.
 - **UI**: Ui Button, Ui Play, Life Lost.
 
 The .mp3 slots use Random Pitch on and Start Offset 0.05 s, which skips the encoder's silence. The .wav slots use 0, except Ball Deselect, which also has Random Pitch on. Clips are in `Assets/Audio/SFX/`.

@@ -51,6 +51,8 @@ namespace BallSort.Game.Views
         [SerializeField] private Vector2 _winConfettiInset = new Vector2(0.04f, 0.04f);
         [Tooltip("How far the win confetti leans inwards from straight up, in degrees.")]
         [SerializeField, Range(0f, 80f)] private float _winConfettiAngle = 30f;
+        [Tooltip("Fireworks behind the Win panel; their big bursts land on the Win Fanfare slot's beats.")]
+        [SerializeField] private FireworksView _fireworks;
 
         private LevelSession _session;
         private BoardView _board;
@@ -204,9 +206,9 @@ namespace BallSort.Game.Views
         }
 
         /// <summary>
-        /// The Win panel reached a step (SFX guide 6.1): the fanfare as it opens, the jingle with the
-        /// title, the stamp when the title has landed, the coins with the reward. A step a tap skipped
-        /// past is never heard.
+        /// The Win panel reached a step (SFX guide 6.1): the fanfare and its fireworks as it opens, the
+        /// jingle with the title, the stamp when the title has landed, the coins with the reward. A step a
+        /// tap skipped past is never heard.
         /// </summary>
         public void PlayWinStep(WinStep step)
         {
@@ -215,6 +217,7 @@ namespace BallSort.Game.Views
                 case WinStep.Overlay:
                     _audio.Play(Sfx.WinFanfare);
                     _haptics.Win();
+                    PlayFireworks();
                     break;
                 case WinStep.Card:
                     _audio.Play(Sfx.RewardJingle);
@@ -227,6 +230,15 @@ namespace BallSort.Game.Views
                     _audio.Play(Sfx.CoinGain);
                     _haptics.Light();
                     break;
+            }
+        }
+
+        // The fireworks play on beat even with Sound off.
+        private void PlayFireworks()
+        {
+            if (_animation.Fireworks && _fireworks != null)
+            {
+                _fireworks.Play(_audio.Config.Get(Sfx.WinFanfare).HeardBeats());
             }
         }
 
@@ -388,9 +400,9 @@ namespace BallSort.Game.Views
         {
             if (_animation == null || _clock == null ||
                 _sparkles == null || _ring == null || _confetti == null || _droplets == null || _iceBreak == null ||
-                _revealPuff == null || _towelPuff == null || _towelSparks == null || _winConfetti == null)
+                _revealPuff == null || _towelPuff == null || _towelSparks == null || _winConfetti == null || _fireworks == null)
             {
-                Debug.LogError($"{name}: animation config, board clock and the nine effects must be assigned.", this);
+                Debug.LogError($"{name}: animation config, board clock, the nine effects and the fireworks must be assigned.", this);
             }
 
             _punchStep = PunchStep;

@@ -17,7 +17,9 @@ namespace BallSort.Game.Flow
     /// <remarks>
     /// Episode Unlocked (docs/screens.md, Episodes): Home opens on the previous episode's background with
     /// input blocked; after <see cref="_episodeUnlockedDelay"/> the overlay appears and the background
-    /// switches to the new episode behind it. The overlay then blocks input until tapped.
+    /// switches to the new episode behind it, with the win fanfare, a Win haptic and fireworks on the
+    /// fanfare's beats, and the reward jingle <see cref="_episodeJingleDelay"/> later (SFX guide 6.2). The
+    /// overlay then blocks input until tapped.
     /// </remarks>
     public sealed class HomeFlow : MonoBehaviour
     {
@@ -26,6 +28,8 @@ namespace BallSort.Game.Flow
 
         [Tooltip("Seconds after arriving on Home before the Episode Unlocked overlay appears.")]
         [SerializeField, Min(0f)] private float _episodeUnlockedDelay = 0.7f;
+        [Tooltip("Seconds after the Episode Unlocked overlay appears before the reward jingle (not if it was closed by then).")]
+        [SerializeField, Min(0f)] private float _episodeJingleDelay = 0.6f;
 
         private bool _begun;
 
@@ -59,7 +63,7 @@ namespace BallSort.Game.Flow
             if (arrival.HasUnlockedEpisode && unlocked > 0 && unlocked < episodes.Count)
             {
                 _background.Show(episodes.GetEpisode(unlocked - 1).HomeBackground);
-                StartCoroutine(ShowEpisodeUnlocked(unlocked, episodes.GetEpisode(unlocked)));
+                StartCoroutine(ShowEpisodeUnlocked(unlocked, episodes.GetEpisode(unlocked), audio, haptics));
             }
             else
             {
@@ -72,13 +76,22 @@ namespace BallSort.Game.Flow
             }
         }
 
-        private IEnumerator ShowEpisodeUnlocked(int episodeIndex, Episode episode)
+        private IEnumerator ShowEpisodeUnlocked(int episodeIndex, Episode episode, AudioService audio, HapticsService haptics)
         {
             _homeScreen.SetInputBlocked(true);
             yield return new WaitForSeconds(_episodeUnlockedDelay);
             _background.Show(episode.HomeBackground);
-            _homeScreen.EpisodeUnlocked.Show(episodeIndex + 1, episode.MascotFrame);
+            EpisodeUnlockedOverlay overlay = _homeScreen.EpisodeUnlocked;
+            overlay.Show(episodeIndex + 1, episode.MascotFrame, audio.Config.Get(Sfx.WinFanfare).HeardBeats());
+            audio.Play(Sfx.WinFanfare);
+            haptics.Win();
             _homeScreen.SetInputBlocked(false);
+            yield return new WaitForSeconds(_episodeJingleDelay);
+            if (overlay.Popup.IsOpen)
+            {
+                audio.Play(Sfx.RewardJingle);
+                haptics.Success();
+            }
         }
 
         private void Awake()

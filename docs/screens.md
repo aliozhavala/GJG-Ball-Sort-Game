@@ -197,7 +197,10 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
 - **Episode Unlocked:** Continue on the Win panel of a win that moved `CurrentLevel` into a new episode (winning level
   19, 39, 59 or 79; `EpisodeMap.FindUnlocked`) brings up Home on the previous episode's background. About 0.7 s later (`HomeFlow._episodeUnlockedDelay`) the
   Episode Unlocked overlay appears ("Episode N unlocked" and the new episode's mascot frame) and the Home background
-  switches to the new episode behind it. A tap anywhere closes the overlay; Home input is blocked from arriving until
+  switches to the new episode behind it, with `sfx_win_fanfare`, a Win haptic and the win's fireworks over the card
+  (`FireworksView`, big bursts on the fanfare's beats, as on the Win panel); `sfx_reward_jingle` and a Success haptic
+  follow 0.6 s later (`HomeFlow._episodeJingleDelay`) unless the overlay was closed by then (SFX guide 6.2). A tap
+  anywhere closes the overlay and clears the fireworks; Home input is blocked from arriving until
   then. The Level scene shows the new episode from then on, as it always shows the played level's episode. The
   hand-off from the Win panel to Home is kept in memory (`AppRoot`), not saved: if the app closes in between, Home
   simply opens on the new episode. Replays and editor test visits never move progress, so they never show it.

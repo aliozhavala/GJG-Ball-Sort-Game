@@ -226,19 +226,22 @@ last ball landed, the last cork seated), like the stuck bar, rather than product
 |---|---|---|---|
 | S + `_winCelebrationDelay` **0.3** | Board celebration (`BoardView.PlayWinCelebration`, board clock) | every tube bumps (2.4), left to right by screen position, `_winTubeStagger` **0.06 s** apart; every ball hops (2.4), `_winHopSpread` **0.4 s** later at the right edge than the left; pooled `Vfx_WinConfetti` (40 pieces, the tube confetti faster) from both bottom corners, leaning `LevelFeedback._winConfettiAngle` **30°** inwards, `_winConfettiInset` **0.04** of the screen in. The balls already laugh (every tube is completed or empty) | none (SFX guide 8) |
 | O = + `_winOverlayDelay` **0.7** | Panel opens (`WinPanelAnimation`, real time at `_speed`) | the dim fades 0 → its alpha (60 %) over `_winDimDuration` **0.35 s** (OutQuad); the picture pops over `_winPicturePopDuration` **0.7 s**: scale 0.1 → 1.15 and rotation −10° → 3° in the first 60 % (OutQuad), then → 1 and 0° (InOutSine) | `winFanfare`, Win |
+| O + beats | Fireworks (`FireworksView`, a uGUI mesh on the panel between the dim and the picture, real time, not `_speed`: the beats belong to the sound; off with `AnimationConfig._fireworks`) | the prototype's fireworks: a big burst (70 sparks) on each of the Win Fanfare slot's `_beats` (1.75, 1.95, 2.09, 2.61, 2.75, 2.89 s into the clip, minus its `_startOffset` 0.05), a small one (38 sparks) 0.04 s after every other beat, small ones every 0.16–0.3 s from 0.55 s to the show's end (last beat + 0.45 s, kept within 2.6–3.6 s) away from the beats; each rocket climbs up to 0.45 s from below the screen (OutQuad), the sparks slow (drag 1.6/s) and fall (150 px/s²) over 0.9–1.8 s with a flash; sizes in prototype pixels (390 wide) scaled to the panel. Plays on under the title and reward; closing the panel clears it | none of their own: the fanfare carries the bangs |
 | C = O + `_winCardDelay` **1.0** | Title | each visible letter grows from nothing about its centre (OutBack) over `_winLetterDuration` **0.3 s**, the first `_winTitleStart` **0.2 s** after C, then `_winLetterStagger` **0.065 s** apart (TMP vertices) | `rewardJingle`, Success |
 | C + `_winStampBase` **0.18** + 0.065 × letters | Title stamp | (SFX guide's formula) | `winTitleStamp` |
 | C + `_winRewardDelay` **0.95** | Reward | scale 0.35 → 1 over `_winPopDuration` **0.45 s**, OutBack (hidden and silent when the win pays nothing: editor test visits) | `coinGain`, Light |
 | C + `_winContinueDelay` **1.3** | Continue | the same pop; takes taps once it ends (its graphics are no raycast targets before) | `uiButton` when pressed |
 
-- **Card delay (ours, agreed):** the SFX guide waits 3.34 s, timed to the fireworks' beats; with no fireworks the
-  picture would sit alone too long. The fanfare (3.7 s) plays on under the title and reward.
+- **Card delay (ours, agreed):** the SFX guide holds the logo alone for 3.34 s, through the fireworks' beats; ours
+  brings the card in after 1 s and lets the fanfare (3.7 s) and the fireworks play on under the title and reward.
+- **Fireworks after a hitch:** a rocket whose burst time is already past (the app resumed) is dropped rather than
+  fired with the others, and motion steps at most 0.1 s; streaks are three 60 fps frames long at any frame rate.
 - **Tap to skip:** a tap anywhere on the panel jumps to the next step (title, reward, then the end), plays that step's
   sound and haptic at once and never the ones it passed over (`WinPopup.OnPointerClick` → `WinPanelAnimation.Skip`;
   no button, so no click). The board celebration (before the panel) is not skippable: there is nothing to tap yet.
 - With a long title the stamp follows the formula and can come after the coins ("Level 12 complete", 15 letters:
   C + 1.16 s).
-- **Not built:** fireworks (no VFX; particles do not draw on the Overlay canvas), light rays, glow and sparkle loops,
+- **Not built:** light rays, glow and sparkle loops,
   the coin pile (no art), pre-loading Home. Feedback: `LevelFeedback.PlayWinStep` on `WinPopup.StepStarted`.
 
 ## Sounds (`SfxConfig`, played through `AudioService`)
