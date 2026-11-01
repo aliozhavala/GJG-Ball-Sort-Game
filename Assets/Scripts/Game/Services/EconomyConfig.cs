@@ -64,6 +64,15 @@ namespace BallSort.Game.Services
             new CoinBundle(100000, "4999,99 TL"),
         };
 
+        [Tooltip("The Shop's packs: the wide cards below the panel (Monster, Mega, Super Pack), top to bottom. Prices " +
+            "are display text only; a tap grants the coins like a bundle.")]
+        [SerializeField] private CoinBundle[] _coinPacks =
+        {
+            new CoinBundle(1000, "259,99 TL"),
+            new CoinBundle(10000, "899,99 TL"),
+            new CoinBundle(50000, "3099,99 TL"),
+        };
+
         public int StartCoins => _startCoins;
         public int MaxLives => _maxLives;
         public TimeSpan LifeRefillInterval => TimeSpan.FromMinutes(_lifeRefillMinutes);
@@ -75,6 +84,7 @@ namespace BallSort.Game.Services
         public int BoostersPerPurchase => _boostersPerPurchase;
         public int LivesRefillPrice => _livesRefillPrice;
         public IReadOnlyList<CoinBundle> CoinBundles => _coinBundles;
+        public IReadOnlyList<CoinBundle> CoinPacks => _coinPacks;
 
         /// <summary>The win reward of each tier.</summary>
         public TierRewards WinRewards => new TierRewards(_regularReward, _hardReward, _superHardReward);
@@ -98,11 +108,17 @@ namespace BallSort.Game.Services
 
         private void OnValidate()
         {
-            for (int i = 0; i < _coinBundles.Length; i++)
+            WarnIfUnlabelled(_coinBundles, "coin bundle");
+            WarnIfUnlabelled(_coinPacks, "coin pack");
+        }
+
+        private void WarnIfUnlabelled(CoinBundle[] bundles, string kind)
+        {
+            for (int i = 0; i < bundles.Length; i++)
             {
-                if (_coinBundles[i] == null || string.IsNullOrWhiteSpace(_coinBundles[i].PriceLabel))
+                if (bundles[i] == null || string.IsNullOrWhiteSpace(bundles[i].PriceLabel))
                 {
-                    Debug.LogWarning($"{name}: coin bundle {i + 1} has no price label.", this);
+                    Debug.LogWarning($"{name}: {kind} {i + 1} has no price label.", this);
                 }
             }
         }

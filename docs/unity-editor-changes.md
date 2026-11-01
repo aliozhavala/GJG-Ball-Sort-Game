@@ -1150,3 +1150,18 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
   the board celebration and corner confetti, the dim and picture pop, the title's letters, the panel at rest with
   Continue. Skip checked by calling `WinPanelAnimation.Skip` three times: Card, then Reward raised once each at the
   skip, the stamp dropped, Continue live at the end.
+
+## 2026-11-01 — Shop: coin packs in TL and clickable
+
+- `Scenes/Home.unity`, `ShopPage/Scroll/Viewport/Content/Bundle1–3` (the pack cards): Image raycast target on; new
+  `Button` (Color Tint on the card's Image, the panel bundles' colours, navigation None) and `ShopItem` (`_button`,
+  `_priceLabel` → `Price`, no coins label); `Price` text 259,99 TL / 899,99 TL / 3099,99 TL (was $4.99 / $9.99 /
+  $19.99; the text comes from `EconomyConfig` at runtime), anchors (0.63, 0.227)–(0.947, 0.52) = the yellow button's
+  fill, margins 18/2/18/2, auto-size 20–56 unchanged. `ShopPage._packs` → the three cards.
+- `ShopPage/.../Panel/Bundle1–6/PriceTag/Price`: margins 14/4/14/6 → 26/6/26/8, so "4999,99 TL" stays inside the tag's
+  yellow.
+- `EconomyConfig.asset`: new `_coinPacks` (code defaults: 1,000 / 10,000 / 50,000 coins).
+
+### Verification
+- Console clean. Play mode on Home: Shop tab screenshots (panel and packs); real taps on the three cards granted
+  1,000, 10,000 and 50,000 coins (the 61,000 taken back from the Editor save afterwards).

@@ -49,7 +49,7 @@ Colour ids (the placeholder tints decide the match; id 8 was lime, the closest d
 | `menus/downmenu_leader_wbuttons.png` | `UI/Home/BottomBar_Leaderboard.png` | Bottom bar, Leaderboard selected |
 | `shop/shop_title.png` | `UI/Shop/Shop_Header.png` | Shop page header ("Shop" text on top) |
 | `shop/shop_menu.png` | `UI/Shop/Shop_Panel.png` | Shop page panel (6 empty item frames) |
-| `shop/shop_bundle.png` | `UI/Shop/Shop_Bundle.png` | Shop bundle card (static, price text on its yellow button) |
+| `shop/shop_bundle.png` | `UI/Shop/Shop_Bundle.png` | Shop pack card (a button; price text fitted to its yellow button's fill: x 0.630–0.947, y 0.227–0.500 of the art) |
 
 ### Episodes
 | Incoming | New path | Slot |

@@ -124,7 +124,7 @@ namespace BallSort.Game.UI
             _avatarButton.onClick.AddListener(_avatarMenu.Open);
             _coinsBuyButton.onClick.AddListener(OnCoinsBuyClicked);
             _lives.BuyClicked += OnBuyLivesClicked;
-            _shopPage.Initialize(_economy.CoinBundles);
+            _shopPage.Initialize(_economy.CoinBundles, _economy.CoinPacks);
             _shopPage.BundleClicked += OnBundleClicked;
 
             // Last: the pages above are built by now.

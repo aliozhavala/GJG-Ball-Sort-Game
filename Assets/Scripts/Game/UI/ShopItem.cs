@@ -7,12 +7,14 @@ using UnityEngine.UI;
 namespace BallSort.Game.UI
 {
     /// <summary>
-    /// One coin bundle in a frame of the Shop panel: its picture (an art slot), the coins and the price
-    /// label. A tap anywhere on it raises <see cref="Clicked"/>.
+    /// One coin bundle in the Shop: a frame of the panel (its picture, the coins and the price) or a pack
+    /// card below it (its art carries the name; only the price is written). A tap anywhere on it raises
+    /// <see cref="Clicked"/>.
     /// </summary>
     public sealed class ShopItem : MonoBehaviour
     {
         [SerializeField] private Button _button;
+        [Tooltip("Optional: the pack cards do not write their coins.")]
         [SerializeField] private TMP_Text _coinsLabel;
         [SerializeField] private TMP_Text _priceLabel;
 
@@ -22,7 +24,11 @@ namespace BallSort.Game.UI
         /// <param name="priceLabel">Shown as written.</param>
         public void Show(int coins, string priceLabel)
         {
-            _coinsLabel.text = coins.ToString("N0", CultureInfo.InvariantCulture);
+            if (_coinsLabel != null)
+            {
+                _coinsLabel.text = coins.ToString("N0", CultureInfo.InvariantCulture);
+            }
+
             _priceLabel.text = priceLabel;
         }
 
@@ -30,9 +36,9 @@ namespace BallSort.Game.UI
 
         private void Awake()
         {
-            if (_button == null || _coinsLabel == null || _priceLabel == null)
+            if (_button == null || _priceLabel == null)
             {
-                Debug.LogError($"{name}: button, coins label and price label must be assigned.", this);
+                Debug.LogError($"{name}: button and price label must be assigned.", this);
                 return;
             }
 

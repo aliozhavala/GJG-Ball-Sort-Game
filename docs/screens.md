@@ -57,12 +57,14 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   - **Shop page:** a vertical scroll view that runs down behind the bar to the screen's bottom edge, so items
     scroll out from behind it (hold and swipe); its content's bottom padding is the bar's height plus 40, so the last
     item scrolls fully into view (`ScrollBehindBar`; the Leaderboard page can use the same structure): the shop header
-    ("Shop"), the shop panel with the six **coin bundles** in its frames (`ShopPage`, `ShopItem`), and below it three
-    copies of the bundle card with a name and a price (static: they do nothing). Bundles, top left to bottom right:
+    ("Shop"), the shop panel with the six **coin bundles** in its frames (`ShopPage`, `ShopItem`), and below it the three
+    **coin packs**, bundle cards with a name and a price: Monster Pack 1,000 coins for 259,99 TL, Mega Pack 10,000 for
+    899,99 TL, Super Pack 50,000 for 3099,99 TL (`EconomyConfig._coinPacks`); a tap works like a bundle's (the card
+    does not write its coins; the toast does). Bundles, top left to bottom right:
     1,000 / 5,000 / 10,000 / 25,000 / 50,000 / 100,000 coins, labelled 99,99 TL / 399,99 TL / 799,99 TL / 1499,99 TL /
     2999,99 TL / 4999,99 TL (display only, `EconomyConfig`). Each shows its picture (`Icon_Coin`, `Icon_CoinPouch`,
     `Icon_CoinChest`, `Icon_CoinChestFull`, `Icon_CoinTank`, `Icon_CoinTankFull`, in that order), its coins and its
-    price in black on a yellow tag (shrinks to fit inside the tag); a tap adds the coins at once (no real payment) and
+    price in black on a yellow tag (shrinks to fit inside the tag's yellow, the packs' too); a tap adds the coins at once (no real payment) and
     toasts "+10,000 coins". Each card shows, left to right above its price, a coin icon (`Icon_Coin`, `Icon_CoinChest`,
     `Icon_CoinTank` for cards 1–3), the no-ads icon and its name; its price is black too.
   - **Leaderboard page** (`LeaderboardPage`): the Shop's structure, a scroll view running behind the bar
