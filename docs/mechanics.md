@@ -89,4 +89,4 @@ The Shuffle booster rearranges **one tube the player picks** (the pick itself: d
 - **Events:** `Shuffled` (the tube and its new order, bottom → top, the top revealed and keys where they landed), then
   as after a move `BallRevealed` (the new top, if it was hidden), `TubeCompleted`, each `TubeUnveiled`, each `KeyFound`
   and its `LockOpened`, `LevelCompleted`; then `StuckChanged` (if it changed) and `Changed`.
-- The view snaps the tube's balls into the new order (`BoardView`); its animation is not made yet.
+- The view moves the tube's balls into the new order (`BoardView`, docs/animation-spec.md 4).

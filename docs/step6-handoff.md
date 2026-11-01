@@ -67,7 +67,7 @@ Prefab sprite renderers (`Ball`, `Tube`, `Cover`) are filled from the configs at
 
 ## 2. Animation hooks
 Rule: game logic never waits on animation. The model applies a move at once and raises events; views animate and must
-accept being interrupted (complete or kill a ball's tween before moving it again). Board moves 2.2–2.6, the ice break, the shuffle, the stuck timing and blinking are built:
+accept being interrupted (complete or kill a ball's tween before moving it again). Board moves 2.2–2.6, the reveal flip, the veil lift, the lock box opening, the ice break, the shuffle, the stuck timing, blinking and the level win are built:
 values, rules and our deviations from product's document are in docs/animation-spec.md, every number in `AnimationConfig`.
 
 | Animation | Hook (one place each) | Today |
