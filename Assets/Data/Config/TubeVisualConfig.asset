@@ -23,7 +23,8 @@ MonoBehaviour:
   _frontTint: {r: 1, g: 1, b: 1, a: 0.12}
   _capSprite: {fileID: 21300000, guid: c46762f5b13abe14688358aeb2a923de, type: 3}
   _capTint: {r: 1, g: 1, b: 1, a: 1}
-  _capRaise: 25
+  _capRaise: 18
+  _standDrop: 24
   _glowSprite: {fileID: 21300000, guid: a574a4ebfb6c7584ead8af867ff46fed, type: 3}
   _glowTint: {r: 1, g: 1, b: 1, a: 1}
   _glowPadding: 0.12

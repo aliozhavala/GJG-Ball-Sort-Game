@@ -41,7 +41,7 @@ A **covered** tube is neither a move source nor a target, and its contents are d
 ## Large tubes
 - Normal tubes have capacity 4. Large tubes span grid rows: capacity **5–10 spans 2 rows**, **11–16 spans 3 rows**.
 - A large tube is **bottom-aligned** with the bottom row of its span; capacity 10 (2 rows) and 16 (3 rows) also align with the top row exactly.
-- Drawn standing on an elliptic **stand** in the colour of the ball it starts with (`ColorPalette` entry `_stand`, `Tubes/Stands/Stand_<Colour>`, `TubeView.SetStand`), behind the tube and pivoted on its base. Its bottom ball is that colour for good (a clay tube is never a source); a large tube starting empty or with a hidden bottom ball (none in levels 1–100) gets no stand.
+- Drawn standing on an elliptic **stand** in the colour of the ball it starts with (`ColorPalette` entry `_stand`, `Tubes/Stands/Stand_<Colour>`, `TubeView.SetStand`), behind the tube and pivoted on its base, `TubeVisualConfig._standDrop` art pixels lower (24). Its bottom ball is that colour for good (a clay tube is never a source); a large tube starting empty or with a hidden bottom ball (none in levels 1–100) gets no stand.
 - Apart from capacity and layout, a large tube is an ordinary tube: it **need not be clay** and may hold hidden balls, keys or a veil like any other. It cannot be locked (Lock and key).
 
 ## Board layout (grid)

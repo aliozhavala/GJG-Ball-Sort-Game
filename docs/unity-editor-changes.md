@@ -1295,3 +1295,11 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 - `EpisodeConfig.asset`: `_name` = Classic Lab, Beach Lab, Arctic Lab, Lava Lab, Space Lab (the prototype's names on
   our themes; docs/design/TEXT_CHANGES.md 4.6 said no names, product asked for them on 2026-11-02).
 - Verified: screenshots `episode_unlocked_named.png`, `win_title.png`; no scene overrides of either format.
+
+## 2026-11-02 — Large tubes' stand a little lower
+
+- Code: `TubeVisualConfig._standDrop` (art pixels; `StandDrop` in world units) and `TubeView.Setup` places the stand
+  that far below the base.
+- `TubeVisualConfig.asset`: `_standDrop` 24 (8 first; too little to see).
+- Verified: level 20 screenshot `Screenshots/stage2/stand_drop_L20.png` (only the stand moves; the tube's round bottom now sits on the
+  stand's top face); console clean.

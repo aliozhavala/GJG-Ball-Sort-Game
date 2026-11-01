@@ -170,7 +170,7 @@ namespace BallSort.Game.Views
             SetClayShown(true);
 
             // Like the bottom part, the stand is drawn at the art's size and pivots on the base.
-            _stand.transform.localPosition = Vector3.zero;
+            _stand.transform.localPosition = new Vector3(0f, -config.StandDrop, 0f);
             _stand.transform.localScale = new Vector3(scale, scale, 1f);
             SetStand(null);
 

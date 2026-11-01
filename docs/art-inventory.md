@@ -580,7 +580,7 @@ summer frame reaches 6 px higher).
   call after trying it over the eye's top right at 0.38 and (0.33, 0.30). The unlock flight starts from the key as drawn (`BallView.TryTakeKey` reads its bounds), so it
   follows the new place by itself.
 - **Large tubes:** no ice (still clay by the rules); a stand in the colour of the starting ball, at the art's scale,
-  behind the tube (TubeBack −2).
+  behind the tube (TubeBack −2), 24 px of art below where it was drawn (`TubeVisualConfig._standDrop`).
 
 **Problems found**
 1. **Keys in 6 colours, not 10**: enough for every lock in levels 1–100 (5 lock colours), but a new lock colour needs
