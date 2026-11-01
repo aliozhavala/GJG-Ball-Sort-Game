@@ -46,6 +46,11 @@ namespace BallSort.Editor.Art
                 SpriteTrim.TrimSharedRows(folder, report);
             }
 
+            foreach (CanvasAnchor rule in SpriteRules.CanvasAnchored)
+            {
+                SpriteTrim.TrimAnchored(rule, pivots, report);
+            }
+
             TubeArtTrim.Trim(pivots, borders, report);
             int count = ApplyImportSettings(pivots, borders);
             report.AppendLine($"Import settings applied to {count} sprites.");

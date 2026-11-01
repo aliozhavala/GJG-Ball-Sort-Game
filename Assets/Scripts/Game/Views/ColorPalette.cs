@@ -38,9 +38,13 @@ namespace BallSort.Game.Views
             [Tooltip("Cork of a tube completed in this colour, cut on the tube art's canvas (pivot at the rim's top). " +
                 "Empty = TubeVisualConfig's plain cork, tinted.")]
             [SerializeField] private Sprite _cork;
+            [Tooltip("Stand drawn under a large tube that starts with this colour, cut on the tube art's canvas " +
+                "(pivot at the tube's base). Empty = no stand.")]
+            [SerializeField] private Sprite _stand;
 
             public Color SpriteTint => _spriteTint;
             public Sprite Cork => _cork;
+            public Sprite Stand => _stand;
             public Color Color => _color;
 
             public Sprite GetSprite(BallExpression expression)
@@ -113,6 +117,9 @@ namespace BallSort.Game.Views
 
         /// <summary>The cork drawn on a tube completed in <paramref name="colorId"/>; null when the colour has none.</summary>
         public Sprite GetCork(int colorId) => IsInRange(colorId) ? _entries[colorId].Cork : null;
+
+        /// <summary>The stand under a large tube that starts with <paramref name="colorId"/>; null for none.</summary>
+        public Sprite GetStand(int colorId) => IsInRange(colorId) ? _entries[colorId].Stand : null;
 
         /// <summary>Width of <paramref name="colorId"/>'s sprite in ball diameters: the art's, or 1 for the default sprite.</summary>
         public float GetSpriteSize(int colorId)

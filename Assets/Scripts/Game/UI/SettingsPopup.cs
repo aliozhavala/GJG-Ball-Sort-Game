@@ -16,6 +16,9 @@ namespace BallSort.Game.UI
         [SerializeField] private SettingToggle[] _toggles = new SettingToggle[0];
         [SerializeField] private Button _restartButton;
         [SerializeField] private Button _homeButton;
+        [Tooltip("\"Terms and Privacy\" on Home, where the Level scene has Restart and Home: a button (it plays the " +
+            "button sound) that opens nothing yet.")]
+        [SerializeField] private Button _termsButton;
 
         /// <summary>
         /// The player tapped Restart. The popup stays open beneath the confirmation (Are You Sure or
@@ -29,7 +32,7 @@ namespace BallSort.Game.UI
         public Popup Popup => _popup;
 
         /// <param name="player">Whose settings the toggles show and change.</param>
-        /// <param name="showLevelActions">True in the Level scene, to show Restart and Home.</param>
+        /// <param name="showLevelActions">True in the Level scene, to show Restart and Home; false shows Terms and Privacy.</param>
         public void Initialize(PlayerData player, bool showLevelActions)
         {
             foreach (SettingToggle toggle in _toggles)
@@ -39,6 +42,7 @@ namespace BallSort.Game.UI
 
             _restartButton.gameObject.SetActive(showLevelActions);
             _homeButton.gameObject.SetActive(showLevelActions);
+            _termsButton.gameObject.SetActive(!showLevelActions);
 
             _restartButton.onClick.RemoveListener(OnRestartClicked);
             _homeButton.onClick.RemoveListener(OnHomeClicked);

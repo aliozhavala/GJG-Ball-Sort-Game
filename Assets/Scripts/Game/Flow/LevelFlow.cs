@@ -126,10 +126,12 @@ namespace BallSort.Game.Flow
             LevelSession session = new LevelSession(level, variant, player.Boosters, economy.AddedTubeCapacity);
             _session = session;
 
+            // The HUD first: the board fits around it, the tier label included.
+            _hud.Initialize(visit.Label, level.Tier, player, episodes.GetEpisodeForLevel(visit.LevelNumber).MascotFrame,
+                audio, haptics);
             _boardView.Initialize(session);
             _feedback.Initialize(session, _boardView, audio, haptics);
             _input.Initialize(session, () => _hud.IsPopupOpen);
-            _hud.Initialize(visit.Label, player, episodes.GetEpisodeForLevel(visit.LevelNumber).MascotFrame, audio, haptics);
 
             _input.SelectionChanged += _boardView.ShowSelection;
             _input.InvalidMove += _feedback.PlayInvalidMove;
@@ -528,7 +530,7 @@ namespace BallSort.Game.Flow
                 return;
             }
 
-            _hud.Tutorial.Show(entry.Text, entry.Image);
+            _hud.Tutorial.Show(entry.Name, entry.Text, entry.Hint, entry.Image);
         }
 
         private void OnTutorialDismissed()

@@ -218,7 +218,7 @@ Adapted from product's §4 (a board-wide shuffle staggered by tube) to the singl
 
 ## 5.2 Level win
 Product's §5.2 and SFX guide 6.1, on our Win panel: the dimmed screen, the win picture (`Win_Picture`), "Level N
-complete" above it, the reward and Continue below it, all in one panel **(ours: product's logo that shrinks away before a
+Complete!" above it, the reward and Continue below it, all in one panel **(ours: product's logo that shrinks away before a
 separate reward card is not built; the picture is the panel)**. Steps start from the board having **settled** (S: the
 last ball landed, the last cork seated), like the stuck bar, rather than product's fixed 0.9 s.
 
@@ -239,8 +239,8 @@ last ball landed, the last cork seated), like the stuck bar, rather than product
 - **Tap to skip:** a tap anywhere on the panel jumps to the next step (title, reward, then the end), plays that step's
   sound and haptic at once and never the ones it passed over (`WinPopup.OnPointerClick` → `WinPanelAnimation.Skip`;
   no button, so no click). The board celebration (before the panel) is not skippable: there is nothing to tap yet.
-- With a long title the stamp follows the formula and can come after the coins ("Level 12 complete", 15 letters:
-  C + 1.16 s).
+- With a long title the stamp follows the formula and can come after the coins ("Level 12 Complete!", 16 letters:
+  C + 1.22 s).
 - **Not built:** light rays, glow and sparkle loops,
   the coin pile (no art), pre-loading Home. Feedback: `LevelFeedback.PlayWinStep` on `WinPopup.StepStarted`.
 

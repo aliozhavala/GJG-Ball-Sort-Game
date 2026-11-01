@@ -86,6 +86,44 @@ namespace BallSort.Editor.Art
             }
         }
 
+        /// <summary>
+        /// Cuts the files of <paramref name="rule"/>'s folder still on its canvas to one rectangle holding
+        /// all their content, each pivoted on the rule's anchor, so a set drawn in place stays in place.
+        /// </summary>
+        public static void TrimAnchored(CanvasAnchor rule, Dictionary<string, Vector2> pivots, StringBuilder report)
+        {
+            var paths = new List<string>();
+            var images = new List<PixelImage>();
+            RectInt union = default;
+            foreach (string path in PngsIn(rule.Folder))
+            {
+                PixelImage image = PixelImage.Load(path);
+                if (image.Width != rule.Canvas.x || image.Height != rule.Canvas.y)
+                {
+                    continue;
+                }
+
+                RectInt bounds = image.ContentBounds();
+                union = images.Count == 0 ? bounds : Union(union, bounds);
+                paths.Add(path);
+                images.Add(image);
+            }
+
+            if (paths.Count == 0)
+            {
+                return;
+            }
+
+            RectInt rect = PadToMultipleOf4(union);
+            for (int i = 0; i < paths.Count; i++)
+            {
+                images[i].SaveCropped(paths[i], rect);
+                pivots[paths[i]] = NormalisedPivot(rule.Anchor, rect);
+            }
+
+            report.AppendLine($"{rule.Folder}: {paths.Count} files cut to {rect.width}×{rect.height}, anchored at {rule.Anchor}.");
+        }
+
         public static int PaddingToMultipleOf4(int size) => (4 - size % 4) % 4;
 
         /// <summary>Grows <paramref name="rect"/> evenly on both sides to whole multiples of 4.</summary>

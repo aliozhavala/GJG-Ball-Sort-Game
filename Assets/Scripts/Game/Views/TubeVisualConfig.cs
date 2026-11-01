@@ -54,6 +54,12 @@ namespace BallSort.Game.Views
         [SerializeField] private Sprite _capSprite;
         [Tooltip("Multiplies the tube's colour on the plain cork; its alpha is every cork's.")]
         [SerializeField] private Color _capTint = Color.white;
+        [Tooltip("How far every cork sits above where it was drawn on the tube canvas, in the art's pixels: drawn " +
+            "deep in the neck, it would hide the top monster's head.")]
+        [SerializeField] private float _capRaise;
+
+        [Tooltip("How far a large tube's stand sits below where it was drawn on the tube canvas, in the art's pixels.")]
+        [SerializeField] private float _standDrop;
 
         [Header("Glow around a completed tube (9-sliced, pivot at the bottom centre, tinted in the tube's colour)")]
         [SerializeField] private Sprite _glowSprite;
@@ -148,6 +154,12 @@ namespace BallSort.Game.Views
         public Color FrontTint => _frontTint;
         public Sprite CapSprite => _capSprite;
         public Color CapTint => _capTint;
+
+        /// <summary>World units (at the tube's art scale) the cork sits above the mouth's drawn place.</summary>
+        public float CapRaise => _bottomSprite != null ? _capRaise / _bottomSprite.pixelsPerUnit * ArtScale : 0f;
+
+        /// <summary>World units (at the tube's art scale) a large tube's stand sits below the base.</summary>
+        public float StandDrop => _bottomSprite != null ? _standDrop / _bottomSprite.pixelsPerUnit * ArtScale : 0f;
         public Sprite GlowSprite => _glowSprite;
         public Color GlowTint => _glowTint;
         public float GlowPadding => _glowPadding;

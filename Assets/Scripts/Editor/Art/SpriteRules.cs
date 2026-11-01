@@ -32,6 +32,31 @@ namespace BallSort.Editor.Art
         /// </summary>
         public static readonly (string From, string To)[] Deliveries =
         {
+            // Fifth delivery, stage 2 (2026-11-02): Home backgrounds of episodes 1, 3 and 4, the Episode
+            // Unlocked pictures and the cream popup panel (the same pixels as Unused/Popup_Panel_Cream).
+            ("mainmenu_lab.png", Root + "/Backgrounds/Home_Ep1_Lab.png"),
+            ("mainmenu_ice.png", Root + "/Backgrounds/Home_Ep3_Ice.png"),
+            ("mainmenu_lava.png", Root + "/Backgrounds/Home_Ep4_Lava.png"),
+            ("winmenu_summer.png", Root + "/Episodes/Unlocked/EpisodeUnlocked_Ep2_Summer.png"),
+            ("winmenu_ice.png", Root + "/Episodes/Unlocked/EpisodeUnlocked_Ep3_Ice.png"),
+            ("winmenu_lava.png", Root + "/Episodes/Unlocked/EpisodeUnlocked_Ep4_Lava.png"),
+            ("winmenu_space.png", Root + "/Episodes/Unlocked/EpisodeUnlocked_Ep5_Space.png"),
+            ("ingame5_menu.png", Root + "/UI/Popups/Popup_Panel_Cream.png"),
+            // Fifth delivery (2026-11-01): Level HUD boxes and the large tubes' stands.
+            ("ingame6_menu(boosterbox).png", Root + "/UI/Hud/Hud_BoosterBox.png"),
+            ("ingame7_menu(level).png", Root + "/UI/Hud/Hud_LevelBox.png"),
+            ("ingame7_menu(level)PURPLE.png", Root + "/UI/Hud/Hud_TierBox_Hard.png"),
+            ("ingame7_menu(level)RED.png", Root + "/UI/Hud/Hud_TierBox_SuperHard.png"),
+            ("tube_tabla_blue.png", Stands + "/Stand_Blue.png"),
+            ("tube_tabla_brown.png", Stands + "/Stand_Brown.png"),
+            ("tube_tabla_green.png", Stands + "/Stand_Green.png"),
+            ("tube_tabla_lilac.png", Stands + "/Stand_Lilac.png"),
+            ("tube_tabla_orange.png", Stands + "/Stand_Orange.png"),
+            ("tube_tabla_pink.png", Stands + "/Stand_Pink.png"),
+            ("tube_tabla_purple.png", Stands + "/Stand_Purple.png"),
+            ("tube_tabla_red.png", Stands + "/Stand_Red.png"),
+            ("tube_tabla_turq.png", Stands + "/Stand_Turquoise.png"),
+            ("tube_tabla_yellow.png", Stands + "/Stand_Yellow.png"),
             // Fourth delivery (2026-11-01): hard tier button, booster buttons, win picture, lock box, keys.
             ("buttons/button_hard.png", Root + "/UI/Buttons/Button_Hard.png"),
             ("buttons/button_undo.png", Root + "/UI/Boosters/Booster_Undo.png"),
@@ -106,6 +131,30 @@ namespace BallSort.Editor.Art
         /// </summary>
         public static readonly (string From, string To)[] Replacements =
         {
+            // Fifth delivery: fixed win picture, episode 2's mascot frame, corks and keys. The corks come on
+            // the tube canvas (CanvasAnchored); the keys and the frames on their full canvas, all of a set
+            // together, so each set is cut to one rectangle again.
+            ("ingame_win.png", Root + "/UI/Win/Win_Picture.png"),
+            // Stage 2: the space Home background, redrawn (the summer one came again unchanged).
+            ("mainmenu_space.png", Root + "/Backgrounds/Home_Ep5_Space.png"),
+            ("mainmenu_summer.png", Root + "/Backgrounds/Home_Ep2_Summer.png"),
+            ("ingame_frame_summer_wcharacter.png", Root + "/Episodes/MascotFrame_Ep2_Summer.png"),
+            ("tube_cork_stopper_blue.png", Corks + "/Cork_Blue.png"),
+            ("tube_cork_stopper_brown.png", Corks + "/Cork_Brown.png"),
+            ("tube_cork_stopper_green.png", Corks + "/Cork_Green.png"),
+            ("tube_cork_stopper_lilac.png", Corks + "/Cork_Lilac.png"),
+            ("tube_cork_stopper_orange.png", Corks + "/Cork_Orange.png"),
+            ("tube_cork_stopper_pink.png", Corks + "/Cork_Pink.png"),
+            ("tube_cork_stopper_purple.png", Corks + "/Cork_Purple.png"),
+            ("tube_cork_stopper_red.png", Corks + "/Cork_Red.png"),
+            ("tube_cork_stopper_turq.png", Corks + "/Cork_Turquoise.png"),
+            ("tube_cork_stopper_yellow.png", Corks + "/Cork_Yellow.png"),
+            ("tube_lock_key_blue.png", Keys + "/Key_Blue.png"),
+            ("tube_lock_key_green.png", Keys + "/Key_Green.png"),
+            ("tube_lock_key_pink.png", Keys + "/Key_Pink.png"),
+            ("tube_lock_key_purple.png", Keys + "/Key_Purple.png"),
+            ("tube_lock_key_red.png", Keys + "/Key_Red.png"),
+            ("tube_lock_key_yellow.png", Keys + "/Key_Yellow.png"),
             // Fourth delivery: reworked monsters (one body size and centre) and the hidden ball at their size.
             ("balls reworked/monster_blue_01.png", Root + "/Balls/Ball_Blue_Open.png"),
             ("balls reworked/monster_blue_02.png", Root + "/Balls/Ball_Blue_HalfOpen.png"),
@@ -165,6 +214,8 @@ namespace BallSort.Editor.Art
             Root + "/UI/Leaderboard",
             Root + "/UI/Boosters",
             Root + "/UI/Win",
+            Root + "/UI/Hud",
+            Root + "/UI/Tutorials",
         };
 
         /// <summary>
@@ -206,6 +257,24 @@ namespace BallSort.Editor.Art
         /// <summary>One cork per ball colour (<c>Cork_&lt;Colour&gt;</c>) and a plain one for colours without art.</summary>
         public const string Corks = Root + "/Tubes/Corks";
 
+        /// <summary>One elliptic stand per ball colour (<c>Stand_&lt;Colour&gt;</c>), drawn under a large tube.</summary>
+        public const string Stands = Root + "/Tubes/Stands";
+
+        /// <summary>
+        /// Sets delivered in place on the tube canvas (320×640): the files of that size in each folder are
+        /// cut to one rectangle, pivot on the tube point they belong to (<see cref="SpriteTrim.TrimAnchored"/>).
+        /// Files of another size (already cut, or the plain cork) are left alone.
+        /// </summary>
+        public static readonly CanvasAnchor[] CanvasAnchored =
+        {
+            // The rim's top on the centre line, where the second delivery drew the rim (x 76–256, top at
+            // row 77 from the top): the corks of the fifth delivery are drawn on that canvas.
+            new CanvasAnchor(Corks, new Vector2Int(320, 640), new Vector2(166f, 640f - 77f)),
+            // The tube's base on the centre line of the redrawn tube (x 77–247, base at row 623 from the
+            // top), the canvas the stands are drawn on.
+            new CanvasAnchor(Stands, new Vector2Int(320, 640), new Vector2(162f, 640f - 623f)),
+        };
+
         public static readonly FolderImport[] Imports =
         {
             // Monsters and the hidden ball: the pivot is the round body's centre, the same in every file
@@ -215,6 +284,7 @@ namespace BallSort.Editor.Art
                 tightMesh: true, pivot: new Vector2(128f / 256f, 1f - 139f / 256f)),
             new FolderImport(Root + "/Tubes", 1024, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Corks, 256, TextureImporterFormat.ASTC_4x4),
+            new FolderImport(Stands, 256, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/Mechanics", 1024, TextureImporterFormat.ASTC_4x4),
             // Lock box parts stand on the box's base line, placed from their centres (CoverView).
             new FolderImport(LockBox, 1024, TextureImporterFormat.ASTC_4x4, pivot: new Vector2(0.5f, 0f)),
@@ -233,9 +303,15 @@ namespace BallSort.Editor.Art
             // Booster buttons are shown ≈ 200–330 px (the bar and the Buy popup).
             new FolderImport(Root + "/UI/Boosters", 512, TextureImporterFormat.ASTC_4x4),
             new FolderImport(Root + "/UI/Win", 1024, TextureImporterFormat.ASTC_6x6),
+            // The Level HUD's boxes, 9-sliced to their content (Borders).
+            new FolderImport(Root + "/UI/Hud", 1024, TextureImporterFormat.ASTC_6x6),
+            // Tutorial pictures, rendered from the board's own art (Ball Sort ▸ Art ▸ Build Tutorial Pictures).
+            new FolderImport(Root + "/UI/Tutorials", 512, TextureImporterFormat.ASTC_4x4),
             // Player pictures: opaque squares shown at most ≈300 px (masked to a circle in their frame).
             new FolderImport(Root + "/UI/Avatars", 512, TextureImporterFormat.ASTC_6x6, opaque: true),
             new FolderImport(Root + "/Episodes", 1024, TextureImporterFormat.ASTC_6x6),
+            // Episode Unlocked pictures: opaque 1200×900 scenes, shown ≈ 700 px wide.
+            new FolderImport(Root + "/Episodes/Unlocked", 1024, TextureImporterFormat.ASTC_6x6, opaque: true),
             new FolderImport(Root + "/Backgrounds", 2048, TextureImporterFormat.ASTC_6x6, opaque: true),
         };
 
@@ -263,12 +339,20 @@ namespace BallSort.Editor.Art
             // Popup panel: the rounded frame and the inner panel's corners stay; the plain blue stretches
             // both ways (rows and columns 60–760 of the trimmed art are flat).
             ["Popup_Panel"] = new Vector4(100f, 110f, 100f, 100f),
+            // Cream panel: the navy frame and the cream field's rounded corners stay; the flat cream stretches.
+            ["Popup_Panel_Cream"] = new Vector4(130f, 130f, 130f, 130f),
             // Leaderboard panel: the tubes, the top frame and its orange corners (rows 0–470) and the bottom
             // frame stay; the box's plain middle (rows 470–800) stretches to fit the rows. It is never
             // stretched sideways (scaled uniformly to its width), so it has no side borders.
             ["Leaderboard_Panel"] = new Vector4(0f, 130f, 0f, 470f),
             // Open lock box's back wall: its rounded frame ends stay, the plain middle stretches across the box.
             ["LockBox_Inside"] = new Vector4(32f, 0f, 32f, 0f),
+            // Level HUD boxes: the bevelled frame and the inner panel's rounded corners stay, the flat
+            // middle stretches (the title box to its text, the booster box to the bar).
+            ["Hud_LevelBox"] = new Vector4(64f, 64f, 64f, 64f),
+            ["Hud_TierBox_Hard"] = new Vector4(64f, 64f, 64f, 64f),
+            ["Hud_TierBox_SuperHard"] = new Vector4(64f, 64f, 64f, 64f),
+            ["Hud_BoosterBox"] = new Vector4(130f, 110f, 130f, 110f),
         };
     }
 }
