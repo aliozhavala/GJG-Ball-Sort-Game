@@ -231,7 +231,7 @@ MonoBehaviour:
   _title: {fileID: 1171297265614268933}
   _reward: {fileID: 2451610176539976020}
   _continueButton: {fileID: 4377552272134431347}
-  _titleFormat: Level {0} complete
+  _titleFormat: Level {0} Complete!
   _rewardFormat: +{0} <sprite name="Icon_Coin">
 --- !u!114 &2347598522242622283
 MonoBehaviour:

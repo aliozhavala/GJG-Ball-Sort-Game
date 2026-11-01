@@ -82,7 +82,7 @@ namespace BallSort.Game.Flow
             yield return new WaitForSeconds(_episodeUnlockedDelay);
             _background.Show(episode.HomeBackground);
             EpisodeUnlockedOverlay overlay = _homeScreen.EpisodeUnlocked;
-            overlay.Show(episodeIndex + 1, episode.MascotFrame, audio.Config.Get(Sfx.WinFanfare).HeardBeats());
+            overlay.Show(episodeIndex + 1, episode.Name, episode.UnlockedPicture, audio.Config.Get(Sfx.WinFanfare).HeardBeats());
             audio.Play(Sfx.WinFanfare);
             haptics.Win();
             _homeScreen.SetInputBlocked(false);

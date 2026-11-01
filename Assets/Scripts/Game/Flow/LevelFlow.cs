@@ -530,7 +530,7 @@ namespace BallSort.Game.Flow
                 return;
             }
 
-            _hud.Tutorial.Show(entry.Text, entry.Image);
+            _hud.Tutorial.Show(entry.Name, entry.Text, entry.Hint, entry.Image);
         }
 
         private void OnTutorialDismissed()

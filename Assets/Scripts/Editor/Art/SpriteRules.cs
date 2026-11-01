@@ -32,6 +32,16 @@ namespace BallSort.Editor.Art
         /// </summary>
         public static readonly (string From, string To)[] Deliveries =
         {
+            // Fifth delivery, stage 2 (2026-11-02): Home backgrounds of episodes 1, 3 and 4, the Episode
+            // Unlocked pictures and the cream popup panel (the same pixels as Unused/Popup_Panel_Cream).
+            ("mainmenu_lab.png", Root + "/Backgrounds/Home_Ep1_Lab.png"),
+            ("mainmenu_ice.png", Root + "/Backgrounds/Home_Ep3_Ice.png"),
+            ("mainmenu_lava.png", Root + "/Backgrounds/Home_Ep4_Lava.png"),
+            ("winmenu_summer.png", Root + "/Episodes/Unlocked/EpisodeUnlocked_Ep2_Summer.png"),
+            ("winmenu_ice.png", Root + "/Episodes/Unlocked/EpisodeUnlocked_Ep3_Ice.png"),
+            ("winmenu_lava.png", Root + "/Episodes/Unlocked/EpisodeUnlocked_Ep4_Lava.png"),
+            ("winmenu_space.png", Root + "/Episodes/Unlocked/EpisodeUnlocked_Ep5_Space.png"),
+            ("ingame5_menu.png", Root + "/UI/Popups/Popup_Panel_Cream.png"),
             // Fifth delivery (2026-11-01): Level HUD boxes and the large tubes' stands.
             ("ingame6_menu(boosterbox).png", Root + "/UI/Hud/Hud_BoosterBox.png"),
             ("ingame7_menu(level).png", Root + "/UI/Hud/Hud_LevelBox.png"),
@@ -125,6 +135,9 @@ namespace BallSort.Editor.Art
             // the tube canvas (CanvasAnchored); the keys and the frames on their full canvas, all of a set
             // together, so each set is cut to one rectangle again.
             ("ingame_win.png", Root + "/UI/Win/Win_Picture.png"),
+            // Stage 2: the space Home background, redrawn (the summer one came again unchanged).
+            ("mainmenu_space.png", Root + "/Backgrounds/Home_Ep5_Space.png"),
+            ("mainmenu_summer.png", Root + "/Backgrounds/Home_Ep2_Summer.png"),
             ("ingame_frame_summer_wcharacter.png", Root + "/Episodes/MascotFrame_Ep2_Summer.png"),
             ("tube_cork_stopper_blue.png", Corks + "/Cork_Blue.png"),
             ("tube_cork_stopper_brown.png", Corks + "/Cork_Brown.png"),
@@ -202,6 +215,7 @@ namespace BallSort.Editor.Art
             Root + "/UI/Boosters",
             Root + "/UI/Win",
             Root + "/UI/Hud",
+            Root + "/UI/Tutorials",
         };
 
         /// <summary>
@@ -291,9 +305,13 @@ namespace BallSort.Editor.Art
             new FolderImport(Root + "/UI/Win", 1024, TextureImporterFormat.ASTC_6x6),
             // The Level HUD's boxes, 9-sliced to their content (Borders).
             new FolderImport(Root + "/UI/Hud", 1024, TextureImporterFormat.ASTC_6x6),
+            // Tutorial pictures, rendered from the board's own art (Ball Sort ▸ Art ▸ Build Tutorial Pictures).
+            new FolderImport(Root + "/UI/Tutorials", 512, TextureImporterFormat.ASTC_4x4),
             // Player pictures: opaque squares shown at most ≈300 px (masked to a circle in their frame).
             new FolderImport(Root + "/UI/Avatars", 512, TextureImporterFormat.ASTC_6x6, opaque: true),
             new FolderImport(Root + "/Episodes", 1024, TextureImporterFormat.ASTC_6x6),
+            // Episode Unlocked pictures: opaque 1200×900 scenes, shown ≈ 700 px wide.
+            new FolderImport(Root + "/Episodes/Unlocked", 1024, TextureImporterFormat.ASTC_6x6, opaque: true),
             new FolderImport(Root + "/Backgrounds", 2048, TextureImporterFormat.ASTC_6x6, opaque: true),
         };
 
@@ -321,6 +339,8 @@ namespace BallSort.Editor.Art
             // Popup panel: the rounded frame and the inner panel's corners stay; the plain blue stretches
             // both ways (rows and columns 60–760 of the trimmed art are flat).
             ["Popup_Panel"] = new Vector4(100f, 110f, 100f, 100f),
+            // Cream panel: the navy frame and the cream field's rounded corners stay; the flat cream stretches.
+            ["Popup_Panel_Cream"] = new Vector4(130f, 130f, 130f, 130f),
             // Leaderboard panel: the tubes, the top frame and its orange corners (rows 0–470) and the bottom
             // frame stay; the box's plain middle (rows 470–800) stretches to fit the rows. It is never
             // stretched sideways (scaled uniformly to its width), so it has no side borders.

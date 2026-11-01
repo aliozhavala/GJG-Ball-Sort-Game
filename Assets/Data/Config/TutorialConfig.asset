@@ -14,25 +14,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: BallSort.Game::BallSort.Game.Services.TutorialConfig
   _entries:
   - _levelId: 1
+    _name: 
     _text: Tap a tube, then tap the target. Put same-color monsters together!
+    _hint: 
     _image: {fileID: 0}
   - _levelId: 7
-    _text: "Move the top monster to <color=#FFD23A>REVEAL</color> the one\_below!\n<size=75%>A
-      \"?\" shows its color once it is on top.</size>"
-    _image: {fileID: 0}
+    _name: Hidden Monster
+    _text: "Move the top monster to <color=#9B3BEB>REVEAL</color> the one\_below!"
+    _hint: A "?" shows its color once it is on top.
+    _image: {fileID: 21300000, guid: ef30e7f080cb14333a2baca93eaa7eb7, type: 3}
   - _levelId: 20
-    _text: "Gather one color in the\_<color=#FFD23A>BIG\_TUBE</color>!\n<size=75%>It
-      only takes its own color.</size>"
-    _image: {fileID: 0}
+    _name: Big Tube
+    _text: "Gather one color in the\_<color=#9B3BEB>BIG\_TUBE</color>!"
+    _hint: It only takes its own color.
+    _image: {fileID: 21300000, guid: cbd22647d60a047b7aa8cd54ba88c812, type: 3}
   - _levelId: 30
-    _text: "Complete the badge color to lift the\_<color=#FFD23A>TOWEL</color>!\n<size=75%>The
-      tube under it opens up.</size>"
-    _image: {fileID: 0}
+    _name: Towel
+    _text: "Complete the badge color to lift the\_<color=#9B3BEB>TOWEL</color>!"
+    _hint: The tube under it opens up.
+    _image: {fileID: 21300000, guid: 378ea47ab61e74151a0708a0e87924cc, type: 3}
   - _levelId: 55
-    _text: "Fill the tube to break the\_<color=#FFD23A>ICE</color>!\n<size=75%>You
-      can pour in, but never out.</size>"
-    _image: {fileID: 0}
+    _name: Ice
+    _text: "Fill the tube to break the\_<color=#9B3BEB>ICE</color>!"
+    _hint: You can pour in, but never out.
+    _image: {fileID: 21300000, guid: 882e549a9a8d24f3fbf46fb94d743384, type: 3}
   - _levelId: 80
-    _text: "Find the <color=#FFD23A>KEY</color> to open the\_<color=#FFD23A>BOX</color>!\n<size=75%>Dig
-      out the monster carrying it.</size>"
-    _image: {fileID: 0}
+    _name: Locked Box
+    _text: "Find the <color=#9B3BEB>KEY</color> to open the\_<color=#9B3BEB>BOX</color>!"
+    _hint: Dig out the monster carrying it.
+    _image: {fileID: 21300000, guid: 602114799d25f4012a1bbb925119d853, type: 3}

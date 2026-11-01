@@ -64,9 +64,10 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
     1,000 / 5,000 / 10,000 / 25,000 / 50,000 / 100,000 coins, labelled 99,99 TL / 399,99 TL / 799,99 TL / 1499,99 TL /
     2999,99 TL / 4999,99 TL (display only, `EconomyConfig`). Each shows its picture (`Icon_Coin`, `Icon_CoinPouch`,
     `Icon_CoinChest`, `Icon_CoinChestFull`, `Icon_CoinTank`, `Icon_CoinTankFull`, in that order), its coins and its
-    price in black on a yellow tag (shrinks to fit inside the tag's yellow, the packs' too); a tap adds the coins at once (no real payment) and
+    price in white with a black outline (the `Black Outline` preset) on a yellow tag (shrinks to fit inside the tag's
+    yellow, the packs' too); a tap adds the coins at once (no real payment) and
     toasts "+10,000 coins". Each card shows, left to right above its price, a coin icon (`Icon_Coin`, `Icon_CoinChest`,
-    `Icon_CoinTank` for cards 1–3), the no-ads icon and its name; its price is black too.
+    `Icon_CoinTank` for cards 1–3), the no-ads icon and its name; its price is white with a black outline too.
   - **Leaderboard page** (`LeaderboardPage`): the Shop's structure, a scroll view running behind the bar
     (`ScrollBehindBar`): the leaderboard header ("Leaderboard" written on the plate), then the leaderboard panel,
     9-sliced so its box stretches down to fit the rows. Rows, top to bottom: the rank (1 to N) in the circle on the
@@ -74,7 +75,8 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
     player's row art (`Leaderboard_RowMe`); below come 10 bots on the plain row (`Leaderboard_Row`), fixed in the
     `LeaderboardConfig` asset (family-friendly names, avatar ids picked at random once from our 5). No backend and no
     scores. The top 3 avatars also sit on the discs of the three tubes drawn at the top of the panel: rank 1 on the
-    tall middle tube, 2 on the left, 3 on the right. The page refreshes each time it is shown (name and avatar change
+    tall middle tube, 2 on the left, 3 on the right; each tube's round window shows its number, 1, 2 or 3 (`Panel/Rank1–3`,
+    Title preset, 60, placed on the windows of the panel art: (323, 234), (138, 266), (513, 266) of 640 px). The page refreshes each time it is shown (name and avatar change
     in the avatar menu). Rows are made once, from a template, when Home starts.
 - **Avatar** → **avatar menu** (`AvatarMenuPopup`, the `AvatarMenu_Panel` art): top, the picked avatar in its frame,
   the name to its right and the pen button to the right of the name. The name is read-only and takes no taps until
@@ -82,7 +84,9 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   a refused name goes back to the saved one). Bottom, a 3 × 3 grid of frames: the first five hold avatars 1–5, a tap
   picks one (saved at once, shown on Home's avatar), the picked one in the green selected frame; the other four show the empty
   frame and cannot be picked. **Close** (✕) closes.
-- Settings popup (Home): Sound, Music, Haptics toggles (Settings popup, Shared UI pieces).
+- Settings popup (Home): Sound, Music, Haptics toggles (Settings popup, Shared UI pieces), and **Terms and Privacy**
+  (underlined, Body preset) where the Level scene has Restart and Home (`SettingsPopup._termsButton`): a tap plays the
+  button sound and haptic and opens nothing yet.
 
 ## Level screen
 - **Top-left:** the episode's mascot frame (display only, for now; it hangs below the top bar, clear of the board).
@@ -140,7 +144,7 @@ All numbers live in an `EconomyConfig` ScriptableObject, not in code, including 
   - Play on is disabled (still showing its price) if coins < 900 or every row already has 8 cells. Give up is then the only choice.
 
 ### Win
-- Input locks, progress + reward are saved and the level-in-progress mark is cleared (one save), the board celebrates (tubes bump, balls hop, confetti from the bottom corners), then the **Win panel**: no panel art, the win picture (`UI/Win/Win_Picture`, the scientist hugging the monsters) in the middle of the dimmed screen, "Level N complete" just above it (the art has no banner or ribbon to write on, so the title never crosses the picture's edge), `+20 ●` (the tier's reward) and **Continue** → Home below it. It enters animated (dim, picture pop, title letter by letter, reward, Continue last; a tap skips to the next step; docs/animation-spec.md 5.2). A win never costs a life.
+- Input locks, progress + reward are saved and the level-in-progress mark is cleared (one save), the board celebrates (tubes bump, balls hop, confetti from the bottom corners), then the **Win panel**: no panel art, the win picture (`UI/Win/Win_Picture`, the scientist hugging the monsters) in the middle of the dimmed screen, "Level N Complete!" just above it (the art has no banner or ribbon to write on, so the title never crosses the picture's edge), `+20 ●` (the tier's reward) and **Continue** → Home below it. It enters animated (dim, picture pop, title letter by letter, reward, Continue last; a tap skips to the next step; docs/animation-spec.md 5.2). A win never costs a life.
 
 ## Buying
 Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyBooster`, `TryRefillLives` and `AddCoins`
@@ -202,7 +206,10 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
   Unlocked overlay.
 - **Episode Unlocked:** Continue on the Win panel of a win that moved `CurrentLevel` into a new episode (winning level
   19, 39, 59 or 79; `EpisodeMap.FindUnlocked`) brings up Home on the previous episode's background. About 0.7 s later (`HomeFlow._episodeUnlockedDelay`) the
-  Episode Unlocked overlay appears ("Episode N unlocked" and the new episode's mascot frame) and the Home background
+  Episode Unlocked overlay appears ("Episode N Unlocked!", the episode's name under it in navy, Plain preset, from
+  `Episode._name`: Classic Lab, Beach Lab, Arctic Lab, Lava Lab, Space Lab; then the new episode's picture, `Episode._unlockedPicture`:
+  `EpisodeUnlocked_Ep2_Summer` … `Ep5_Space`, 460 high; the mascot frame for an episode without one) on the cream panel,
+  and the Home background
   switches to the new episode behind it, with `sfx_win_fanfare`, a Win haptic and the win's fireworks over the card
   (`FireworksView`, big bursts on the fanfare's beats, as on the Win panel); `sfx_reward_jingle` and a Success haptic
   follow 0.6 s later (`HomeFlow._episodeJingleDelay`) unless the overlay was closed by then (SFX guide 6.2). A tap
@@ -219,10 +226,24 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
 - "Seen" is saved per level id when the popup is dismissed, so it never shows again for that level (Restart, later
   attempts, replays). Closing the app before dismissing it shows it again on the next entry.
 - `TutorialConfig` has an entry for each tutorial level (1, 7, 20, 30, 55, 80) with product's text
-  (docs/design/TEXT_CHANGES.md, section 3): level 1 one line; each mechanic a main line with its key word in capitals
-  and highlighted (`<color=#FFD23A>`), then a hint line at 75 % size. A non-breaking space keeps the key word with the
-  word before it, so it never wraps onto a line alone. The richer New Item card (name, "New Item Unlocked!", picture) is
-  not built. Product edits the text in the asset, with no code change. A tutorial level without an entry shows
+  (docs/design/TEXT_CHANGES.md, section 3): `_name` (the card's title), `_text` (the main line, its key word in capitals
+  and highlighted purple, `<color=#9B3BEB>`) and `_hint`. A non-breaking space keeps the key word with the word before
+  it, so it never wraps onto a line alone. Product edits the text in the asset, with no code change. Level 20 introduces
+  only the big tube; level 55 introduces the ice for the first time (capacity-4 clay tubes).
+- **New Item card** (an entry with a name: levels 7, 20, 30, 55, 80; the prototype's card, without its level label):
+  over a near-black purple dim (95 %), top to bottom: the name in gold (vertex gradient `#FFEC7A` → `#FF9C1E`, Yellow
+  preset, up to 128), "New Item Unlocked!" (Title preset, 64), the picture in its light (`NewItemGlow`: ten warm rays
+  turning at 0.22 rad/s over a lilac glow, growing in over 0.5 s, gold four-pointed sparkles twinkling around it), then
+  the cream card (`Popup_Panel_Cream`, 860 wide) with the main line (navy `#2A1B5E`, 52) and the hint (`#7A6E9E`, 38),
+  both in the Plain preset (no outline, no shadow), and "Tap to Continue" under it (Title preset, 60). On opening the
+  name pops (OutBack, 0.45 s) and the picture pops 0.15 s later. Level 1 (no name) shows only the cream card with its
+  line and "Tap to Continue".
+- Each mechanic's card shows a picture of it (`TutorialEntry._image`, up to 620×500, aspect kept), rendered
+  from the board's own views and art by **Ball Sort ▸ Art ▸ Build Tutorial Pictures** (`TutorialPictureBuilder`, in
+  Play mode in the Level scene) into `Art/Sprites/UI/Tutorials/`: level 7 a tube with its top monster shown and two
+  hidden under it (`Tutorial_Hidden`), 20 a capacity-7 clay tube on its red stand (`Tutorial_BigTube`), 30 a tube under
+  the towel (`Tutorial_Veil`), 55 a capacity-4 tube in its ice (`Tutorial_Ice`), 80 a shut lock box and the monster
+  carrying its key (`Tutorial_LockBox`). Level 1 has none. A tutorial level without an entry shows
   no popup and logs a warning; `TutorialConfig.OnValidate` warns about duplicate level ids and empty texts.
 - Editor test visits show the popup on every visit and never save it as seen.
 
@@ -230,7 +251,10 @@ Prices and amounts are in `EconomyConfig`; the purchases are `PlayerData.TryBuyB
 - **Toast:** short message, auto-hides, never blocks input. A new message replaces the current one instead of queueing.
 - **Popup:** modal with dimmed background; blocks input beneath it. Open = GameObject active. Draw order is hierarchy order: screen content, then popups, then the toast last. Popups can stack: Are You Sure and More Lives open over the settings popup, and only the topmost takes input. The tutorial popup and the Episode Unlocked overlay close on a tap anywhere; the others have buttons. A popup that follows the player data subscribes while open (`OnEnable`/`OnDisable`): a popup never opened never runs `OnDestroy`, and the player data outlives the scene.
 - **Popup panels:** every popup uses the popup panel art (`Popup_Panel`, 9-sliced to fit its content) except Settings
-  (`Settings_Panel`, fixed art) and the avatar menu (its own panel).
+  (`Settings_Panel`, fixed art), the avatar menu (its own panel), and the tutorial, Buy and Episode Unlocked popups, on
+  the cream panel (`Popup_Panel_Cream`, 9-sliced 130 a side; the tutorial's card at PPU multiplier 1.8 for a thinner
+  frame); on the Buy and Episode Unlocked panels the "Tap to Continue" hint is navy at 70 % (the tutorial's is white,
+  under its card).
 - **Settings popup** (one prefab, both scenes): the settings panel art with "Settings" in its header lip, and Sound,
   Music and Haptics written on the three bars next to their icons. Each has a switch in the track to the right of its
   bar (`SettingSwitch`, driven by `SettingToggle`): one knob, on the left with `Toggle_Off` when off, on the right with

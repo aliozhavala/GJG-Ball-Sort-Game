@@ -184,11 +184,11 @@ shared canvas size.
 **Popups (Home and Level)**
 - ~~Popup panel, toggles, standalone coin and heart, green plus~~: arrived in the third delivery (section 8).
 - **Popup title ribbon** (optional).
-- **Episode Unlocked** banner/overlay art (it uses the popup panel today).
+- ~~Episode Unlocked art~~: arrived as a picture per episode and the cream panel (section 12).
 - **Toast** background.
 
 **Home**
-- **Home backgrounds for episodes 1, 3 and 4** (Lab, Ice, Lava).
+- ~~Home backgrounds for episodes 1, 3 and 4~~: arrived (section 12).
 - ~~Hard tier button~~: arrived (section 11).
 - ~~Leaderboard page, coin bundle art~~: arrived in the third delivery (section 8). The three bundle cards below the
   shop panel still have no title art (we write it in text).
@@ -388,6 +388,8 @@ softness 0.
 | Green | `#1F5C14` | 0.06 / 0.22 / 0.30 | −0.40 | green buttons (Continue, regular Level button), green pills (lives timer, coins), booster badges |
 | Red | `#7A0C22` | 0.06 / 0.22 / 0.30 | −0.40 | red buttons (Quit / Restart, Settings Restart / Home, Give up, hard Level button), hearts' counts, the x3/x5 tag |
 | Yellow | `#8A4A0A` brown | 0.06 / 0.22 / 0.30 | −0.40 | yellow buttons (Buy price, Play on) |
+| Black Outline | black (shadow black at 50 %) | 0.06 / 0.22 / 0.30 | −0.40 | Shop prices (bundles and pack cards), white text |
+| Plain | none | 0 / 0 / none | none | dark text on the cream card (tutorial line and hint): the font as drawn, so it stays crisp |
 
 Units are TMP's (fractions of the 15 px padding at 64 pt; the shadow offset of the gradient scale, 16 px), so −0.40 ≈
 0.1 em down.
@@ -523,9 +525,8 @@ files stay in `Placeholder/`.
 
 ## 12. Fifth delivery (2026-11-02)
 
-44 PNGs dropped flat in `Assets/Art/Incoming/`. Stage 1 (Level scene and board) placed 32 of them through **Prepare
-Sprites** (`SpriteRules.Deliveries` and `Replacements`); the 12 for stage 2 (`mainmenu_*`, `winmenu_*`,
-`ingame5_menu.png`) wait in Incoming, which has no rule for them yet.
+44 PNGs dropped flat in `Assets/Art/Incoming/`, placed by **Prepare Sprites** (`SpriteRules.Deliveries` and
+`Replacements`) in two stages: 32 for the Level scene and board, then 12 for Home and the popups (second table).
 
 | Incoming | Project file | Slot |
 |---|---|---|
@@ -538,6 +539,23 @@ Sprites** (`SpriteRules.Deliveries` and `Replacements`); the 12 for stage 2 (`ma
 | `ingame_frame_summer_wcharacter.png` | `Episodes/MascotFrame_Ep2_Summer.png` (replaced in place) | Episode 2 mascot frame |
 | `tube_cork_stopper_<colour>.png` (10) | `Tubes/Corks/Cork_<Colour>.png` (replaced in place) | Corks, ids 0–9; `Cork_Plain` (ids 10–11) is the old art |
 | `tube_lock_key_<colour>.png` (6) | `Mechanics/Keys/Key_<Colour>.png` (replaced in place) | Keys (`LockPalette`) |
+
+**Stage 2 (Home, popups)**
+
+| Incoming | Project file | Slot |
+|---|---|---|
+| `mainmenu_lab.png`, `mainmenu_ice.png`, `mainmenu_lava.png` | `Backgrounds/Home_Ep1_Lab`, `Home_Ep3_Ice`, `Home_Ep4_Lava` (new) | `EpisodeConfig` Home backgrounds of episodes 1, 3, 4 (they used episode 2's) |
+| `mainmenu_summer.png` | `Backgrounds/Home_Ep2_Summer.png` (replaced in place; the same pixels) | episode 2 |
+| `mainmenu_space.png` | `Backgrounds/Home_Ep5_Space.png` (replaced in place; redrawn) | episode 5 |
+| `winmenu_<theme>.png` (4) | `Episodes/Unlocked/EpisodeUnlocked_Ep<N>_<Theme>.png` (new) | `Episode._unlockedPicture`, episodes 2–5: the Episode Unlocked overlay's picture |
+| `ingame5_menu.png` | `UI/Popups/Popup_Panel_Cream.png` (new; its identical copy in `Unused` went to the trash) | tutorial, Buy and Episode Unlocked panels, 9-sliced 130 a side |
+
+Measurements: Home backgrounds 1440×2560 opaque (as before); Episode Unlocked pictures 1200×900 opaque scenes,
+imported at 1024 without alpha; cream panel 809×845 of 1000×1000 (navy frame ≈ 43 px, cream field with ≈ 85 px
+rounded corners), cut to 812×848.
+
+Tutorial pictures (`UI/Tutorials/Tutorial_*.png`, not delivered: rendered from the board's views by **Ball Sort ▸ Art ▸
+Build Tutorial Pictures**, transparent, at 220 px per world unit, trimmed and imported at 512 by Prepare Sprites).
 
 The four other mascot frames were put back on their delivered 1000×1000 canvas (the untouched originals, commit
 "Art: first delivery…") before the run, so the five are cut to one rectangle again: 856×848 (was 856×844; the new
@@ -557,9 +575,9 @@ summer frame reaches 6 px higher).
 **Fit in the game**
 - **Corks:** drawn where the artist placed them they covered the top monster's head, so every cork sits 25 px of art
   higher (`TubeVisualConfig._capRaise`): it plugs the mouth, its bottom just inside the rim.
-- **Keys:** `ColorPalette._keyMarkSize` 0.38 of the ball's diameter (was 0.5), `_keyMarkOffset` (0.33, 0.30) (was
-  (0, −0.3), in the hands): over the top right of the eye, never covering all of it, inside the ball's width so it
-  stays in the tube. The unlock flight starts from the key as drawn (`BallView.TryTakeKey` reads its bounds), so it
+- **Keys:** `ColorPalette._keyMarkSize` 0.46 of the ball's diameter (was 0.5), `_keyMarkOffset` (0.06, −0.30): held
+  on the monster's belly, under the eye and clear of it, inside the ball's width so it stays in the tube (product's
+  call after trying it over the eye's top right at 0.38 and (0.33, 0.30). The unlock flight starts from the key as drawn (`BallView.TryTakeKey` reads its bounds), so it
   follows the new place by itself.
 - **Large tubes:** no ice (still clay by the rules); a stand in the colour of the starting ball, at the art's scale,
   behind the tube (TubeBack −2).

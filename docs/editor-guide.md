@@ -21,6 +21,7 @@ For teammates who know a little Unity but not this project. Everything here is E
 | **Ball Sort ▸ Player Data...** | Player Data window | Yes (edits the live player) |
 | **Ball Sort ▸ Reset Save** | Runs right away | No (greyed out) |
 | **Ball Sort ▸ Art ▸ Prepare Sprites** | Runs right away | Don't |
+| **Ball Sort ▸ Art ▸ Build Tutorial Pictures** | Runs right away | Only there (Level scene) |
 
 ### Play Level… — play any level or test file, in any variant
 A **test visit**. It opens the Level scene, enters Play mode and plays the level you picked, once.
@@ -98,6 +99,11 @@ For a new art delivery:
 3. Apply the import settings (100 PPU, no mipmaps, ASTC on mobile).
 
 You can safely run it more than once, but it changes art files, so leave it to the developer (docs/art-inventory.md).
+
+### Art ▸ Build Tutorial Pictures — Play mode, Level scene
+Renders the five tutorial pictures (hidden ball, big tube on its stand, towel, ice, lock box and key) from the board's
+own views into `Assets/Art/Sprites/UI/Tutorials/`. Run it in Play mode in the Level scene (any level), then leave Play
+mode and run Prepare Sprites. Only needed when the board's art changes; `TutorialConfig` already points at the files.
 
 ### Automatic, no menu
 - **Sound import rules**: a new file in `Assets/Audio/SFX/` gets mobile import settings the first time it is imported.

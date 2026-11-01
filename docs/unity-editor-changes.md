@@ -1178,7 +1178,7 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 
 ### Verification
 - Console: no errors after compiling. Play mode, `WinPopup.Show("12", 20)` called directly: screenshots in
-  `Screenshots/fireworks/` (local only, not committed; taken with the Editor in the background, about 8 fps): bursts high on the screen over the
+  `Screenshots/fireworks/` (taken with the Editor in the background, about 8 fps): bursts high on the screen over the
   dim and behind the picture, title and reward, the first big one at ~1.7 s, the last sparks gone by ~4.5 s.
   The fanfare's sync was not checked by ear.
 
@@ -1193,7 +1193,7 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 
 ### Verification
 - Console: no errors. Play mode, `SceneLoader.LoadHome(HomeArrival.WithUnlockedEpisode(1))`: screenshots
-  `Screenshots/fireworks/episode_*.png` (local only, not committed; Episode 2 card with bursts over it); `sfx_win_fanfare` was playing on the
+  `Screenshots/fireworks/episode_*.png` (Episode 2 card with bursts over it); `sfx_win_fanfare` was playing on the
   AppRoot sources through the bursts. The jingle (0.55 s) fell between samples and was not caught.
 - Side effect on the Editor save: the test left level 4 mid-attempt; lives were set back to 5, but the attempt mark
   stays (the next Play costs one life and a retry, as stopping mid-level always does).
@@ -1224,9 +1224,74 @@ All through Unity MCP Editor commands (prefabs via `PrefabUtility.LoadPrefabCont
 
 ### Verification
 - EditMode tests: 1776 passed, 0 failed. Prepare Sprites rerun: nothing left to move or cut.
-- Console: no errors. Screenshots in `Screenshots/stage1/` (local only, not committed; editor test visits, 1080×1920 unless named): level 95
+- Console: no errors. Screenshots in `Screenshots/stage1/` (editor test visits, 1080×1920 unless named): level 95
   (largest: 3 rows, two capacity-10 tubes, lock boxes) at 9:16, 9:19.5 and 3:4 with no tube on any HUD piece; a ball
   lifted from its top row (below the title box); hard level 94 and super hard level 99 with their labels; level 20
   (large tube on its stand, no ice; corks forced on to check their seat); level 55 (capacity-4 clay keeps its ice);
   lock level 80 (key over the eye's top right); the Win panel with the fixed picture. `before_L95_9x16.png` is the
   layout before.
+
+## 2026-11-02 — Fifth art delivery, stage 2: Home backgrounds, Episode Unlocked, cream popups, tutorials, Shop, Settings, Leaderboard
+
+- **Prepare Sprites** (code: `SpriteRules`): moved `Home_Ep1_Lab`, `Home_Ep3_Ice`, `Home_Ep4_Lava`, the four
+  `Episodes/Unlocked/EpisodeUnlocked_Ep<N>_<Theme>` (new folder rule: 1024, opaque) and `UI/Popups/Popup_Panel_Cream`
+  (borders 130); replaced in place `Home_Ep2_Summer` (same pixels) and `Home_Ep5_Space`. `Assets/Art/Unused/
+  Popup_Panel_Cream.png` (identical, unreferenced) moved to the trash. `Assets/Art/Incoming/` is empty and gone.
+- **New tool** `Editor/Art/TutorialPictureBuilder.cs` (**Ball Sort ▸ Art ▸ Build Tutorial Pictures**, Play mode):
+  rendered `Art/Sprites/UI/Tutorials/Tutorial_Hidden, _BigTube, _Veil, _Ice, _LockBox.png` (new folder rule: trimmed
+  each, 512, ASTC 4×4).
+- Code: `Episode._unlockedPicture` / `UnlockedPicture`; `EpisodeUnlockedOverlay._mascot` → `_picture`
+  (`FormerlySerializedAs`); `HomeFlow` shows the picture; `SettingsPopup._termsButton`.
+- `EpisodeConfig.asset`: Home backgrounds 1–5 = `Home_Ep<N>_<Theme>`; `_unlockedPicture` of episodes 2–5.
+- `TutorialConfig.asset`: `_image` of levels 7, 20, 30, 55, 80 = the five pictures; texts of levels 20 and 55 (screens.md,
+  Tutorials).
+- `Prefabs/UI/TutorialPopup.prefab`, `BuyPopup.prefab`, `EpisodeUnlockedOverlay.prefab`: `Panel` Image →
+  `Popup_Panel_Cream` (sliced, PPU multiplier 1); `Hint` colour `#2E2B6EB3`; tutorial `Text` colour `#2E2B6E`;
+  Episode Unlocked picture (`Mascot`) preferred height 400 → 460.
+- `Prefabs/UI/SettingsPopup.prefab`: new `Panel/TermsButton` (off; TMP "Terms and Privacy", Body material,
+  underlined, auto-size 28–46, white; Button, navigation none; anchors 0.15–0.85 × 0.11–0.20, the Restart/Home strip);
+  `SettingsPopup._termsButton` → it.
+- New material `Art/Fonts/Baloo2-Bold SDF Black Outline.mat` (a copy of Title with a black outline and a 50 % black
+  shadow).
+- `Scenes/Home.unity`: the nine Shop `Price` labels (6 bundles, 3 pack cards) → Black Outline material, white;
+  `LeaderboardPage/.../Panel/Rank1–3` (new TMP "1", "2", "3", Title material, 60, 80×80, layout ignored) on the tubes'
+  windows at (464, −336), (198, −382), (737, −382).
+
+### Verification
+- EditMode tests: 1776 passed, 0 failed. Console: no errors. Prepare Sprites rerun: nothing left to move or cut.
+- Screenshots in `Screenshots/stage2/`: Home on each episode's background, Episode
+  Unlocked for episodes 2–5 (picture on the cream panel, fireworks), each tutorial popup (levels 1, 7, 20, 30, 55, 80),
+  the Buy popup, the Shop (white prices with black outlines), Home settings (Terms and Privacy), the Leaderboard (1, 2,
+  3 on the tubes).
+- Editor save: the Level visits of stage 1 left it at 3 lives; set back to 5.
+
+## 2026-11-02 — Tutorial popup as the New Item card; key on the belly
+
+- Code: `TutorialEntry` gets `_name` and `_hint` (`_text` is the main line); `TutorialPopup.Show(name, text, hint,
+  image)` with the card's parts and their entrance (name and picture pop, OutBack); new `UI/NewItemGlow.cs` (rays,
+  glow and sparkles as a uGUI mesh); `LevelFlow` passes the entry's fields.
+- `Prefabs/UI/TutorialPopup.prefab` rebuilt: root dim `#0A051A` at 95 %; new `Content` (vertical layout, 1000 wide,
+  centred) holding `Name` (TMP, Yellow material, vertex gradient, auto-size 70–128), `NewItemLabel` (TMP "New Item
+  Unlocked!", Title material, 64), `PictureArea` (560 high: `Glow` 900×760 `NewItemGlow`, `Picture` 620×500, aspect
+  kept), `Panel` (the cream card, PPU multiplier 1.8, padding 80/80/62/66, 860 wide: `Text` 52 navy and new `HintLine`
+  38 `#7A6E9E`, both Plain material) and `Hint` ("Tap to Continue", Title material, white, 60).
+- New material `Art/Fonts/Baloo2-Bold SDF Plain.mat` (Body without outline, shadow or dilate).
+- `TutorialConfig.asset`: names, lines (highlight `#9B3BEB`) and hints of levels 1, 7, 20, 30, 55, 80 from
+  docs/design/TEXT_CHANGES.md, section 3 (level 20's hint back to "It only takes its own color.").
+- `ColorPalette.asset`: `_keyMarkSize` 0.38 → 0.46, `_keyMarkOffset` (0.33, 0.30) → (0.06, −0.30).
+- `Tutorial_LockBox.png` re-rendered with the key on the belly (Build Tutorial Pictures, Prepare Sprites).
+
+### Verification
+- EditMode tests: 1776 passed. Console: no errors. Screenshots `Screenshots/stage2/newitem_level*.png` (all six) and
+  `key_on_belly_L80.png`.
+
+## 2026-11-02 — Titles: "Level N Complete!", "Episode N Unlocked!" and the episode's name
+
+- Code: `WinPopup._titleFormat` and `EpisodeUnlockedOverlay._titleFormat` defaults; `Episode._name`;
+  `EpisodeUnlockedOverlay._episodeName` and `Show(number, name, picture, beats)`; `HomeFlow` passes the name.
+- `Prefabs/UI/WinPopup.prefab`: `_titleFormat` "Level {0} complete" → "Level {0} Complete!".
+- `Prefabs/UI/EpisodeUnlockedOverlay.prefab`: `_titleFormat` → "Episode {0} Unlocked!"; new `Panel/EpisodeName` under
+  `Title` (TMP, Plain material, navy `#2A1B5E`, auto-size 32–52, 64 high), `_episodeName` → it.
+- `EpisodeConfig.asset`: `_name` = Classic Lab, Beach Lab, Arctic Lab, Lava Lab, Space Lab (the prototype's names on
+  our themes; docs/design/TEXT_CHANGES.md 4.6 said no names, product asked for them on 2026-11-02).
+- Verified: screenshots `episode_unlocked_named.png`, `win_title.png`; no scene overrides of either format.
